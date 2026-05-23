@@ -1,0 +1,20 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "platform",
+    srcs = [
+        "deps.go",
+        "detect.go",
+    ],
+    importpath = "github.com/omargallob/devops-starter/internal/platform",
+    visibility = ["//cmd:__subpackages__", "//internal:__subpackages__"],
+    deps = [
+        "//pkg/tooldef",
+    ],
+)
+
+go_test(
+    name = "platform_test",
+    srcs = ["detect_test.go"],
+    embed = [":platform"],
+)
