@@ -1,4 +1,4 @@
-load("//bazel:platforms.bzl", "declare_platforms")
+load("//bazel/macros:platforms.bzl", "declare_platforms")
 
 declare_platforms(
     platforms = [

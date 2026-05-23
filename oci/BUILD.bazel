@@ -1,4 +1,4 @@
-load("//bazel:test_image.bzl", "test_image")
+load("//bazel/macros:test_image.bzl", "test_image")
 
 # ─── Ubuntu Test Image ───────────────────────────────────────────────────────
 test_image(

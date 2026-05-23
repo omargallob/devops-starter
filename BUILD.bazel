@@ -1,5 +1,5 @@
 load("@gazelle//:def.bzl", "gazelle")
-load("//bazel:shellcheck.bzl", "shellcheck_test")
+load("//bazel/rules:shellcheck.bzl", "shellcheck_test")
 
 # gazelle:prefix github.com/omargallob/devops-starter
 gazelle(name = "gazelle")
