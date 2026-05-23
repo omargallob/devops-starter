@@ -1,0 +1,5 @@
+filegroup(
+    name = "dotfiles",
+    srcs = glob(["**/*"]),
+    visibility = ["//visibility:public"],
+)
