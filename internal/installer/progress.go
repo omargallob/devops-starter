@@ -1,3 +1,4 @@
+// progress.go provides HTTP download with a terminal progress bar.
 package installer
 
 import (

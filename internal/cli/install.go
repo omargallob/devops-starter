@@ -15,6 +15,8 @@ import (
 	"github.com/omargallob/devops-starter/pkg/tooldef"
 )
 
+// newInstallCmd creates the "install" subcommand which downloads and installs
+// tools based on the user's configuration, platform, and optional --only filter.
 func newInstallCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "install",
@@ -28,6 +30,12 @@ func newInstallCmd() *cobra.Command {
 	return cmd
 }
 
+// runInstall is the main logic for the install command. It:
+// 1. Detects the current platform (OS/arch/distro)
+// 2. Loads user configuration (group enables, version overrides)
+// 3. Filters the registry to applicable tools
+// 4. Runs concurrent installations with progress output
+// 5. Prints a summary of successes and failures
 func runInstall(cmd *cobra.Command, args []string) error {
 	// Detect platform
 	info, err := platform.Detect()
@@ -49,7 +57,7 @@ func runInstall(cmd *cobra.Command, args []string) error {
 	reg := registry.New()
 	allTools := reg.All()
 
-	// Filter tools
+	// Filter tools by group, platform support, and per-tool overrides
 	var tools []*tooldef.Tool
 	for _, t := range allTools {
 		// Filter by --only flag
@@ -86,18 +94,18 @@ func runInstall(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
-	// Create installer
+	// Create installer with platform info and dry-run setting
 	inst := installer.New(
 		cfg.InstallDir,
 		info.Platform,
 		installer.WithDryRun(dryRun),
 	)
 
-	// Install all tools
+	// Install all filtered tools concurrently
 	ctx := context.Background()
 	errs := inst.InstallAll(ctx, tools)
 
-	// Print summary
+	// Print summary with coloured output
 	successStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("2"))
 	errorStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("1"))
 

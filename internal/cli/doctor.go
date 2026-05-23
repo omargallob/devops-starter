@@ -13,6 +13,8 @@ import (
 	"github.com/omargallob/devops-starter/internal/platform"
 )
 
+// newDoctorCmd creates the "doctor" subcommand which runs diagnostic checks
+// to verify the system is properly configured for devops-starter.
 func newDoctorCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "doctor",
@@ -22,6 +24,10 @@ func newDoctorCmd() *cobra.Command {
 	}
 }
 
+// runDoctor performs a series of health checks:
+// - ~/.local/bin exists and is in $PATH
+// - Platform can be detected (supported OS/arch)
+// - git and curl are available on $PATH
 func runDoctor(cmd *cobra.Command, args []string) error {
 	passStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("2"))
 	failStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("1"))
@@ -56,7 +62,7 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 		allPassed = false
 	}
 
-	// Check platform detection
+	// Check platform detection works
 	info, err := platform.Detect()
 	if err == nil {
 		pass(fmt.Sprintf("Platform detected: %s/%s", info.OS, info.Arch))
@@ -65,7 +71,7 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 		allPassed = false
 	}
 
-	// Check git
+	// Check git is available (needed for dotfiles operations)
 	if _, err := exec.LookPath("git"); err == nil {
 		pass("git is available")
 	} else {
@@ -73,7 +79,7 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 		allPassed = false
 	}
 
-	// Check curl
+	// Check curl is available (needed for bootstrap install script)
 	if _, err := exec.LookPath("curl"); err == nil {
 		pass("curl is available")
 	} else {

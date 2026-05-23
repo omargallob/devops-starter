@@ -1,3 +1,8 @@
+// Package registry provides the built-in catalog of all tools managed by
+// devops-starter. Each tool group (languages, containers, kubernetes, infra,
+// cloud, rust-tools, utilities) is defined in a separate file and registered
+// at construction time via New(). The registry allows lookup by name, group,
+// or retrieval of all tools sorted alphabetically.
 package registry
 
 import (
@@ -6,12 +11,13 @@ import (
 	"github.com/omargallob/devops-starter/pkg/tooldef"
 )
 
-// Registry holds all known tool definitions.
+// Registry holds all known tool definitions indexed by name.
 type Registry struct {
 	tools map[string]*tooldef.Tool
 }
 
 // New creates a registry with all built-in tools registered.
+// Each registerXxx function adds tools from a single group.
 func New() *Registry {
 	r := &Registry{
 		tools: make(map[string]*tooldef.Tool),
@@ -26,6 +32,7 @@ func New() *Registry {
 	return r
 }
 
+// register adds a tool definition to the registry, keyed by tool name.
 func (r *Registry) register(t *tooldef.Tool) {
 	r.tools[t.Name] = t
 }

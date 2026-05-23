@@ -74,6 +74,8 @@ func DetectFromValues(osName, arch string, distro Distro) *Info {
 	}
 }
 
+// normalizeOS maps runtime.GOOS values to the canonical strings used
+// throughout devops-starter ("linux" or "darwin").
 func normalizeOS(goos string) string {
 	switch goos {
 	case "linux":
@@ -85,6 +87,8 @@ func normalizeOS(goos string) string {
 	}
 }
 
+// normalizeArch maps runtime.GOARCH values (and common alternatives like
+// "x86_64" and "aarch64") to the canonical "amd64" or "arm64" strings.
 func normalizeArch(goarch string) string {
 	switch goarch {
 	case "amd64", "x86_64":
@@ -122,6 +126,9 @@ func detectDistroFromFile(path string) (Distro, error) {
 	return DistroUnknown, nil
 }
 
+// parseDistroID normalises a distro ID string to our Distro enum.
+// Debian-based distros are treated as Ubuntu for package management purposes.
+// Arch-based distros (Arch, Manjaro, EndeavourOS) map to DistroArch.
 func parseDistroID(id string) Distro {
 	switch strings.ToLower(id) {
 	case "ubuntu", "debian": // treat debian as ubuntu for package purposes

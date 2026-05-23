@@ -1,7 +1,10 @@
+// cloud.go registers cloud provider CLI tools.
 package registry
 
 import "github.com/omargallob/devops-starter/pkg/tooldef"
 
+// registerCloud adds cloud provider tools to the registry.
+// Includes aws-cli and eksctl (AWS EKS cluster management).
 func registerCloud(r *Registry) {
 	r.register(&tooldef.Tool{
 		Name:        "aws-cli",

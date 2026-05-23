@@ -123,14 +123,20 @@ func (l *Linker) Unlink(mappings []Mapping) []LinkResult {
 	return results
 }
 
+// sourcePath returns the absolute path to the source file in the repo's dotfiles directory.
 func (l *Linker) sourcePath(m Mapping) string {
 	return filepath.Join(l.SourceDir, m.Source)
 }
 
+// destPath returns the absolute path to the destination in the user's home directory.
 func (l *Linker) destPath(m Mapping) string {
 	return filepath.Join(l.HomeDir, m.Dest)
 }
 
+// checkStatus determines the current state of a single mapping by examining
+// the destination path. It distinguishes between our symlink (StatusLinked),
+// a file/symlink we don't own (StatusConflict), no file (StatusMissing),
+// and a broken symlink (StatusBroken).
 func (l *Linker) checkStatus(m Mapping) LinkStatus {
 	dest := l.destPath(m)
 	source := l.sourcePath(m)
@@ -167,6 +173,8 @@ func (l *Linker) checkStatus(m Mapping) LinkStatus {
 	return StatusConflict
 }
 
+// linkOne creates a symlink for a single mapping. If a conflict exists,
+// the existing file is backed up before creating the symlink.
 func (l *Linker) linkOne(m Mapping) LinkResult {
 	source := l.sourcePath(m)
 	dest := l.destPath(m)
@@ -223,6 +231,7 @@ func (l *Linker) linkOne(m Mapping) LinkResult {
 	return result
 }
 
+// unlinkOne removes a symlink only if it points to our source file.
 func (l *Linker) unlinkOne(m Mapping) LinkResult {
 	dest := l.destPath(m)
 	status := l.checkStatus(m)
@@ -246,6 +255,9 @@ func (l *Linker) unlinkOne(m Mapping) LinkResult {
 	return result
 }
 
+// backup moves the file at path to the backup directory, preserving the
+// relative path structure. Any existing backup at the same location is
+// removed first to prevent stale files.
 func (l *Linker) backup(path string, m Mapping) error {
 	backupPath := filepath.Join(l.BackupDir, m.Dest)
 	if err := os.MkdirAll(filepath.Dir(backupPath), 0o755); err != nil {
