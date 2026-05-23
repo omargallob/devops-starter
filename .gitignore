@@ -2,6 +2,10 @@
 /bazel-*
 MODULE.bazel.lock
 
+# Build output
+/devops-starter
+/dist/
+
 # Binaries for programs and plugins
 *.exe
 *.exe~
