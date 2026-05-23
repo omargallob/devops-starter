@@ -1,0 +1,23 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "tui",
+    srcs = [
+        "commands.go",
+        "model.go",
+        "table.go",
+        "update.go",
+        "view.go",
+    ],
+    importpath = "github.com/omargallob/devops-starter/internal/tui",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/config",
+        "//internal/installer",
+        "//internal/state",
+        "//pkg/tooldef",
+        "@com_github_charmbracelet_bubbles//spinner",
+        "@com_github_charmbracelet_bubbletea//:bubbletea",
+        "@com_github_charmbracelet_lipgloss//:lipgloss",
+    ],
+)
