@@ -1,0 +1,43 @@
+[user]
+    name = CHANGEME
+    email = CHANGEME
+
+[init]
+    defaultBranch = main
+
+[core]
+    editor = nvim
+    pager = delta
+    autocrlf = input
+
+[pull]
+    rebase = true
+
+[push]
+    autoSetupRemote = true
+    default = current
+
+[merge]
+    conflictstyle = zdiff3
+
+[diff]
+    algorithm = histogram
+    colorMoved = default
+
+[delta]
+    navigate = true
+    side-by-side = true
+    line-numbers = true
+
+[rerere]
+    enabled = true
+
+[fetch]
+    prune = true
+
+[alias]
+    co = checkout
+    br = branch
+    ci = commit
+    st = status
+    lg = log --oneline --graph --all
