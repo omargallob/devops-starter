@@ -1,0 +1,4 @@
+load("@gazelle//:def.bzl", "gazelle")
+
+# gazelle:prefix github.com/omargallob/devops-starter
+gazelle(name = "gazelle")
