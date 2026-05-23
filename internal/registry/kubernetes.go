@@ -1,7 +1,12 @@
+// kubernetes.go registers Kubernetes ecosystem tools: cluster management CLIs,
+// package managers, GitOps controllers, service mesh, and backup utilities.
 package registry
 
 import "github.com/omargallob/devops-starter/pkg/tooldef"
 
+// registerKubernetes adds all Kubernetes-related tools to the registry.
+// Tools in this group: kubectl, helm, kustomize, k9s, kubectx, kubens,
+// stern, argocd, flux, istioctl, cilium, kind, kubeseal, velero.
 func registerKubernetes(r *Registry) {
 	r.register(&tooldef.Tool{
 		Name:        "kubectl",

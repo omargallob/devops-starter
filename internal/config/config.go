@@ -1,4 +1,7 @@
-// Package config handles loading and managing the devops-starter configuration.
+// Package config handles loading, saving, and managing the devops-starter
+// YAML configuration file. The config lives at ~/.config/devops-starter/config.yaml
+// (or $XDG_CONFIG_HOME/devops-starter/config.yaml) and controls which tool
+// groups are enabled, per-tool version overrides, and the binary install directory.
 package config
 
 import (
@@ -133,6 +136,8 @@ func (c *Config) IsGroupEnabled(group string) bool {
 	}
 }
 
+// homeDir returns the user's home directory, falling back to $HOME if
+// os.UserHomeDir fails (e.g., in minimal container environments).
 func homeDir() string {
 	home, err := os.UserHomeDir()
 	if err != nil {

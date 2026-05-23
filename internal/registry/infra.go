@@ -1,7 +1,10 @@
+// infra.go registers infrastructure-as-code and secrets management tools.
 package registry
 
 import "github.com/omargallob/devops-starter/pkg/tooldef"
 
+// registerInfra adds infrastructure tools to the registry.
+// Includes terraform, opentofu, pulumi, packer, vault, and consul.
 func registerInfra(r *Registry) {
 	r.register(&tooldef.Tool{
 		Name:        "terraform",

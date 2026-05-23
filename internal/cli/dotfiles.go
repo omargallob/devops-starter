@@ -10,8 +10,10 @@ import (
 	"github.com/omargallob/devops-starter/internal/dotfiles"
 )
 
+// dotfilesSource holds the --source flag value for overriding the dotfiles directory.
 var dotfilesSource string
 
+// newDotfilesCmd creates the "dotfiles" parent command with link/unlink/status subcommands.
 func newDotfilesCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "dotfiles",
@@ -30,6 +32,11 @@ func newDotfilesCmd() *cobra.Command {
 	return cmd
 }
 
+// resolveDotfilesSource determines the dotfiles source directory by checking:
+// 1. The --source flag (highest priority)
+// 2. Relative paths from the executable location
+// 3. The current working directory
+// Returns an error if no dotfiles/ directory can be found.
 func resolveDotfilesSource() (string, error) {
 	if dotfilesSource != "" {
 		return dotfilesSource, nil
@@ -62,6 +69,7 @@ func resolveDotfilesSource() (string, error) {
 	return "", fmt.Errorf("cannot find dotfiles source directory; use --source flag")
 }
 
+// newDotfilesLinkCmd creates the "dotfiles link" subcommand.
 func newDotfilesLinkCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "link",
@@ -70,6 +78,8 @@ func newDotfilesLinkCmd() *cobra.Command {
 	}
 }
 
+// runDotfilesLink creates symlinks for all default mappings from the dotfiles
+// source directory to $HOME. Conflicting files are backed up to ~/.dotfiles.bak.
 func runDotfilesLink(cmd *cobra.Command, args []string) error {
 	source, err := resolveDotfilesSource()
 	if err != nil {
@@ -89,6 +99,7 @@ func runDotfilesLink(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+// newDotfilesUnlinkCmd creates the "dotfiles unlink" subcommand.
 func newDotfilesUnlinkCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "unlink",
@@ -97,6 +108,8 @@ func newDotfilesUnlinkCmd() *cobra.Command {
 	}
 }
 
+// runDotfilesUnlink removes only symlinks that point to our source files.
+// Non-symlinks and symlinks pointing elsewhere are left untouched.
 func runDotfilesUnlink(cmd *cobra.Command, args []string) error {
 	source, err := resolveDotfilesSource()
 	if err != nil {
@@ -116,6 +129,7 @@ func runDotfilesUnlink(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+// newDotfilesStatusCmd creates the "dotfiles status" subcommand.
 func newDotfilesStatusCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "status",
@@ -124,6 +138,8 @@ func newDotfilesStatusCmd() *cobra.Command {
 	}
 }
 
+// runDotfilesStatus inspects each mapping and prints whether it is linked,
+// conflicting, missing, or broken.
 func runDotfilesStatus(cmd *cobra.Command, args []string) error {
 	source, err := resolveDotfilesSource()
 	if err != nil {
@@ -143,6 +159,11 @@ func runDotfilesStatus(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+// printDotfileResults renders link results with coloured indicators:
+//   - green checkmark for linked
+//   - red X for conflict
+//   - dim circle for missing
+//   - yellow bang for broken symlinks
 func printDotfileResults(results []dotfiles.LinkResult) {
 	linkedStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("2"))
 	conflictStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("1"))
