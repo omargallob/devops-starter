@@ -1,0 +1,53 @@
+# devops-starter starship prompt
+
+scan_timeout = 30
+command_timeout = 500
+
+format = """
+$directory\
+$git_branch\
+$git_status\
+$kubernetes\
+$aws\
+$terraform\
+$python\
+$golang\
+$nodejs\
+$line_break\
+$character"""
+
+[directory]
+truncation_length = 3
+truncate_to_repo = true
+
+[git_branch]
+format = "[$branch]($style) "
+
+[git_status]
+format = '([$all_status$ahead_behind]($style) )'
+
+[kubernetes]
+disabled = false
+format = '[$symbol$context(/$namespace)]($style) '
+
+[aws]
+format = '[$symbol$profile]($style) '
+
+[terraform]
+format = '[$symbol$workspace]($style) '
+
+[python]
+format = '[$symbol$version]($style) '
+
+[golang]
+format = '[$symbol$version]($style) '
+
+[nodejs]
+format = '[$symbol$version]($style) '
+
+[package]
+disabled = true
+
+[character]
+success_symbol = "[❯](green)"
+error_symbol = "[❯](red)"
