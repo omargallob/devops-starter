@@ -19,6 +19,7 @@ MODULE.bazel.lock
 # Code coverage profiles and other test artifacts
 *.out
 coverage.*
+!badges/coverage.svg
 *.coverprofile
 profile.cov
 

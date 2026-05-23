@@ -50,7 +50,7 @@ jobs:
       - name: shellcheck
         run: |
           sudo apt-get install -y shellcheck
-          shellcheck scripts/install.sh
+          shellcheck scripts/install.sh scripts/generate-coverage-badge.sh
           find dotfiles -name "*.sh" -exec shellcheck {} +
 
   build:
@@ -106,4 +106,34 @@ jobs:
         run: bazelisk build //...
 
       - name: Test with Bazel
+        if: github.event_name == 'pull_request'
         run: bazelisk test //...
+
+      - name: Coverage with Bazel
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: bazelisk coverage --combined_report=lcov //...
+
+      - name: Update coverage badge
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          # Extract coverage percentage from the combined lcov report.
+          LCOV_FILE="$(bazelisk info output_path)/_coverage/_coverage_report.dat"
+          if [[ ! -f "$LCOV_FILE" ]]; then
+            echo "::warning::No combined coverage report found"
+            exit 0
+          fi
+          # Sum lines hit / lines found across all records.
+          HITS=$(awk -F: '/^DA:/ { split($2,a,","); total++; if(a[2]>0) hit++ } END { printf "%.1f", (hit/total)*100 }' "$LCOV_FILE")
+          echo "Coverage: ${HITS}%"
+          # Generate the badge SVG.
+          ./scripts/generate-coverage-badge.sh "$HITS" badges/coverage.svg
+          # Commit and push if changed.
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add badges/coverage.svg
+          if git diff --cached --quiet; then
+            echo "Badge unchanged, skipping commit."
+          else
+            git commit -m "ci: update coverage badge [skip ci]"
+            git push
+          fi
