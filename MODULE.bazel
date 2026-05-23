@@ -12,28 +12,28 @@ go_sdk.from_file(go_mod = "//:go.mod")
 
 go_deps = use_extension("@gazelle//:extensions.bzl", "go_deps")
 go_deps.from_file(go_mod = "//:go.mod")
+use_repo(go_deps, "com_github_charmbracelet_lipgloss", "com_github_schollz_progressbar_v3", "com_github_spf13_cobra", "in_gopkg_yaml_v3")
 
-# ─── OCI (container images for integration testing) ──────────────────────────
-bazel_dep(name = "rules_oci", version = "2.3.1")
-bazel_dep(name = "rules_pkg", version = "1.0.1")
+# ─── Container Images (integration testing) ──────────────────────────────────
+bazel_dep(name = "rules_img", version = "0.3.11")
 
-oci = use_extension("@rules_oci//oci:extensions.bzl", "oci")
+pull = use_repo_rule("@rules_img//img:pull.bzl", "pull")
 
-oci.pull(
+pull(
     name = "ubuntu_base",
-    image = "index.docker.io/library/ubuntu",
+    registry = "index.docker.io",
+    repository = "library/ubuntu",
     tag = "24.04",
-    platforms = ["linux/amd64", "linux/arm64"],
+    unsafe_allow_tag_without_digest = True,
 )
 
-oci.pull(
+pull(
     name = "archlinux_base",
-    image = "docker.io/archlinux/archlinux",
+    registry = "index.docker.io",
+    repository = "archlinux/archlinux",
     tag = "latest",
-    platforms = ["linux/amd64"],
+    unsafe_allow_tag_without_digest = True,
 )
-
-use_repo(oci, "ubuntu_base", "archlinux_base")
 
 # ─── Platforms ───────────────────────────────────────────────────────────────
-bazel_dep(name = "platforms", version = "0.0.10")
+bazel_dep(name = "platforms", version = "1.0.0")

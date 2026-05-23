@@ -1,6 +1,7 @@
 # ─── Build ───────────────────────────────────────────────────────────────────
 build --incompatible_strict_action_env
 build --action_env=PATH
+common --repo_env=GOTOOLCHAIN=auto
 
 # ─── Platforms (cross-compilation) ───────────────────────────────────────────
 build:linux_amd64 --platforms=//platforms:linux_amd64
@@ -13,7 +14,6 @@ test --test_output=errors
 test --test_verbose_timeout_warnings
 
 # ─── Performance ─────────────────────────────────────────────────────────────
-build --experimental_remote_merkle_tree_cache
 common --experimental_repository_cache_hardlinks
 
 # ─── Convenience ─────────────────────────────────────────────────────────────
