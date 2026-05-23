@@ -24,6 +24,7 @@ pull(
     registry = "index.docker.io",
     repository = "library/ubuntu",
     tag = "24.04",
+    layer_handling = "eager",
     unsafe_allow_tag_without_digest = True,
 )
 
@@ -32,6 +33,7 @@ pull(
     registry = "index.docker.io",
     repository = "archlinux/archlinux",
     tag = "latest",
+    layer_handling = "eager",
     unsafe_allow_tag_without_digest = True,
 )
 
