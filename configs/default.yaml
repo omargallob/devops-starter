@@ -1,0 +1,25 @@
+# devops-starter default configuration
+# Copy to ~/.config/devops-starter/config.yaml to customize
+
+# Where binaries are installed (must be in $PATH)
+install_dir: ~/.local/bin
+
+# Enable or disable tool groups
+groups:
+  languages: true
+  containers: true
+  kubernetes: true
+  infra: true
+  cloud: true
+  ansible: true
+  rust_tools: true
+  utilities: true
+
+# Per-tool overrides
+# Example:
+#   overrides:
+#     terraform:
+#       version: "1.7.5"
+#     aws-cli:
+#       disabled: true
+overrides: {}
