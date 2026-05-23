@@ -1,0 +1,14 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "tooldef",
+    srcs = ["tool.go"],
+    importpath = "github.com/omargallob/devops-starter/pkg/tooldef",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "tooldef_test",
+    srcs = ["tool_test.go"],
+    embed = [":tooldef"],
+)

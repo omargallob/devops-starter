@@ -1,0 +1,14 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "dotfiles",
+    srcs = ["linker.go"],
+    importpath = "github.com/omargallob/devops-starter/internal/dotfiles",
+    visibility = ["//cmd:__subpackages__", "//internal:__subpackages__"],
+)
+
+go_test(
+    name = "dotfiles_test",
+    srcs = ["linker_test.go"],
+    embed = [":dotfiles"],
+)
