@@ -1,4 +1,5 @@
 load("@rules_go//go:def.bzl", "go_binary", "go_library")
+load("//bazel:go_release.bzl", "go_release")
 
 go_library(
     name = "devops-starter_lib",
@@ -13,5 +14,18 @@ go_library(
 go_binary(
     name = "devops-starter",
     embed = [":devops-starter_lib"],
+    visibility = ["//visibility:public"],
+)
+
+# Cross-compile for all supported platforms
+go_release(
+    name = "release",
+    binary = ":devops-starter",
+    platforms = [
+        "//platforms:linux_amd64",
+        "//platforms:linux_arm64",
+        "//platforms:darwin_amd64",
+        "//platforms:darwin_arm64",
+    ],
     visibility = ["//visibility:public"],
 )
