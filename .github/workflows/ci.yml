@@ -83,7 +83,7 @@ jobs:
           go build -ldflags="-s -w" -o devops-starter-${{ matrix.os }}-${{ matrix.arch }} ./cmd/devops-starter/
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: devops-starter-${{ matrix.os }}-${{ matrix.arch }}
           path: devops-starter-${{ matrix.os }}-${{ matrix.arch }}
