@@ -1,10 +1,16 @@
 // Package tui implements the interactive terminal UI for devops-starter status.
 // It uses Bubble Tea (charmbracelet/bubbletea) with an Elm-architecture pattern.
+//
+// The TUI has three screens:
+//   - screenGroups: category picker (7 rows, one per tool group)
+//   - screenTools: tool list within the selected group
+//   - screenProgress: shows install progress with per-tool spinners
 package tui
 
 import (
 	"github.com/charmbracelet/bubbles/spinner"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 
 	"github.com/omargallob/devops-starter/internal/config"
 	"github.com/omargallob/devops-starter/internal/installer"
@@ -12,37 +18,75 @@ import (
 	"github.com/omargallob/devops-starter/pkg/tooldef"
 )
 
+// screen represents which view is currently active.
+type screen int
+
+const (
+	screenGroups   screen = iota // Category picker
+	screenTools                  // Tool list within selected group
+	screenProgress               // Install progress view
+)
+
 // Model is the top-level Bubble Tea model for the status TUI.
 type Model struct {
-	groups     []groupModel
-	cursor     int  // index into the flat list of visible items
-	width      int
-	height     int
-	quitting   bool
-	installing map[string]bool          // tools currently being installed
-	spinners   map[string]spinner.Model // per-tool spinners
-	err        error
-	message    string // transient status message
+	groups      []groupModel
+	screen      screen
+	groupCursor int // cursor position on group screen (0 to len(groups)-1)
+	toolCursor  int // cursor position on tool screen (within selected group)
+
+	// selectedGroup is the index of the group currently being viewed in
+	// screenTools or screenProgress.
+	selectedGroup int
+
+	width  int
+	height int
+
+	// Progress tracking
+	installing      map[string]bool          // tools currently being installed
+	spinners        map[string]spinner.Model // per-tool spinners during install
+	progressTools   []progressItem           // ordered list for progress screen
+	progressDone    bool                     // all installs in current batch completed
+	returnToScreen  screen                   // where to go when progress is dismissed
+
+	quitting bool
+	message  string // transient status message
+	err      error
 
 	// Dependencies injected at creation
-	cfg       *config.Config
-	inst      *installer.Installer
-	store     *state.Store
-	platform  tooldef.Platform
+	cfg        *config.Config
+	inst       *installer.Installer
+	store      *state.Store
+	platform   tooldef.Platform
 	installDir string
 }
 
-// groupModel represents a collapsible group in the TUI.
+// groupModel represents a group in the TUI.
 type groupModel struct {
-	Name      string
-	Collapsed bool
-	Tools     []toolModel
+	Name  string
+	Tools []toolModel
 }
 
 // toolModel represents a single tool row in the TUI.
 type toolModel struct {
 	state.ToolState
 }
+
+// progressItem tracks an individual tool's install progress.
+type progressItem struct {
+	Name    string
+	Status  progressStatus
+	Error   error
+}
+
+// progressStatus represents the state of a tool during installation.
+type progressStatus int
+
+const (
+	progressWaiting    progressStatus = iota // queued
+	progressInstalling                       // currently downloading/installing
+	progressDone                             // completed successfully
+	progressFailed                           // failed with error
+)
 
 // NewModel creates a new TUI model from the resolved state.
 func NewModel(
@@ -67,6 +111,7 @@ func NewModel(
 
 	return Model{
 		groups:     gm,
+		screen:     screenGroups,
 		installing: make(map[string]bool),
 		spinners:   make(map[string]spinner.Model),
 		cfg:        cfg,
@@ -77,54 +122,51 @@ func NewModel(
 	}
 }
 
-// Init implements tea.Model. It returns no initial command.
+// Init implements tea.Model. Returns no initial command.
 func (m Model) Init() tea.Cmd {
 	return nil
 }
 
-// visibleItem represents either a group header or a tool row for cursor navigation.
-type visibleItem struct {
-	isGroup    bool
-	groupIdx   int
-	toolIdx    int // -1 for group headers
-}
-
-// visibleItems returns the flat list of navigable items based on collapse state.
-func (m Model) visibleItems() []visibleItem {
-	var items []visibleItem
-	for gi, g := range m.groups {
-		items = append(items, visibleItem{isGroup: true, groupIdx: gi, toolIdx: -1})
-		if !g.Collapsed {
-			for ti := range g.Tools {
-				items = append(items, visibleItem{isGroup: false, groupIdx: gi, toolIdx: ti})
-			}
-		}
+// selectedGroupTools returns the tools in the currently selected group.
+func (m Model) selectedGroupTools() []toolModel {
+	if m.selectedGroup < 0 || m.selectedGroup >= len(m.groups) {
+		return nil
 	}
-	return items
+	return m.groups[m.selectedGroup].Tools
 }
 
-// selectedTools returns all tools that are currently selected (checkbox toggled).
-func (m Model) selectedTools() []*tooldef.Tool {
+// currentToolInGroup returns a pointer to the tool at the tool cursor, or nil.
+func (m *Model) currentToolInGroup() *toolModel {
+	tools := m.selectedGroupTools()
+	if m.toolCursor < 0 || m.toolCursor >= len(tools) {
+		return nil
+	}
+	return &m.groups[m.selectedGroup].Tools[m.toolCursor]
+}
+
+// installableToolsInGroup returns tools that can be installed (missing or outdated)
+// within the given group index. If onlySelected is true, only returns selected ones.
+func (m Model) installableToolsInGroup(gi int, onlySelected bool) []*tooldef.Tool {
+	if gi < 0 || gi >= len(m.groups) {
+		return nil
+	}
 	var tools []*tooldef.Tool
-	for _, g := range m.groups {
-		for _, t := range g.Tools {
-			if t.Selected && t.Status != state.StatusDisabled && t.Status != state.StatusCurrent {
-				tools = append(tools, t.Tool)
-			}
+	for _, t := range m.groups[gi].Tools {
+		if t.Status == state.StatusDisabled || t.Status == state.StatusCurrent {
+			continue
 		}
+		if onlySelected && !t.Selected {
+			continue
+		}
+		tools = append(tools, t.Tool)
 	}
 	return tools
 }
 
-// currentTool returns the tool at the cursor position, or nil if on a group header.
-func (m Model) currentTool() *toolModel {
-	items := m.visibleItems()
-	if m.cursor < 0 || m.cursor >= len(items) {
-		return nil
-	}
-	item := items[m.cursor]
-	if item.isGroup {
-		return nil
-	}
-	return &m.groups[item.groupIdx].Tools[item.toolIdx]
+// newSpinner creates a styled spinner for install progress.
+func newSpinner() spinner.Model {
+	s := spinner.New()
+	s.Spinner = spinner.Dot
+	s.Style = lipgloss.NewStyle().Foreground(lipgloss.Color("3"))
+	return s
 }
