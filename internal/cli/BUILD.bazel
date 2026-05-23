@@ -1,0 +1,26 @@
+load("@rules_go//go:def.bzl", "go_library")
+
+go_library(
+    name = "cli",
+    srcs = [
+        "config_cmd.go",
+        "doctor.go",
+        "dotfiles.go",
+        "install.go",
+        "list.go",
+        "root.go",
+    ],
+    importpath = "github.com/omargallob/devops-starter/internal/cli",
+    visibility = ["//cmd:__subpackages__", "//internal:__subpackages__"],
+    deps = [
+        "//internal/config",
+        "//internal/dotfiles",
+        "//internal/installer",
+        "//internal/platform",
+        "//internal/registry",
+        "//pkg/tooldef",
+        "@com_github_charmbracelet_lipgloss//:lipgloss",
+        "@com_github_spf13_cobra//:cobra",
+        "@in_gopkg_yaml_v3//:yaml_v3",
+    ],
+)

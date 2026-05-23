@@ -1,0 +1,17 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "devops-starter_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/omargallob/devops-starter/cmd/devops-starter",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//internal/cli",
+    ],
+)
+
+go_binary(
+    name = "devops-starter",
+    embed = [":devops-starter_lib"],
+    visibility = ["//visibility:public"],
+)

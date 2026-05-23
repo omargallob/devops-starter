@@ -1,0 +1,29 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "registry",
+    srcs = [
+        "cloud.go",
+        "containers.go",
+        "infra.go",
+        "kubernetes.go",
+        "languages.go",
+        "registry.go",
+        "rust_tools.go",
+        "utilities.go",
+    ],
+    importpath = "github.com/omargallob/devops-starter/internal/registry",
+    visibility = ["//cmd:__subpackages__", "//internal:__subpackages__"],
+    deps = [
+        "//pkg/tooldef",
+    ],
+)
+
+go_test(
+    name = "registry_test",
+    srcs = ["registry_test.go"],
+    embed = [":registry"],
+    deps = [
+        "//pkg/tooldef",
+    ],
+)
