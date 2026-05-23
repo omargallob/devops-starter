@@ -126,7 +126,9 @@ func extractZip(archivePath, destDir string, strip int) error {
 		}
 
 		if f.FileInfo().IsDir() {
-			os.MkdirAll(target, 0o755)
+			if err := os.MkdirAll(target, 0o755); err != nil {
+				return err
+			}
 			continue
 		}
 

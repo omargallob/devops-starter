@@ -1,4 +1,5 @@
 load("@gazelle//:def.bzl", "gazelle")
+load("//bazel/rules:golangci_lint.bzl", "golangci_lint_test")
 load("//bazel/rules:shellcheck.bzl", "shellcheck_test")
 
 # gazelle:prefix github.com/omargallob/devops-starter
@@ -9,8 +10,12 @@ shellcheck_test(
     name = "shellcheck",
     srcs = [
         "scripts/install.sh",
-        "dotfiles/shared/aliases.sh",
-        "dotfiles/shared/env.sh",
-        "dotfiles/shared/functions.sh",
-    ],
+    ] + ["//dotfiles:shell_scripts"],
+)
+
+# Lint all Go code with golangci-lint
+golangci_lint_test(
+    name = "golangci_lint",
+    config = ".golangci.yml",
+    paths = ["./..."],
 )
