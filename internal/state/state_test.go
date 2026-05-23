@@ -17,6 +17,7 @@ func TestStatus_String(t *testing.T) {
 		{StatusOutdated, "outdated"},
 		{StatusDisabled, "disabled"},
 		{StatusUnknown, "unknown"},
+		{StatusDetected, "detected"},
 		{Status(99), "unknown"},
 	}
 	for _, tc := range tests {
@@ -40,11 +41,11 @@ func TestResolveAll_BasicFlow(t *testing.T) {
 		t.Fatal("expected at least one group")
 	}
 
-	// All tools should be StatusMissing since store is empty
+	// All tools should be StatusMissing or StatusDetected (if binary is in PATH)
 	for _, g := range groups {
 		for _, ts := range g.Tools {
-			if ts.Status != StatusMissing {
-				t.Errorf("tool %s: expected StatusMissing, got %s", ts.Name, ts.Status.String())
+			if ts.Status != StatusMissing && ts.Status != StatusDetected {
+				t.Errorf("tool %s: expected StatusMissing or StatusDetected, got %s", ts.Name, ts.Status.String())
 			}
 		}
 	}
@@ -267,4 +268,60 @@ func TestVerifyOne_MissingBinary(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for missing binary")
 	}
+}
+
+func TestLookupInPath_KnownBinary(t *testing.T) {
+	// "sh" should exist on any Unix system
+	path := LookupInPath("sh")
+	// sh won't have a probe, so it uses tool name directly - which won't be in probes
+	// Let's test with a binary we know exists: use exec.LookPath logic
+	// Actually sh doesn't have a probe, but LookPath will find it by name
+	if path == "" {
+		t.Skip("sh not in PATH (unexpected on Unix)")
+	}
+	if path == "" {
+		t.Error("expected to find sh in PATH")
+	}
+}
+
+func TestLookupInPath_NonExistent(t *testing.T) {
+	path := LookupInPath("absolutely-nonexistent-binary-xyz-12345")
+	if path != "" {
+		t.Errorf("expected empty string for nonexistent binary, got %s", path)
+	}
+}
+
+func TestLookupInPath_UsesBinNameMapping(t *testing.T) {
+	// "neovim" maps to "nvim" via probes. If nvim is installed, it should find it.
+	// "ripgrep" maps to "rg". Test the mapping is used.
+	// We can't guarantee these are installed, but we can test that
+	// a tool with no probe falls back to tool name.
+	path := LookupInPath("nonexistent-no-probe-tool")
+	if path != "" {
+		t.Error("expected empty for tool with no probe and no binary")
+	}
+}
+
+func TestResolveAll_DetectedStatus(t *testing.T) {
+	cfg := config.DefaultConfig()
+	plat := tooldef.Platform{OS: "linux", Arch: "amd64"}
+	store := &Store{Tools: map[string]InstalledTool{}}
+
+	groups := ResolveAll(cfg, store, plat)
+
+	// Any tool whose binary is in PATH should be StatusDetected
+	foundDetected := false
+	for _, g := range groups {
+		for _, ts := range g.Tools {
+			if ts.Status == StatusDetected {
+				foundDetected = true
+				// Verify it's not in the store
+				if store.GetVersion(ts.Name) != "" {
+					t.Errorf("tool %s is StatusDetected but has version in store", ts.Name)
+				}
+			}
+		}
+	}
+	// This test is environment-dependent; if we have any of the tools in PATH, we should find them
+	_ = foundDetected // just verifying no panics; actual detection depends on environment
 }

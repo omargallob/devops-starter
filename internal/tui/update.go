@@ -117,7 +117,7 @@ func (m Model) updateTools(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		// Select all installable in this group
 		for i := range m.groups[m.selectedGroup].Tools {
 			t := &m.groups[m.selectedGroup].Tools[i]
-			if t.Status == state.StatusMissing || t.Status == state.StatusOutdated {
+			if t.Status == state.StatusMissing || t.Status == state.StatusOutdated || t.Status == state.StatusDetected {
 				t.Selected = true
 			}
 		}
@@ -282,11 +282,12 @@ func (m Model) handleVerifyComplete(msg verifyCompleteMsg) (tea.Model, tea.Cmd) 
 			t := &m.groups[gi].Tools[ti]
 			if t.Name == msg.Name {
 				t.InstalledVersion = msg.Version
-				if msg.Version == t.DesiredVersion {
+				switch msg.Version {
+				case t.DesiredVersion:
 					t.Status = state.StatusCurrent
-				} else if msg.Version == "" {
+				case "":
 					t.Status = state.StatusMissing
-				} else {
+				default:
 					t.Status = state.StatusOutdated
 				}
 			}

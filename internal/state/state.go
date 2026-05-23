@@ -17,6 +17,7 @@ const (
 	StatusOutdated                // Installed but version differs from desired
 	StatusDisabled                // Disabled in user config
 	StatusUnknown                 // Binary exists but version could not be determined
+	StatusDetected                // Binary found in PATH but not managed by devops-starter
 )
 
 // String returns a human-readable status label.
@@ -32,6 +33,8 @@ func (s Status) String() string {
 		return "disabled"
 	case StatusUnknown:
 		return "unknown"
+	case StatusDetected:
+		return "detected"
 	default:
 		return "unknown"
 	}
@@ -113,20 +116,25 @@ func ResolveAll(cfg *config.Config, store *Store, plat tooldef.Platform) []Group
 				continue // skip entirely for unsupported platforms
 			}
 
-			// Resolve installed version from state store
-			ts.InstalledVersion = store.GetVersion(t.Name)
+		// Resolve installed version from state store
+		ts.InstalledVersion = store.GetVersion(t.Name)
 
-			// Determine status
-			switch {
-			case ts.InstalledVersion == "":
+		// Determine status
+		switch ts.InstalledVersion {
+		case "":
+			// Not in state file — check if binary exists in PATH
+			if path := LookupInPath(t.Name); path != "" {
+				ts.Status = StatusDetected
+			} else {
 				ts.Status = StatusMissing
-			case ts.InstalledVersion == ts.DesiredVersion:
-				ts.Status = StatusCurrent
-			case ts.InstalledVersion == "unknown":
-				ts.Status = StatusUnknown
-			default:
-				ts.Status = StatusOutdated
 			}
+		case ts.DesiredVersion:
+			ts.Status = StatusCurrent
+		case "unknown":
+			ts.Status = StatusUnknown
+		default:
+			ts.Status = StatusOutdated
+		}
 
 			gs.Tools = append(gs.Tools, ts)
 		}

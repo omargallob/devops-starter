@@ -18,6 +18,7 @@ var (
 	missingStyle  = lipgloss.NewStyle().Faint(true)
 	disabledStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("1"))
 	unknownStyle  = lipgloss.NewStyle().Faint(true)
+	detectedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("5")) // magenta/purple for system-installed
 	cursorStyle   = lipgloss.NewStyle().Background(lipgloss.Color("236"))
 	helpStyle     = lipgloss.NewStyle().Faint(true)
 	messageStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Bold(true)
@@ -48,7 +49,7 @@ func (m Model) viewGroups() string {
 
 	// Title bar
 	b.WriteString(titleStyle.Render("devops-starter status"))
-	b.WriteString(fmt.Sprintf("  [%s/%s]\n", m.platform.OS, m.platform.Arch))
+	fmt.Fprintf(&b, "  [%s/%s]\n", m.platform.OS, m.platform.Arch)
 	b.WriteString(strings.Repeat("━", clamp(m.width, 40, 80)))
 	b.WriteString("\n\n")
 	b.WriteString("  Select a category:\n\n")
@@ -62,7 +63,7 @@ func (m Model) viewGroups() string {
 			if t.Status != state.StatusDisabled {
 				total++
 			}
-			if t.Status == state.StatusCurrent || t.Status == state.StatusOutdated || t.Status == state.StatusUnknown {
+			if t.Status == state.StatusCurrent || t.Status == state.StatusOutdated || t.Status == state.StatusUnknown || t.Status == state.StatusDetected {
 				installed++
 			}
 		}
@@ -125,7 +126,7 @@ func (m Model) viewTools() string {
 
 	// Title bar
 	b.WriteString(titleStyle.Render("devops-starter status"))
-	b.WriteString(fmt.Sprintf("  [%s/%s]\n", m.platform.OS, m.platform.Arch))
+	fmt.Fprintf(&b, "  [%s/%s]\n", m.platform.OS, m.platform.Arch)
 	b.WriteString(strings.Repeat("━", clamp(m.width, 40, 80)))
 	b.WriteString("\n\n")
 
@@ -178,7 +179,7 @@ func (m Model) viewProgress() string {
 
 	// Title
 	b.WriteString(titleStyle.Render("devops-starter status"))
-	b.WriteString(fmt.Sprintf("  [%s/%s]\n", m.platform.OS, m.platform.Arch))
+	fmt.Fprintf(&b, "  [%s/%s]\n", m.platform.OS, m.platform.Arch)
 	b.WriteString(strings.Repeat("━", clamp(m.width, 40, 80)))
 	b.WriteString("\n\n")
 
@@ -239,9 +240,10 @@ func (m Model) viewProgress() string {
 	if m.progressDone {
 		var success, failed int
 		for _, item := range m.progressTools {
-			if item.Status == progressDone {
+			switch item.Status {
+			case progressDone:
 				success++
-			} else if item.Status == progressFailed {
+			case progressFailed:
 				failed++
 			}
 		}
@@ -285,6 +287,9 @@ func (m Model) renderToolRow(t toolModel) string {
 	case state.StatusUnknown:
 		icon = "?"
 		style = unknownStyle
+	case state.StatusDetected:
+		icon = "~"
+		style = detectedStyle
 	}
 
 	// Selection checkbox
@@ -306,6 +311,8 @@ func (m Model) renderToolRow(t toolModel) string {
 		versionInfo = fmt.Sprintf("%-10s    %-10s", "-", "disabled")
 	case state.StatusUnknown:
 		versionInfo = fmt.Sprintf("%-10s ?  %-10s", "???", t.DesiredVersion)
+	case state.StatusDetected:
+		versionInfo = fmt.Sprintf("%-10s ~  %-10s", "(system)", t.DesiredVersion)
 	}
 
 	line := fmt.Sprintf("    %s %s %-16s %s  %s", sel, icon, t.Name, versionInfo, t.Description)

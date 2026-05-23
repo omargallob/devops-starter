@@ -21,6 +21,7 @@ func newTestModel() Model {
 				{Name: "kubectl", Group: "kubernetes", Description: "CLI for K8s", DesiredVersion: "1.31.4", InstalledVersion: "1.31.4", Status: state.StatusCurrent, Tool: &tooldef.Tool{Name: "kubectl", Version: "1.31.4"}},
 				{Name: "helm", Group: "kubernetes", Description: "Package manager", DesiredVersion: "3.16.4", InstalledVersion: "", Status: state.StatusMissing, Tool: &tooldef.Tool{Name: "helm", Version: "3.16.4"}},
 				{Name: "k9s", Group: "kubernetes", Description: "TUI for K8s", DesiredVersion: "0.32.7", InstalledVersion: "0.31.0", Status: state.StatusOutdated, Tool: &tooldef.Tool{Name: "k9s", Version: "0.32.7"}},
+				{Name: "kustomize", Group: "kubernetes", Description: "K8s config", DesiredVersion: "5.5.0", InstalledVersion: "", Status: state.StatusDetected, Tool: &tooldef.Tool{Name: "kustomize", Version: "5.5.0"}},
 			},
 		},
 		{
@@ -48,8 +49,8 @@ func TestNewModel(t *testing.T) {
 	if m.groups[0].Name != "kubernetes" {
 		t.Errorf("first group: got %s, want kubernetes", m.groups[0].Name)
 	}
-	if len(m.groups[0].Tools) != 3 {
-		t.Errorf("expected 3 tools in kubernetes, got %d", len(m.groups[0].Tools))
+	if len(m.groups[0].Tools) != 4 {
+		t.Errorf("expected 4 tools in kubernetes, got %d", len(m.groups[0].Tools))
 	}
 	if m.screen != screenGroups {
 		t.Errorf("initial screen: got %d, want screenGroups", m.screen)
@@ -161,11 +162,18 @@ func TestModel_NavigateTools(t *testing.T) {
 		t.Errorf("expected toolCursor=2, got %d", m.toolCursor)
 	}
 
+	// Move down to last (index 3)
+	result, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}})
+	m = result.(Model)
+	if m.toolCursor != 3 {
+		t.Errorf("expected toolCursor=3, got %d", m.toolCursor)
+	}
+
 	// Don't go past end
 	result, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}})
 	m = result.(Model)
-	if m.toolCursor != 2 {
-		t.Errorf("expected toolCursor=2 (clamped), got %d", m.toolCursor)
+	if m.toolCursor != 3 {
+		t.Errorf("expected toolCursor=3 (clamped), got %d", m.toolCursor)
 	}
 }
 
@@ -214,7 +222,7 @@ func TestModel_SelectAll(t *testing.T) {
 	result, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'a'}})
 	m = result.(Model)
 
-	// kubectl is current, should NOT be selected; helm (missing) and k9s (outdated) should be
+	// kubectl is current, should NOT be selected; helm (missing), k9s (outdated), kustomize (detected) should be
 	if m.groups[0].Tools[0].Selected {
 		t.Error("kubectl (current) should not be selected by 'a'")
 	}
@@ -223,6 +231,9 @@ func TestModel_SelectAll(t *testing.T) {
 	}
 	if !m.groups[0].Tools[2].Selected {
 		t.Error("k9s (outdated) should be selected by 'a'")
+	}
+	if !m.groups[0].Tools[3].Selected {
+		t.Error("kustomize (detected) should be selected by 'a'")
 	}
 }
 
@@ -359,8 +370,8 @@ func TestModel_InstallableToolsInGroup(t *testing.T) {
 
 	// Without selection filter
 	tools := m.installableToolsInGroup(0, false)
-	if len(tools) != 2 { // helm (missing) + k9s (outdated)
-		t.Errorf("expected 2 installable tools, got %d", len(tools))
+	if len(tools) != 3 { // helm (missing) + k9s (outdated) + kustomize (detected)
+		t.Errorf("expected 3 installable tools, got %d", len(tools))
 	}
 
 	// With selection filter, none selected
@@ -492,6 +503,24 @@ func TestModel_HandleVerifyComplete_Error(t *testing.T) {
 
 	if !strings.Contains(m.message, "binary not found") {
 		t.Errorf("expected error in message, got %q", m.message)
+	}
+}
+
+func TestModel_ViewToolsDetected(t *testing.T) {
+	m := newTestModel()
+	m.width = 80
+	m.screen = screenTools
+	m.selectedGroup = 0
+
+	view := m.View()
+	if !strings.Contains(view, "kustomize") {
+		t.Error("tool view should contain kustomize")
+	}
+	if !strings.Contains(view, "(system)") {
+		t.Error("detected tool should show (system) in version column")
+	}
+	if !strings.Contains(view, "~") {
+		t.Error("detected tool should show ~ icon")
 	}
 }
 

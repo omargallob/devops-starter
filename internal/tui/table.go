@@ -18,13 +18,16 @@ func PrintTable(w io.Writer, groups []state.GroupState) {
 	fmt.Fprintf(w, "%s\n", strings.Repeat("─", 76))
 
 	// Counters for summary
-	var current, outdated, missing, disabled, unknown int
+	var current, outdated, missing, disabled, unknown, detected int
 
 	for _, g := range groups {
 		for _, t := range g.Tools {
 			installed := t.InstalledVersion
 			if installed == "" {
 				installed = "-"
+			}
+			if t.Status == state.StatusDetected {
+				installed = "(system)"
 			}
 
 			desired := t.DesiredVersion
@@ -46,6 +49,8 @@ func PrintTable(w io.Writer, groups []state.GroupState) {
 				disabled++
 			case state.StatusUnknown:
 				unknown++
+			case state.StatusDetected:
+				detected++
 			}
 		}
 	}
@@ -55,6 +60,9 @@ func PrintTable(w io.Writer, groups []state.GroupState) {
 	parts := []string{}
 	if current > 0 {
 		parts = append(parts, fmt.Sprintf("%d current", current))
+	}
+	if detected > 0 {
+		parts = append(parts, fmt.Sprintf("%d detected", detected))
 	}
 	if outdated > 0 {
 		parts = append(parts, fmt.Sprintf("%d outdated", outdated))

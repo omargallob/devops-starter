@@ -157,6 +157,22 @@ func DetectVersion(toolName, installDir string) (string, error) {
 	return string(matches[1]), nil
 }
 
+// LookupInPath checks if the tool's binary exists anywhere in $PATH using
+// exec.LookPath. No subprocess is spawned. Returns the resolved absolute path
+// if found, or empty string if not. Uses the probe's BinName mapping (e.g.,
+// neovim→nvim, ripgrep→rg) when available.
+func LookupInPath(toolName string) string {
+	binName := toolName
+	if probe, ok := probes[toolName]; ok && probe.BinName != "" {
+		binName = probe.BinName
+	}
+	path, err := exec.LookPath(binName)
+	if err != nil {
+		return ""
+	}
+	return path
+}
+
 // VerifyAll runs version detection for all tools that have a binary present
 // in installDir, updating the store with detected versions. Tools without
 // a probe or without a binary are skipped silently.
