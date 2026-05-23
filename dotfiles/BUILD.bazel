@@ -3,3 +3,13 @@ filegroup(
     srcs = glob(["**/*"]),
     visibility = ["//visibility:public"],
 )
+
+filegroup(
+    name = "shell_scripts",
+    srcs = [
+        "shared/aliases.sh",
+        "shared/env.sh",
+        "shared/functions.sh",
+    ],
+    visibility = ["//visibility:public"],
+)
