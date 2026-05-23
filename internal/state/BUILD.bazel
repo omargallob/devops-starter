@@ -18,6 +18,14 @@ go_library(
 
 go_test(
     name = "state_test",
-    srcs = ["detect_test.go"],
+    srcs = [
+        "detect_test.go",
+        "state_test.go",
+        "store_test.go",
+    ],
     embed = [":state"],
+    deps = [
+        "//internal/config",
+        "//pkg/tooldef",
+    ],
 )
