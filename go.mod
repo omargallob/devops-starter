@@ -1,6 +1,6 @@
 module github.com/omargallob/devops-starter
 
-go 1.24.11
+go 1.26.3
 
 require (
 	github.com/charmbracelet/lipgloss v1.1.0
