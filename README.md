@@ -3,6 +3,7 @@
 [![CI](https://github.com/omargallob/devops-starter/actions/workflows/ci.yml/badge.svg)](https://github.com/omargallob/devops-starter/actions/workflows/ci.yml)
 [![Go](https://img.shields.io/badge/Go-1.26-00ADD8?logo=go)](https://go.dev)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Coverage](badges/coverage.svg)](https://github.com/omargallob/devops-starter/actions/workflows/ci.yml)
 
 An opinionated, cross-platform DevOps tool installer and dotfile manager. Downloads and installs 60+ pre-built CLI binaries (no package manager required) and manages shell/editor configuration via symlinks. One command to bootstrap a fully-configured development workstation.
 
