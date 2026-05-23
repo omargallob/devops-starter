@@ -1,3 +1,6 @@
+// archive.go implements extraction of downloaded tool archives.
+// Supported formats: tar.gz, tar.xz, zip, and raw binary (no archive).
+// All extractors include path traversal protection (zip-slip prevention).
 package installer
 
 import (
@@ -31,6 +34,7 @@ func Extract(archivePath string, destDir string, format tooldef.ArchiveFormat, s
 	}
 }
 
+// extractTarGz decompresses a gzip file and feeds it to extractTar.
 func extractTarGz(archivePath, destDir string, strip int) error {
 	f, err := os.Open(archivePath)
 	if err != nil {
@@ -47,6 +51,8 @@ func extractTarGz(archivePath, destDir string, strip int) error {
 	return extractTar(tar.NewReader(gr), destDir, strip)
 }
 
+// extractTarXz decompresses a .tar.xz file by piping through the system `xz` command,
+// then feeds the resulting stream to extractTar. Requires `xz` on $PATH.
 func extractTarXz(archivePath, destDir string, strip int) error {
 	cmd := exec.Command("xz", "-d", "--stdout", archivePath)
 	stdout, err := cmd.StdoutPipe()
@@ -64,6 +70,9 @@ func extractTarXz(archivePath, destDir string, strip int) error {
 	return err
 }
 
+// extractTar reads entries from a tar reader, strips leading path components,
+// and writes files and directories to destDir. Includes zip-slip protection
+// by verifying all resolved paths stay within destDir.
 func extractTar(tr *tar.Reader, destDir string, strip int) error {
 	for {
 		hdr, err := tr.Next()
@@ -107,6 +116,8 @@ func extractTar(tr *tar.Reader, destDir string, strip int) error {
 	}
 }
 
+// extractZip opens a zip archive and extracts entries to destDir, applying
+// strip-components and zip-slip protection.
 func extractZip(archivePath, destDir string, strip int) error {
 	r, err := zip.OpenReader(archivePath)
 	if err != nil {
@@ -157,6 +168,8 @@ func extractZip(archivePath, destDir string, strip int) error {
 	return nil
 }
 
+// copyBinary handles FormatBinary (raw binary with no archive wrapper).
+// It copies the downloaded file directly into destDir with executable permissions.
 func copyBinary(archivePath, destDir string) error {
 	data, err := os.ReadFile(archivePath)
 	if err != nil {

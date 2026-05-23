@@ -1,7 +1,13 @@
+// utilities.go registers general-purpose developer utilities that don't fit
+// neatly into other categories (JSON/YAML processors, fuzzy finders, security
+// tools, Git helpers, linters, task runners, and editors).
 package registry
 
 import "github.com/omargallob/devops-starter/pkg/tooldef"
 
+// registerUtilities adds general-purpose developer tools to the registry.
+// Includes jq, yq, fzf, direnv, age, sops, gh, trivy, lazygit, shellcheck,
+// shfmt, task, and neovim.
 func registerUtilities(r *Registry) {
 	r.register(&tooldef.Tool{
 		Name:        "jq",

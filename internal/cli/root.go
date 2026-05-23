@@ -1,15 +1,21 @@
+// Package cli implements the devops-starter command-line interface using Cobra.
+// It defines the root command and all subcommands (install, list, dotfiles, doctor, config).
+// Each subcommand file provides a constructor (newXxxCmd) and a run function (runXxx).
 package cli
 
 import (
 	"github.com/spf13/cobra"
 )
 
+// Global flags shared across subcommands.
 var (
-	cfgFile string
-	dryRun  bool
-	only    string
+	cfgFile string // --config: override path to config YAML
+	dryRun  bool   // --dry-run: preview mode, no side effects
+	only    string // --only: filter tools to a single group (install command)
 )
 
+// NewRootCmd constructs the top-level Cobra command with all subcommands registered.
+// Persistent flags (--config, --dry-run) are inherited by every subcommand.
 func NewRootCmd() *cobra.Command {
 	root := &cobra.Command{
 		Use:   "devops-starter",

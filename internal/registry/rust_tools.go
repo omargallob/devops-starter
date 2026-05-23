@@ -1,3 +1,6 @@
+// rust_tools.go registers modern Rust-based CLI replacements for coreutils and
+// developer productivity tools. Most are distributed as pre-compiled binaries
+// using Rust target triples (e.g., x86_64-unknown-linux-musl).
 package registry
 
 import (
@@ -6,6 +9,8 @@ import (
 	"github.com/omargallob/devops-starter/pkg/tooldef"
 )
 
+// rustTargetTriple maps our canonical OS/arch pair to the Rust target triple
+// used in release artifact filenames.
 func rustTargetTriple(os, arch string) string {
 	switch {
 	case os == "linux" && arch == "amd64":

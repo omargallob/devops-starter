@@ -1,7 +1,10 @@
+// containers.go registers container runtime and orchestration tools.
 package registry
 
 import "github.com/omargallob/devops-starter/pkg/tooldef"
 
+// registerContainers adds container-related tools to the registry.
+// Includes docker CLI, docker-compose, and nerdctl.
 func registerContainers(r *Registry) {
 	r.register(&tooldef.Tool{
 		Name:        "docker",

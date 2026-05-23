@@ -1,7 +1,10 @@
+// languages.go registers programming language runtime managers.
 package registry
 
 import "github.com/omargallob/devops-starter/pkg/tooldef"
 
+// registerLanguages adds language runtime tools to the registry.
+// Currently includes mise (polyglot version manager, formerly rtx).
 func registerLanguages(r *Registry) {
 	r.register(&tooldef.Tool{
 		Name:        "mise",

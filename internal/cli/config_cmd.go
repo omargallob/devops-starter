@@ -10,6 +10,8 @@ import (
 	"github.com/omargallob/devops-starter/internal/config"
 )
 
+// newConfigCmd creates the "config" parent command with init/show subcommands
+// for managing the devops-starter YAML configuration file.
 func newConfigCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "config",
@@ -25,6 +27,8 @@ func newConfigCmd() *cobra.Command {
 	return cmd
 }
 
+// newConfigInitCmd creates the "config init" subcommand that writes a default
+// configuration file. It refuses to overwrite an existing file.
 func newConfigInitCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "init",
@@ -33,6 +37,8 @@ func newConfigInitCmd() *cobra.Command {
 	}
 }
 
+// runConfigInit writes the default config to disk. If the config file already
+// exists, it returns an error to prevent accidental overwrites.
 func runConfigInit(cmd *cobra.Command, args []string) error {
 	path := cfgFile
 	if path == "" {
@@ -53,6 +59,8 @@ func runConfigInit(cmd *cobra.Command, args []string) error {
 	return nil
 }
 
+// newConfigShowCmd creates the "config show" subcommand that dumps the
+// current effective configuration as YAML.
 func newConfigShowCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "show",
@@ -61,6 +69,8 @@ func newConfigShowCmd() *cobra.Command {
 	}
 }
 
+// runConfigShow loads and pretty-prints the active configuration as YAML,
+// prefixed with the file path as a comment.
 func runConfigShow(cmd *cobra.Command, args []string) error {
 	path := cfgFile
 	if path == "" {

@@ -1,3 +1,4 @@
+// checksum.go provides SHA256 integrity verification for downloaded archives.
 package installer
 
 import (

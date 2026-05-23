@@ -13,6 +13,8 @@ import (
 	"github.com/omargallob/devops-starter/pkg/tooldef"
 )
 
+// newListCmd creates the "list" subcommand which displays all available tools
+// grouped by category, with a checkmark for already-installed tools.
 func newListCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "list",
@@ -22,6 +24,9 @@ func newListCmd() *cobra.Command {
 	}
 }
 
+// runList iterates through all tool groups in display order, checks whether
+// each tool's binary exists in the configured install directory, and prints
+// a formatted table with version and description.
 func runList(cmd *cobra.Command, args []string) error {
 	cfgPath := cfgFile
 	if cfgPath == "" {
@@ -34,6 +39,7 @@ func runList(cmd *cobra.Command, args []string) error {
 
 	reg := registry.New()
 
+	// Display groups in a fixed, logical order
 	groups := []tooldef.Group{
 		tooldef.GroupLanguages,
 		tooldef.GroupContainers,
@@ -57,6 +63,7 @@ func runList(cmd *cobra.Command, args []string) error {
 		fmt.Println(headerStyle.Render(fmt.Sprintf("\n[%s]", string(group))))
 
 		for _, t := range tools {
+			// Check if the binary exists at the expected install path
 			binPath := filepath.Join(cfg.InstallDir, t.GetInstallName())
 			_, statErr := os.Stat(binPath)
 			installed := statErr == nil

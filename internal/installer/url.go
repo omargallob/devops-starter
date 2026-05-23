@@ -1,3 +1,5 @@
+// url.go resolves download URLs for tools using platform-specific overrides
+// or Go text/template rendering against the tool's URLTemplate field.
 package installer
 
 import (

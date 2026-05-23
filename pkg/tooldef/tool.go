@@ -1,4 +1,12 @@
-// Package tooldef provides the core type definitions for tools managed by devops-starter.
+// Package tooldef provides the core type definitions shared across devops-starter.
+// These types are in a public package (pkg/) to allow external consumers to
+// programmatically inspect or extend the tool catalog.
+//
+// Key types:
+//   - Tool: complete metadata for a single installable binary
+//   - Platform: OS/architecture pair (e.g., linux/amd64)
+//   - Group: functional category for organising tools
+//   - ArchiveFormat: download artifact type (tar.gz, zip, raw binary, etc.)
 package tooldef
 
 // ArchiveFormat represents the format of a downloaded archive.
