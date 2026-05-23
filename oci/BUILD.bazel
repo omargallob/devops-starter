@@ -1,0 +1,40 @@
+load("@rules_oci//oci:defs.bzl", "oci_image", "oci_tarball")
+load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
+
+# ─── Ubuntu Test Image ───────────────────────────────────────────────────────
+# Packages the devops-starter binary into an Ubuntu base image for
+# integration testing.
+
+pkg_tar(
+    name = "devops_starter_layer",
+    srcs = ["//cmd/devops-starter"],
+    package_dir = "/usr/local/bin",
+)
+
+oci_image(
+    name = "ubuntu_test_image",
+    base = "@ubuntu_base",
+    tars = [":devops_starter_layer"],
+    entrypoint = ["/usr/local/bin/devops-starter"],
+)
+
+oci_tarball(
+    name = "ubuntu_test_image_tarball",
+    image = ":ubuntu_test_image",
+    repo_tags = ["devops-starter:ubuntu-test"],
+)
+
+# ─── Arch Linux Test Image ───────────────────────────────────────────────────
+
+oci_image(
+    name = "arch_test_image",
+    base = "@archlinux_base",
+    tars = [":devops_starter_layer"],
+    entrypoint = ["/usr/local/bin/devops-starter"],
+)
+
+oci_tarball(
+    name = "arch_test_image_tarball",
+    image = ":arch_test_image",
+    repo_tags = ["devops-starter:arch-test"],
+)
