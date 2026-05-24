@@ -81,15 +81,15 @@ func registerUtilities(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "trivy",
-		Version:     "0.58.2",
+		Version:     "0.70.0",
 		Description: "Security scanner",
 		Group:       tooldef.GroupUtilities,
 		Format:      tooldef.FormatTarGz,
 		URLs: map[string]string{
-			"linux/amd64":  "https://github.com/aquasecurity/trivy/releases/download/v0.58.2/trivy_0.58.2_Linux-64bit.tar.gz",
-			"linux/arm64":  "https://github.com/aquasecurity/trivy/releases/download/v0.58.2/trivy_0.58.2_Linux-ARM64.tar.gz",
-			"darwin/amd64": "https://github.com/aquasecurity/trivy/releases/download/v0.58.2/trivy_0.58.2_macOS-64bit.tar.gz",
-			"darwin/arm64": "https://github.com/aquasecurity/trivy/releases/download/v0.58.2/trivy_0.58.2_macOS-ARM64.tar.gz",
+			"linux/amd64":  "https://github.com/aquasecurity/trivy/releases/download/v0.70.0/trivy_0.70.0_Linux-64bit.tar.gz",
+			"linux/arm64":  "https://github.com/aquasecurity/trivy/releases/download/v0.70.0/trivy_0.70.0_Linux-ARM64.tar.gz",
+			"darwin/amd64": "https://github.com/aquasecurity/trivy/releases/download/v0.70.0/trivy_0.70.0_macOS-64bit.tar.gz",
+			"darwin/arm64": "https://github.com/aquasecurity/trivy/releases/download/v0.70.0/trivy_0.70.0_macOS-ARM64.tar.gz",
 		},
 	})
 
@@ -142,12 +142,14 @@ func registerUtilities(r *Registry) {
 	})
 
 	r.register(&tooldef.Tool{
-		Name:        "neovim",
-		Version:     "0.10.3",
-		Description: "Hyperextensible text editor",
-		Group:       tooldef.GroupUtilities,
-		Format:      tooldef.FormatTarGz,
-		InstallName: "nvim",
+		Name:            "neovim",
+		Version:         "0.10.3",
+		Description:     "Hyperextensible text editor",
+		Group:           tooldef.GroupUtilities,
+		Format:          tooldef.FormatTarGz,
+		InstallName:     "nvim",
+		BinaryName:      "nvim",
+		StripComponents: 2,
 		URLs: map[string]string{
 			"linux/amd64":  "https://github.com/neovim/neovim/releases/download/v0.10.3/nvim-linux-x86_64.tar.gz",
 			"darwin/amd64": "https://github.com/neovim/neovim/releases/download/v0.10.3/nvim-macos-x86_64.tar.gz",
