@@ -34,6 +34,7 @@ verifies checksums, and manages dotfile configurations.`,
 		newDotfilesCmd(),
 		newDoctorCmd(),
 		newConfigCmd(),
+		newStatusCmd(),
 	)
 
 	return root

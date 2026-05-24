@@ -13,7 +13,10 @@ go_library(
         "utilities.go",
     ],
     importpath = "github.com/omargallob/devops-starter/internal/registry",
-    visibility = ["//cmd:__subpackages__", "//internal:__subpackages__"],
+    visibility = [
+        "//cmd:__subpackages__",
+        "//internal:__subpackages__",
+    ],
     deps = [
         "//pkg/tooldef",
     ],
