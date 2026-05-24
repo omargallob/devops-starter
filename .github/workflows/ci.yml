@@ -11,7 +11,6 @@ permissions:
 
 env:
   GH_TOKEN: ${{ github.token }}
-  
 
 jobs:
   test:
@@ -53,8 +52,18 @@ jobs:
       - name: shellcheck
         run: |
           sudo apt-get install -y shellcheck
-           shellcheck scripts/install.sh
+          shellcheck scripts/install.sh
           find dotfiles -name "*.sh" -exec shellcheck {} +
+
+      - name: yamllint
+        run: |
+          pip install yamllint
+          yamllint --strict .
+
+      - name: actionlint
+        run: |
+          bash <(curl https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+          ./actionlint
 
   build:
     name: Build (${{ matrix.os }}/${{ matrix.arch }})
