@@ -1,6 +1,8 @@
 load("@gazelle//:def.bzl", "gazelle")
+load("//bazel/rules:actionlint.bzl", "actionlint_test")
 load("//bazel/rules:golangci_lint.bzl", "golangci_lint_test")
 load("//bazel/rules:shellcheck.bzl", "shellcheck_test")
+load("//bazel/rules:yamllint.bzl", "yamllint_test")
 
 # gazelle:prefix github.com/omargallob/devops-starter
 gazelle(name = "gazelle")
@@ -21,6 +23,32 @@ golangci_lint_test(
         "./cmd/...",
         "./internal/...",
         "./pkg/...",
+    ],
+    tags = ["local"],
+)
+
+# Lint all YAML files
+yamllint_test(
+    name = "yamllint",
+    srcs = [
+        ".commitlintrc.yaml",
+        ".pre-commit-config.yaml",
+        ".yamllint.yaml",
+        "//configs:default.yaml",
+        ".github/workflows/ci.yml",
+        ".github/workflows/pr-title.yml",
+        ".github/workflows/release.yml",
+    ],
+    config = ".yamllint.yaml",
+)
+
+# Lint GitHub Actions workflow files
+actionlint_test(
+    name = "actionlint",
+    srcs = [
+        ".github/workflows/ci.yml",
+        ".github/workflows/pr-title.yml",
+        ".github/workflows/release.yml",
     ],
     tags = ["local"],
 )
