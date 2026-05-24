@@ -165,6 +165,21 @@ Run `devops-starter config init` to generate the default config.
 | **rust-tools** | bat, eza, fd, ripgrep, delta, zoxide, starship, tokei, hyperfine, procs, bottom, gitui, dust, bandwhich, sd, tealdeer, xh, yazi, atuin, zellij, just, watchexec |
 | **utilities** | jq, yq, fzf, direnv, age, sops, gh, trivy, lazygit, shellcheck, shfmt, task, neovim |
 
+### Platform Availability
+
+Not all tools provide pre-built binaries for every platform. The installer will skip tools that don't have a binary for your OS/architecture:
+
+| Tool | linux/amd64 | linux/arm64 | darwin/amd64 | darwin/arm64 |
+|------|:-----------:|:-----------:|:------------:|:------------:|
+| bat | yes | yes | yes | - |
+| dust | yes | yes | yes | - |
+| tokei | yes | yes | yes | - |
+| procs | - | - | yes | yes |
+| neovim | yes | - | yes | yes |
+| trivy | yes | yes | yes | yes |
+
+All other tools support all four platforms (linux/amd64, linux/arm64, darwin/amd64, darwin/arm64).
+
 ## Dotfiles
 
 The `dotfiles/` directory contains managed configuration files:
