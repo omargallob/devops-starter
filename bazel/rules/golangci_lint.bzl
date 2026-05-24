@@ -21,22 +21,25 @@ def _golangci_lint_test_impl(ctx):
 
     config_arg = ""
     if ctx.file.config:
-        config_arg = "--config \"${{BUILD_WORKSPACE_DIRECTORY}}/{}\"".format(ctx.file.config.short_path)
+        config_arg = "--config \"$(pwd)/{}\"".format(ctx.file.config.short_path)
 
     paths = " ".join(ctx.attr.paths)
 
     content = """#!/usr/bin/env bash
 set -euo pipefail
 
-# Resolve workspace directory
+# Resolve workspace directory.
+# BUILD_WORKSPACE_DIRECTORY is set by "bazel run" but not "bazel test".
 if [ -n "${{BUILD_WORKSPACE_DIRECTORY:-}}" ]; then
     cd "$BUILD_WORKSPACE_DIRECTORY"
-elif [ -n "${{TEST_SRCDIR:-}}" ]; then
-    # When run as bazel test, we need to find the workspace root
-    # by walking up from the runfiles directory
-    WORKSPACE_ROOT="${{TEST_SRCDIR}}/{workspace_name}"
-    if [ -d "$WORKSPACE_ROOT" ]; then
+else
+    # For local tests, find the workspace root via git.
+    WORKSPACE_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || true)
+    if [ -n "$WORKSPACE_ROOT" ] && [ -f "$WORKSPACE_ROOT/go.mod" ]; then
         cd "$WORKSPACE_ROOT"
+    else
+        echo "ERROR: cannot determine workspace root" >&2
+        exit 1
     fi
 fi
 

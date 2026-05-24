@@ -17,5 +17,10 @@ shellcheck_test(
 golangci_lint_test(
     name = "golangci_lint",
     config = ".golangci.yml",
-    paths = ["./..."],
+    paths = [
+        "./cmd/...",
+        "./internal/...",
+        "./pkg/...",
+    ],
+    tags = ["local"],
 )
