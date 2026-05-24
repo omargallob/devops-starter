@@ -5,22 +5,6 @@ package registry
 
 import "github.com/omargallob/devops-starter/pkg/tooldef"
 
-// rustTargetTriple maps our canonical OS/arch pair to the Rust target triple
-// used in release artifact filenames.
-func rustTargetTriple(os, arch string) string {
-	switch {
-	case os == "linux" && arch == "amd64":
-		return "x86_64-unknown-linux-musl"
-	case os == "linux" && arch == "arm64":
-		return "aarch64-unknown-linux-musl"
-	case os == "darwin" && arch == "amd64":
-		return "x86_64-apple-darwin"
-	case os == "darwin" && arch == "arm64":
-		return "aarch64-apple-darwin"
-	}
-	return ""
-}
-
 func registerRustTools(r *Registry) {
 	// bat - only x86_64 available for macOS in v0.24.0
 	r.register(&tooldef.Tool{
