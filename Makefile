@@ -1,4 +1,4 @@
-.PHONY: build test lint clean release gazelle fmt vet install
+.PHONY: build test lint clean release gazelle fmt vet install setup lint-local
 
 # Default Go build
 build:
@@ -66,3 +66,17 @@ release:
 install: build
 	mkdir -p $(HOME)/.local/bin
 	cp devops-starter $(HOME)/.local/bin/devops-starter
+
+# ─── Development Setup ────────────────────────────────────────────────────────
+
+# Install pre-commit hooks (requires mise, Python, Node via `mise install`)
+setup:
+	@command -v mise >/dev/null 2>&1 || { echo "Install mise first: https://mise.jdx.dev"; exit 1; }
+	mise install
+	pip install pre-commit
+	pre-commit install --hook-type commit-msg --hook-type pre-commit
+	@echo "Done! Commit hooks are now active."
+
+# Run all pre-commit hooks on all files
+lint-local:
+	pre-commit run --all-files
