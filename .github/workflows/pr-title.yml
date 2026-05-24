@@ -5,6 +5,10 @@ on:
     branches: [main]
     types: [opened, edited, synchronize]
 
+permissions:
+  pull-requests: write
+  contents: read
+
 jobs:
   pr-title:
     name: PR Title (Conventional Commits)
