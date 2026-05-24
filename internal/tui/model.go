@@ -25,6 +25,7 @@ const (
 	screenGroups   screen = iota // Category picker
 	screenTools                  // Tool list within selected group
 	screenProgress               // Install progress view
+	screenConfirm                // Confirmation prompt before action
 )
 
 // Model is the top-level Bubble Tea model for the status TUI.
@@ -47,6 +48,11 @@ type Model struct {
 	progressTools   []progressItem           // ordered list for progress screen
 	progressDone    bool                     // all installs in current batch completed
 	returnToScreen  screen                   // where to go when progress is dismissed
+
+	// Confirmation screen state
+	confirmType     confirmAction            // what action is being confirmed
+	confirmTools    []*tooldef.Tool          // tools pending confirmation
+	confirmNames    []string                 // tool names for remove confirmation
 
 	quitting bool
 	message  string // transient status message
@@ -86,6 +92,14 @@ const (
 	progressInstalling                       // currently downloading/installing
 	progressDone                             // completed successfully
 	progressFailed                           // failed with error
+)
+
+// confirmAction represents the type of action awaiting confirmation.
+type confirmAction int
+
+const (
+	confirmInstall confirmAction = iota // Install/adopt tools
+	confirmRemove                       // Remove managed tools
 )
 
 // NewModel creates a new TUI model from the resolved state.

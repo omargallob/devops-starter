@@ -47,6 +47,8 @@ type ToolState struct {
 	Description      string
 	DesiredVersion   string // from registry + config overrides
 	InstalledVersion string // from state file or verify
+	DetectedPath     string // path to system binary (when StatusDetected)
+	DetectedVersion  string // version of system binary (when StatusDetected)
 	Status           Status
 	Selected         bool // TUI selection state (not persisted)
 	Tool             *tooldef.Tool
@@ -125,6 +127,11 @@ func ResolveAll(cfg *config.Config, store *Store, plat tooldef.Platform) []Group
 			// Not in state file — check if binary exists in PATH
 			if path := LookupInPath(t.Name); path != "" {
 				ts.Status = StatusDetected
+				ts.DetectedPath = path
+				// Try to detect the version of the system binary
+				if ver, err := DetectVersionAtPath(t.Name, path); err == nil {
+					ts.DetectedVersion = ver
+				}
 			} else {
 				ts.Status = StatusMissing
 			}
