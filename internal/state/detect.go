@@ -173,6 +173,37 @@ func LookupInPath(toolName string) string {
 	return path
 }
 
+// DetectVersionAtPath runs the version probe for the named tool against an
+// arbitrary binary path (e.g., a system-installed binary found in PATH).
+// Returns the detected version string or an error.
+func DetectVersionAtPath(toolName, binPath string) (string, error) {
+	probe, ok := probes[toolName]
+	if !ok {
+		return "", fmt.Errorf("no version probe defined for %s", toolName)
+	}
+
+	if _, err := os.Stat(binPath); err != nil {
+		return "", fmt.Errorf("binary not found: %s", binPath)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), probeTimeout)
+	defer cancel()
+
+	cmd := exec.CommandContext(ctx, binPath, probe.Args...)
+	cmd.Env = append(os.Environ(), "NO_COLOR=1")
+	output, err := cmd.CombinedOutput()
+	if err != nil && len(output) == 0 {
+		return "", fmt.Errorf("running %s %s: %w", binPath, strings.Join(probe.Args, " "), err)
+	}
+
+	matches := probe.Regex.FindSubmatch(output)
+	if len(matches) < 2 {
+		return "", fmt.Errorf("could not parse version from output of %s: %q", binPath, string(output))
+	}
+
+	return string(matches[1]), nil
+}
+
 // VerifyAll runs version detection for all tools that have a binary present
 // in installDir, updating the store with detected versions. Tools without
 // a probe or without a binary are skipped silently.

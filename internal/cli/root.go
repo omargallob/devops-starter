@@ -31,6 +31,7 @@ verifies checksums, and manages dotfile configurations.`,
 	root.AddCommand(
 		newInstallCmd(),
 		newListCmd(),
+		newAdoptCmd(),
 		newDotfilesCmd(),
 		newDoctorCmd(),
 		newConfigCmd(),
