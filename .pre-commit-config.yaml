@@ -7,23 +7,32 @@ repos:
         additional_dependencies:
           - '@commitlint/config-conventional'
 
-  - repo: https://github.com/golangci/golangci-lint
-    rev: v2.1.6
+  - repo: local
     hooks:
       - id: golangci-lint
+        name: golangci-lint (bazel)
+        entry: bazel test //:golangci_lint
+        language: system
+        pass_filenames: false
+        types: [go]
 
-  - repo: https://github.com/shellcheck-py/shellcheck-py
-    rev: v0.10.0.1
-    hooks:
       - id: shellcheck
+        name: shellcheck (bazel)
+        entry: bazel test //:shellcheck
+        language: system
+        pass_filenames: false
+        types: [shell]
 
-  - repo: https://github.com/adrienverge/yamllint
-    rev: v1.35.1
-    hooks:
       - id: yamllint
-        args: [--strict]
+        name: yamllint (bazel)
+        entry: bazel test //:yamllint
+        language: system
+        pass_filenames: false
+        types: [yaml]
 
-  - repo: https://github.com/rhysd/actionlint
-    rev: v1.7.12
-    hooks:
       - id: actionlint
+        name: actionlint (bazel)
+        entry: bazel test //:actionlint
+        language: system
+        pass_filenames: false
+        files: \.github/workflows/
