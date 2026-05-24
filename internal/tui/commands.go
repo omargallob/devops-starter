@@ -2,6 +2,8 @@ package tui
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 
 	tea "github.com/charmbracelet/bubbletea"
 
@@ -21,6 +23,13 @@ type verifyCompleteMsg struct {
 	Name    string
 	Version string
 	Err     error
+}
+
+// removeCompleteMsg is sent when a tool removal finishes.
+type removeCompleteMsg struct {
+	Name       string
+	SystemPath string // path to system binary that will take over (if any)
+	Err        error
 }
 
 // installToolCmd returns a Bubble Tea command that installs a single tool
@@ -45,6 +54,34 @@ func verifyToolCmd(toolName, installDir string) tea.Cmd {
 			Name:    toolName,
 			Version: version,
 			Err:     err,
+		}
+	}
+}
+
+// removeToolCmd returns a Bubble Tea command that removes a managed tool binary
+// and clears it from the state store. It reports whether a system version exists.
+func removeToolCmd(toolName, binName, installDir string, store *state.Store) tea.Cmd {
+	return func() tea.Msg {
+		binPath := filepath.Join(installDir, binName)
+
+		// Remove the binary
+		err := os.Remove(binPath)
+		if err != nil && !os.IsNotExist(err) {
+			return removeCompleteMsg{Name: toolName, Err: err}
+		}
+
+		// Remove from state store
+		if err := store.Remove(toolName); err != nil {
+			return removeCompleteMsg{Name: toolName, Err: err}
+		}
+
+		// Check if a system version will take over
+		systemPath := state.LookupInPath(toolName)
+
+		return removeCompleteMsg{
+			Name:       toolName,
+			SystemPath: systemPath,
+			Err:        nil,
 		}
 	}
 }
