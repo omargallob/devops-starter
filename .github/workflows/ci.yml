@@ -50,7 +50,7 @@ jobs:
       - name: shellcheck
         run: |
           sudo apt-get install -y shellcheck
-          shellcheck scripts/install.sh scripts/generate-coverage-badge.sh
+           shellcheck scripts/install.sh
           find dotfiles -name "*.sh" -exec shellcheck {} +
 
   build:
@@ -127,7 +127,7 @@ jobs:
           HITS=$(awk -F: '/^DA:/ { split($2,a,","); total++; if(a[2]>0) hit++ } END { printf "%.1f", (hit/total)*100 }' "$LCOV_FILE")
           echo "Coverage: ${HITS}%"
           # Generate the badge SVG.
-          ./scripts/generate-coverage-badge.sh "$HITS" badges/coverage.svg
+          go run ./cmd/generate-coverage-badge "$HITS" badges/coverage.svg
           # Commit and push if changed.
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
