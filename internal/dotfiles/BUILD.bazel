@@ -4,7 +4,10 @@ go_library(
     name = "dotfiles",
     srcs = ["linker.go"],
     importpath = "github.com/omargallob/devops-starter/internal/dotfiles",
-    visibility = ["//cmd:__subpackages__", "//internal:__subpackages__"],
+    visibility = [
+        "//cmd:__subpackages__",
+        "//internal:__subpackages__",
+    ],
 )
 
 go_test(

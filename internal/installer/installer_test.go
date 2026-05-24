@@ -161,3 +161,96 @@ func TestEnsureDir(t *testing.T) {
 		t.Error("expected directory")
 	}
 }
+
+func TestNew_Defaults(t *testing.T) {
+	plat := tooldef.Platform{OS: "darwin", Arch: "arm64"}
+	inst := New("/tmp/test", plat)
+
+	if inst.InstallDir != "/tmp/test" {
+		t.Errorf("InstallDir = %s, want /tmp/test", inst.InstallDir)
+	}
+	if inst.Platform != plat {
+		t.Errorf("Platform mismatch")
+	}
+	if inst.Concurrency != 4 {
+		t.Errorf("Concurrency = %d, want 4", inst.Concurrency)
+	}
+	if inst.DryRun {
+		t.Error("DryRun should default to false")
+	}
+	if inst.StateStore != nil {
+		t.Error("StateStore should default to nil")
+	}
+}
+
+func TestNew_WithOptions(t *testing.T) {
+	plat := tooldef.Platform{OS: "linux", Arch: "amd64"}
+	inst := New("/tmp/test", plat,
+		WithDryRun(true),
+		WithConcurrency(8),
+	)
+
+	if !inst.DryRun {
+		t.Error("expected DryRun=true")
+	}
+	if inst.Concurrency != 8 {
+		t.Errorf("Concurrency = %d, want 8", inst.Concurrency)
+	}
+}
+
+func TestInstall_DryRun(t *testing.T) {
+	tmp := t.TempDir()
+	plat := tooldef.Platform{OS: "linux", Arch: "amd64"}
+	inst := New(tmp, plat, WithDryRun(true))
+
+	tool := &tooldef.Tool{
+		Name:    "fake-tool",
+		Version: "1.0.0",
+	}
+
+	ctx := t.Context()
+	if err := inst.Install(ctx, tool); err != nil {
+		t.Fatalf("dry-run install should not error: %v", err)
+	}
+
+	// Binary should NOT be installed
+	if inst.IsInstalled(tool) {
+		t.Error("dry-run should not actually install")
+	}
+}
+
+func TestInstallAll_DryRun(t *testing.T) {
+	tmp := t.TempDir()
+	plat := tooldef.Platform{OS: "linux", Arch: "amd64"}
+	inst := New(tmp, plat, WithDryRun(true))
+
+	tools := []*tooldef.Tool{
+		{Name: "tool-a", Version: "1.0.0"},
+		{Name: "tool-b", Version: "2.0.0"},
+		{Name: "tool-c", Version: "3.0.0"},
+	}
+
+	ctx := t.Context()
+	errs := inst.InstallAll(ctx, tools)
+	if len(errs) != 0 {
+		t.Fatalf("expected no errors in dry-run, got %v", errs)
+	}
+}
+
+func TestInstall_NoURLTemplate(t *testing.T) {
+	tmp := t.TempDir()
+	plat := tooldef.Platform{OS: "linux", Arch: "amd64"}
+	inst := New(tmp, plat)
+
+	tool := &tooldef.Tool{
+		Name:    "no-url-tool",
+		Version: "1.0.0",
+		// No URLTemplate or URLs set
+	}
+
+	ctx := t.Context()
+	err := inst.Install(ctx, tool)
+	if err == nil {
+		t.Fatal("expected error when no URL template is set")
+	}
+}

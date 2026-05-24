@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/omargallob/devops-starter/internal/state"
 	"github.com/omargallob/devops-starter/pkg/tooldef"
 )
 
@@ -18,6 +19,9 @@ type Installer struct {
 	Platform    tooldef.Platform
 	DryRun      bool
 	Concurrency int
+	// StateStore is an optional state store for recording installed versions.
+	// If nil, no state is recorded.
+	StateStore  *state.Store
 }
 
 // Option is a functional option for configuring an Installer.
@@ -34,6 +38,13 @@ func WithDryRun(dryRun bool) Option {
 func WithConcurrency(n int) Option {
 	return func(i *Installer) {
 		i.Concurrency = n
+	}
+}
+
+// WithStateStore sets the state store for recording installed tool versions.
+func WithStateStore(store *state.Store) Option {
+	return func(i *Installer) {
+		i.StateStore = store
 	}
 }
 
@@ -119,6 +130,12 @@ func (inst *Installer) Install(ctx context.Context, tool *tooldef.Tool) error {
 
 	if err := os.WriteFile(dstBinary, data, 0o755); err != nil {
 		return fmt.Errorf("writing binary %s: %w", tool.Name, err)
+	}
+
+	// Record the installed version in state store (if configured)
+	if inst.StateStore != nil {
+		// Best-effort: don't fail the install if state recording fails
+		_ = inst.StateStore.Record(tool.Name, tool.Version)
 	}
 
 	return nil

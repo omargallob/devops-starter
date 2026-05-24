@@ -10,8 +10,12 @@ go_library(
         "url.go",
     ],
     importpath = "github.com/omargallob/devops-starter/internal/installer",
-    visibility = ["//cmd:__subpackages__", "//internal:__subpackages__"],
+    visibility = [
+        "//cmd:__subpackages__",
+        "//internal:__subpackages__",
+    ],
     deps = [
+        "//internal/state",
         "//pkg/tooldef",
         "@com_github_schollz_progressbar_v3//:progressbar",
     ],
