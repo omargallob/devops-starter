@@ -14,7 +14,7 @@ env:
 
 jobs:
   golangci-lint:
-    name: golangci-lint
+    name: Linter - golangci-lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -29,7 +29,7 @@ jobs:
         run: bazel test --config=ci //:golangci_lint
 
   shellcheck:
-    name: shellcheck
+    name: Linter - shellcheck
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -44,7 +44,7 @@ jobs:
         run: bazel test --config=ci //:shellcheck
 
   yamllint:
-    name: yamllint
+    name: Linter - yamllint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -59,7 +59,7 @@ jobs:
         run: bazel test --config=ci //:yamllint
 
   actionlint:
-    name: actionlint
+    name: Linter - actionlint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -74,7 +74,7 @@ jobs:
         run: bazel test --config=ci //:actionlint
 
   test:
-    name: Test
+    name: bazel test //...
     needs: [golangci-lint, shellcheck, yamllint, actionlint]
     runs-on: ubuntu-latest
     steps:
@@ -90,7 +90,7 @@ jobs:
         run: bazel test --config=ci //... -- -//:golangci_lint -//:shellcheck -//:yamllint -//:actionlint
 
   build:
-    name: Build
+    name: bazel build, coverage, and badge update
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [test]
     runs-on: ubuntu-latest
