@@ -13,8 +13,8 @@ env:
   GH_TOKEN: ${{ github.token }}
 
 jobs:
-  check:
-    name: Check
+  golangci-lint:
+    name: golangci-lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -22,16 +22,77 @@ jobs:
       - uses: bazel-contrib/setup-bazel@0.19.0
         with:
           bazelisk-cache: true
-          disk-cache: ${{ github.workflow }}-check
+          disk-cache: ${{ github.workflow }}-golangci-lint
           repository-cache: true
 
-      - name: Test and lint
-        run: bazel test --config=ci //...
+      - name: Run golangci-lint
+        run: bazel test --config=ci //:golangci_lint
+
+  shellcheck:
+    name: shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: bazel-contrib/setup-bazel@0.19.0
+        with:
+          bazelisk-cache: true
+          disk-cache: ${{ github.workflow }}-shellcheck
+          repository-cache: true
+
+      - name: Run shellcheck
+        run: bazel test --config=ci //:shellcheck
+
+  yamllint:
+    name: yamllint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: bazel-contrib/setup-bazel@0.19.0
+        with:
+          bazelisk-cache: true
+          disk-cache: ${{ github.workflow }}-yamllint
+          repository-cache: true
+
+      - name: Run yamllint
+        run: bazel test --config=ci //:yamllint
+
+  actionlint:
+    name: actionlint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: bazel-contrib/setup-bazel@0.19.0
+        with:
+          bazelisk-cache: true
+          disk-cache: ${{ github.workflow }}-actionlint
+          repository-cache: true
+
+      - name: Run actionlint
+        run: bazel test --config=ci //:actionlint
+
+  test:
+    name: Test
+    needs: [golangci-lint, shellcheck, yamllint, actionlint]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: bazel-contrib/setup-bazel@0.19.0
+        with:
+          bazelisk-cache: true
+          disk-cache: ${{ github.workflow }}-test
+          repository-cache: true
+
+      - name: Run tests
+        run: bazel test --config=ci //... -- -//:golangci_lint -//:shellcheck -//:yamllint -//:actionlint
 
   build:
     name: Build
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [check]
+    needs: [test]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
