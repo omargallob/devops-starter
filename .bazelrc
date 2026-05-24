@@ -19,3 +19,7 @@ common --experimental_repository_cache_hardlinks
 # ─── Convenience ─────────────────────────────────────────────────────────────
 common --color=yes
 build --show_timestamps
+
+# ─── CI ──────────────────────────────────────────────────────────────────────
+build:ci --curses=no
+build:ci --announce_rc
