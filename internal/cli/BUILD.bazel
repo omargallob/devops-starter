@@ -3,11 +3,14 @@ load("@rules_go//go:def.bzl", "go_library")
 go_library(
     name = "cli",
     srcs = [
+        "adopt.go",
+        "confirm.go",
         "config_cmd.go",
         "doctor.go",
         "dotfiles.go",
         "install.go",
         "list.go",
+        "remove.go",
         "root.go",
         "status.go",
     ],

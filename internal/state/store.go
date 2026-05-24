@@ -96,3 +96,9 @@ func (s *Store) GetVersion(name string) string {
 	}
 	return ""
 }
+
+// Remove deletes a tool from the state store and persists to disk.
+func (s *Store) Remove(name string) error {
+	delete(s.Tools, name)
+	return s.Save()
+}

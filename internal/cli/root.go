@@ -11,6 +11,7 @@ import (
 var (
 	cfgFile string // --config: override path to config YAML
 	dryRun  bool   // --dry-run: preview mode, no side effects
+	autoYes bool   // --yes/-y: skip confirmation prompts
 	only    string // --only: filter tools to a single group (install command)
 )
 
@@ -27,10 +28,13 @@ verifies checksums, and manages dotfile configurations.`,
 
 	root.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default: ~/.config/devops-starter/config.yaml)")
 	root.PersistentFlags().BoolVar(&dryRun, "dry-run", false, "preview actions without executing")
+	root.PersistentFlags().BoolVarP(&autoYes, "yes", "y", false, "skip confirmation prompts")
 
 	root.AddCommand(
 		newInstallCmd(),
 		newListCmd(),
+		newAdoptCmd(),
+		newRemoveCmd(),
 		newDotfilesCmd(),
 		newDoctorCmd(),
 		newConfigCmd(),

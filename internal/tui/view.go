@@ -39,6 +39,8 @@ func (m Model) View() string {
 		return m.viewTools()
 	case screenProgress:
 		return m.viewProgress()
+	case screenConfirm:
+		return m.viewConfirm()
 	}
 	return ""
 }
@@ -162,7 +164,7 @@ func (m Model) viewTools() string {
 	b.WriteString("\n")
 	b.WriteString(strings.Repeat("━", clamp(m.width, 40, 80)))
 	b.WriteString("\n")
-	b.WriteString(helpStyle.Render(" ↑↓/jk navigate  space select  i install  a all  v verify  d disable  esc back  q quit"))
+	b.WriteString(helpStyle.Render(" ↑↓/jk navigate  space select  i install  r remove  a all  v verify  d disable  esc back  q quit"))
 	b.WriteString("\n")
 
 	return b.String()
@@ -260,6 +262,98 @@ func (m Model) viewProgress() string {
 	// Footer
 	b.WriteString("\n")
 	b.WriteString(strings.Repeat("━", clamp(m.width, 40, 80)))
+	b.WriteString("\n")
+
+	return b.String()
+}
+
+// viewConfirm renders the confirmation prompt screen.
+func (m Model) viewConfirm() string {
+	var b strings.Builder
+
+	// Title bar
+	b.WriteString(titleStyle.Render("devops-starter status"))
+	fmt.Fprintf(&b, "  [%s/%s]\n", m.platform.OS, m.platform.Arch)
+	b.WriteString(strings.Repeat("━", clamp(m.width, 40, 80)))
+	b.WriteString("\n\n")
+
+	switch m.confirmType {
+	case confirmInstall:
+		// Determine if this is an adopt (detected tools) or regular install
+		hasDetected := false
+		for _, tool := range m.confirmTools {
+			for _, g := range m.groups {
+				for _, t := range g.Tools {
+					if t.Name == tool.Name && t.Status == state.StatusDetected {
+						hasDetected = true
+					}
+				}
+			}
+		}
+
+		action := "install"
+		if hasDetected {
+			action = "install/adopt"
+		}
+
+		b.WriteString(headerStyle.Render(fmt.Sprintf("  Confirm %s (%d tool(s)):", action, len(m.confirmTools))))
+		b.WriteString("\n\n")
+
+		for _, tool := range m.confirmTools {
+			detail := ""
+			for _, g := range m.groups {
+				for _, t := range g.Tools {
+					if t.Name == tool.Name && t.Status == state.StatusDetected && t.DetectedPath != "" {
+						detail = fmt.Sprintf("  (adopting from system: %s", t.DetectedPath)
+						if t.DetectedVersion != "" {
+							detail += " v" + t.DetectedVersion
+						}
+						detail += ")"
+					}
+				}
+			}
+			line := fmt.Sprintf("    • %s %s%s", tool.Name, tool.Version, detail)
+			b.WriteString(line)
+			b.WriteString("\n")
+		}
+
+	case confirmRemove:
+		b.WriteString(headerStyle.Render(fmt.Sprintf("  Confirm removal (%d tool(s)):", len(m.confirmNames))))
+		b.WriteString("\n\n")
+
+		for _, name := range m.confirmNames {
+			detail := ""
+			for _, g := range m.groups {
+				for _, t := range g.Tools {
+					if t.Name == name {
+						if t.InstalledVersion != "" {
+							detail += fmt.Sprintf(" (managed: v%s)", t.InstalledVersion)
+						}
+						// Check if system version will take over
+						if t.DetectedPath != "" {
+							detail += fmt.Sprintf(" → system: %s", t.DetectedPath)
+						} else {
+							detail += " → no system version"
+						}
+					}
+				}
+			}
+			line := fmt.Sprintf("    • %s%s", name, detail)
+			b.WriteString(line)
+			b.WriteString("\n")
+		}
+	}
+
+	// Prompt
+	b.WriteString("\n")
+	b.WriteString(messageStyle.Render("  Proceed? (y/n)"))
+	b.WriteString("\n")
+
+	// Footer
+	b.WriteString("\n")
+	b.WriteString(strings.Repeat("━", clamp(m.width, 40, 80)))
+	b.WriteString("\n")
+	b.WriteString(helpStyle.Render(" y confirm  n/esc cancel"))
 	b.WriteString("\n")
 
 	return b.String()

@@ -25,6 +25,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m.updateTools(msg)
 		case screenProgress:
 			return m.updateProgress(msg)
+		case screenConfirm:
+			return m.updateConfirm(msg)
 		}
 
 	case installCompleteMsg:
@@ -32,6 +34,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case verifyCompleteMsg:
 		return m.handleVerifyComplete(msg)
+
+	case removeCompleteMsg:
+		return m.handleRemoveComplete(msg)
 
 	case spinner.TickMsg:
 		return m.handleSpinnerTick(msg)
@@ -74,7 +79,7 @@ func (m Model) updateGroups(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			return m, nil
 		}
 		m.selectedGroup = m.groupCursor
-		return m.startProgressInstall(tools, screenGroups)
+		return m.showConfirmInstall(tools, screenGroups)
 	}
 
 	return m, nil
@@ -142,7 +147,29 @@ func (m Model) updateTools(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 			m.message = "Nothing to install"
 			return m, nil
 		}
-		return m.startProgressInstall(selected, screenTools)
+		return m.showConfirmInstall(selected, screenTools)
+
+	case "r":
+		// Remove managed tool(s) — revert to system version
+		var names []string
+		// Check if any are selected
+		for _, t := range m.groups[m.selectedGroup].Tools {
+			if t.Selected && (t.Status == state.StatusCurrent || t.Status == state.StatusOutdated || t.Status == state.StatusUnknown) {
+				names = append(names, t.Name)
+			}
+		}
+		// If none selected, try current tool under cursor
+		if len(names) == 0 {
+			t := m.currentToolInGroup()
+			if t != nil && (t.Status == state.StatusCurrent || t.Status == state.StatusOutdated || t.Status == state.StatusUnknown) {
+				names = append(names, t.Name)
+			}
+		}
+		if len(names) == 0 {
+			m.message = "Nothing to remove (select managed tools)"
+			return m, nil
+		}
+		return m.showConfirmRemove(names)
 
 	case "d":
 		// Toggle disable
@@ -317,5 +344,146 @@ func (m Model) handleSpinnerTick(msg spinner.TickMsg) (tea.Model, tea.Cmd) {
 	if len(cmds) > 0 {
 		return m, tea.Batch(cmds...)
 	}
+	return m, nil
+}
+
+// ─── Confirmation Screen ─────────────────────────────────────────────────────
+
+// showConfirmInstall transitions to the confirmation screen for an install/adopt.
+func (m Model) showConfirmInstall(tools []*tooldef.Tool, returnTo screen) (tea.Model, tea.Cmd) {
+	m.screen = screenConfirm
+	m.confirmType = confirmInstall
+	m.confirmTools = tools
+	m.confirmNames = nil
+	m.returnToScreen = returnTo
+	m.message = ""
+	return m, nil
+}
+
+// showConfirmRemove transitions to the confirmation screen for a removal.
+func (m Model) showConfirmRemove(names []string) (tea.Model, tea.Cmd) {
+	m.screen = screenConfirm
+	m.confirmType = confirmRemove
+	m.confirmTools = nil
+	m.confirmNames = names
+	m.returnToScreen = screenTools
+	m.message = ""
+	return m, nil
+}
+
+// updateConfirm handles key presses on the confirmation screen.
+func (m Model) updateConfirm(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+	switch msg.String() {
+	case "y", "Y":
+		// Confirmed — proceed with action
+		switch m.confirmType {
+		case confirmInstall:
+			return m.startProgressInstall(m.confirmTools, m.returnToScreen)
+		case confirmRemove:
+			return m.startRemove(m.confirmNames)
+		}
+
+	case "n", "N", "esc", "q":
+		// Cancelled — return to previous screen
+		m.screen = m.returnToScreen
+		m.message = "Cancelled"
+		m.confirmTools = nil
+		m.confirmNames = nil
+	}
+
+	return m, nil
+}
+
+// ─── Remove Orchestration ────────────────────────────────────────────────────
+
+// startRemove kicks off removal of the specified tools.
+func (m Model) startRemove(names []string) (tea.Model, tea.Cmd) {
+	m.screen = screenProgress
+	m.returnToScreen = screenTools
+	m.progressDone = false
+	m.progressTools = make([]progressItem, len(names))
+
+	var cmds []tea.Cmd
+
+	for i, name := range names {
+		m.progressTools[i] = progressItem{
+			Name:   name,
+			Status: progressInstalling,
+		}
+		m.installing[name] = true
+
+		// Create spinner
+		s := newSpinner()
+		m.spinners[name] = s
+		cmds = append(cmds, s.Tick)
+
+		// Determine the binary name for this tool
+		binName := name
+		// Look up the tool in groups to get the actual install name
+		for _, g := range m.groups {
+			for _, t := range g.Tools {
+				if t.Name == name && t.Tool != nil {
+					binName = t.Tool.GetInstallName()
+					break
+				}
+			}
+		}
+
+		cmds = append(cmds, removeToolCmd(name, binName, m.installDir, m.store))
+	}
+
+	m.confirmTools = nil
+	m.confirmNames = nil
+
+	return m, tea.Batch(cmds...)
+}
+
+// handleRemoveComplete processes the result of a tool removal.
+func (m Model) handleRemoveComplete(msg removeCompleteMsg) (tea.Model, tea.Cmd) {
+	delete(m.installing, msg.Name)
+	delete(m.spinners, msg.Name)
+
+	// Update progress item
+	for i := range m.progressTools {
+		if m.progressTools[i].Name == msg.Name {
+			if msg.Err != nil {
+				m.progressTools[i].Status = progressFailed
+				m.progressTools[i].Error = msg.Err
+			} else {
+				m.progressTools[i].Status = progressDone
+			}
+			break
+		}
+	}
+
+	// Update tool state in the group model
+	if msg.Err == nil {
+		for gi := range m.groups {
+			for ti := range m.groups[gi].Tools {
+				t := &m.groups[gi].Tools[ti]
+				if t.Name == msg.Name {
+					t.InstalledVersion = ""
+					t.Selected = false
+					if msg.SystemPath != "" {
+						t.Status = state.StatusDetected
+						t.DetectedPath = msg.SystemPath
+					} else {
+						t.Status = state.StatusMissing
+					}
+				}
+			}
+		}
+	}
+
+	// Check if all removals are done
+	allDone := true
+	for _, item := range m.progressTools {
+		if item.Status == progressInstalling || item.Status == progressWaiting {
+			allDone = false
+			break
+		}
+	}
+	m.progressDone = allDone
+
 	return m, nil
 }
