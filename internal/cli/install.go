@@ -94,6 +94,18 @@ func runInstall(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
+	// Show what will be installed and confirm
+	fmt.Printf("\nThe following %d tool(s) will be installed to %s:\n\n", len(tools), cfg.InstallDir)
+	for _, t := range tools {
+		fmt.Printf("  • %s %s\n", t.Name, t.Version)
+	}
+	fmt.Println()
+
+	if !dryRun && !confirmAction("Proceed with installation?") {
+		fmt.Println("Cancelled.")
+		return nil
+	}
+
 	// Create installer with platform info and dry-run setting
 	inst := installer.New(
 		cfg.InstallDir,

@@ -170,6 +170,11 @@ func runAdopt(cmd *cobra.Command, args []string) error {
 		return nil
 	}
 
+	if !confirmAction("Proceed with adoption?") {
+		fmt.Println("Cancelled.")
+		return nil
+	}
+
 	// Create installer with state store so versions are recorded
 	inst := installer.New(
 		cfg.InstallDir,
