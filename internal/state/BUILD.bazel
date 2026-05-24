@@ -1,0 +1,31 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "state",
+    srcs = [
+        "detect.go",
+        "state.go",
+        "store.go",
+    ],
+    importpath = "github.com/omargallob/devops-starter/internal/state",
+    visibility = ["//:__subpackages__"],
+    deps = [
+        "//internal/config",
+        "//internal/registry",
+        "//pkg/tooldef",
+    ],
+)
+
+go_test(
+    name = "state_test",
+    srcs = [
+        "detect_test.go",
+        "state_test.go",
+        "store_test.go",
+    ],
+    embed = [":state"],
+    deps = [
+        "//internal/config",
+        "//pkg/tooldef",
+    ],
+)
