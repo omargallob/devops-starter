@@ -107,7 +107,7 @@ func (inst *Installer) Install(ctx context.Context, tool *tooldef.Tool) error {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	archivePath := filepath.Join(tmpDir, "download")
+	archivePath := filepath.Join(tmpDir, tool.GetBinaryName())
 	if err := Download(ctx, url, archivePath); err != nil {
 		return fmt.Errorf("downloading %s: %w", tool.Name, err)
 	}
