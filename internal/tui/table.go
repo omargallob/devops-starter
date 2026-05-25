@@ -46,6 +46,9 @@ func PrintTable(w io.Writer, groups []state.GroupState) {
 			if source == "" {
 				source = "-"
 			}
+			if t.Source == state.SourceSystem && t.DetectedPath != "" {
+				source = fmt.Sprintf("system (%s)", t.DetectedPath)
+			}
 
 			fmt.Fprintf(w, "%-14s %-18s %-12s %-12s %-10s %s\n",
 				g.Name, t.Name, installed, desired, source, t.Status.String())

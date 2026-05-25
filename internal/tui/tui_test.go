@@ -619,7 +619,7 @@ func TestModel_ViewToolsSourceLabels(t *testing.T) {
 			Name: "languages",
 			Tools: []state.ToolState{
 				{Name: "go", Group: "languages", Description: "Go language", DesiredVersion: "1.26.3", InstalledVersion: "1.26.3", Status: state.StatusCurrent, Source: state.SourceMise, Tool: &tooldef.Tool{Name: "go", Version: "1.26.3", ManagedBy: "mise"}},
-				{Name: "python", Group: "languages", Description: "Python", DesiredVersion: "3.12", InstalledVersion: "3.12.7", Status: state.StatusCurrent, Source: state.SourceSystem, Tool: &tooldef.Tool{Name: "python", Version: "3.12"}},
+				{Name: "python", Group: "languages", Description: "Python", DesiredVersion: "3.12", InstalledVersion: "3.12.7", Status: state.StatusCurrent, Source: state.SourceSystem, DetectedPath: "/usr/bin/python3", Tool: &tooldef.Tool{Name: "python", Version: "3.12"}},
 				{Name: "mise", Group: "languages", Description: "Tool manager", DesiredVersion: "2025.1.6", InstalledVersion: "2025.1.6", Status: state.StatusCurrent, Source: state.SourceManaged, Tool: &tooldef.Tool{Name: "mise", Version: "2025.1.6"}},
 			},
 		},
@@ -638,8 +638,8 @@ func TestModel_ViewToolsSourceLabels(t *testing.T) {
 	if !strings.Contains(view, "[mise]") {
 		t.Error("tool view should show [mise] label for mise-managed tools")
 	}
-	if !strings.Contains(view, "[system]") {
-		t.Error("tool view should show [system] label for system-detected tools")
+	if !strings.Contains(view, "[system: /usr/bin/python3]") {
+		t.Error("tool view should show [system: /path] label for system-detected tools")
 	}
 	if !strings.Contains(view, "[managed]") {
 		t.Error("tool view should show [managed] label for devops-starter-managed tools")
@@ -653,7 +653,7 @@ func TestPrintTable_SourceColumn(t *testing.T) {
 			Tools: []state.ToolState{
 				{Name: "go", DesiredVersion: "1.26.3", InstalledVersion: "1.26.3", Status: state.StatusCurrent, Source: state.SourceMise},
 				{Name: "mise", DesiredVersion: "2025.1.6", InstalledVersion: "2025.1.6", Status: state.StatusCurrent, Source: state.SourceManaged},
-				{Name: "node", DesiredVersion: "22", InstalledVersion: "", Status: state.StatusDetected, Source: state.SourceSystem},
+				{Name: "node", DesiredVersion: "22", InstalledVersion: "", Status: state.StatusDetected, Source: state.SourceSystem, DetectedPath: "/usr/local/bin/node"},
 				{Name: "ruby", DesiredVersion: "3.3", InstalledVersion: "", Status: state.StatusMissing, Source: state.SourceNone},
 			},
 		},
@@ -675,8 +675,8 @@ func TestPrintTable_SourceColumn(t *testing.T) {
 	if !strings.Contains(output, "managed") {
 		t.Error("output should contain 'managed' source for devops-starter tool")
 	}
-	if !strings.Contains(output, "system") {
-		t.Error("output should contain 'system' source for system-detected tool")
+	if !strings.Contains(output, "system (/usr/local/bin/node)") {
+		t.Error("output should contain 'system (/path)' for system-detected tool")
 	}
 	// Missing tools with no source should show "-"
 	if !strings.Contains(output, "-") {

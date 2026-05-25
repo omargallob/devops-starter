@@ -23,6 +23,18 @@ CLI (cobra)
        └─ state.Store()     ← record installed version
 ```
 
+    ## Architecture Diagram
+
+    See the interactive Excalidraw diagram here:
+
+    - [docs/code-architecture-interactions.excalidraw](docs/code-architecture-interactions.excalidraw)
+
+    The diagram highlights three primary concern areas:
+
+    - Platform matrix and URL/checksum drift risk between `internal/platform`, `internal/registry`, and installer inputs.
+    - Download pipeline reliability and integrity verification in `internal/installer`.
+    - Desired config vs persisted state drift between `internal/config` and `internal/state`.
+
 ## Package Responsibilities
 
 ### `cmd/devops-starter/`

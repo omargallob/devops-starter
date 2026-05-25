@@ -423,12 +423,12 @@ func (m Model) renderToolRow(t toolModel) string {
 	case state.SourceMise:
 		sourceLabel = "[mise]"
 	case state.SourceSystem:
-		sourceLabel = "[system]"
+		sourceLabel = fmt.Sprintf("[system: %s]", t.DetectedPath)
 	case state.SourceManaged:
 		sourceLabel = "[managed]"
 	}
 
-	line := fmt.Sprintf("    %s %s %-16s %s  %-10s %s", sel, icon, t.Name, versionInfo, sourceLabel, t.Description)
+	line := fmt.Sprintf("    %s %s %-16s %s  %s  %s", sel, icon, t.Name, versionInfo, sourceLabel, t.Description)
 	return style.Render(line)
 }
 
