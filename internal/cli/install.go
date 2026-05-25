@@ -97,7 +97,11 @@ func runInstall(cmd *cobra.Command, args []string) error {
 	// Show what will be installed and confirm
 	fmt.Printf("\nThe following %d tool(s) will be installed to %s:\n\n", len(tools), cfg.InstallDir)
 	for _, t := range tools {
-		fmt.Printf("  • %s %s\n", t.Name, t.Version)
+		if t.ManagedBy != "" {
+			fmt.Printf("  • %s %s (via %s)\n", t.Name, t.Version, t.ManagedBy)
+		} else {
+			fmt.Printf("  • %s %s\n", t.Name, t.Version)
+		}
 	}
 	fmt.Println()
 

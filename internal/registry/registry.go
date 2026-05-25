@@ -6,8 +6,10 @@
 package registry
 
 import (
+	"os"
 	"sort"
 
+	"github.com/omargallob/devops-starter/internal/mise"
 	"github.com/omargallob/devops-starter/pkg/tooldef"
 )
 
@@ -18,6 +20,7 @@ type Registry struct {
 
 // New creates a registry with all built-in tools registered.
 // Each registerXxx function adds tools from a single group.
+// Mise-managed tools are discovered from .mise.toml in the working directory.
 func New() *Registry {
 	r := &Registry{
 		tools: make(map[string]*tooldef.Tool),
@@ -29,6 +32,16 @@ func New() *Registry {
 	registerCloud(r)
 	registerRustTools(r)
 	registerUtilities(r)
+
+	// Discover and register mise-managed language runtimes from .mise.toml.
+	// Errors are silently ignored — if no .mise.toml is found or it's
+	// unparseable, the registry simply won't include those tools.
+	if wd, err := os.Getwd(); err == nil {
+		if versions, err := mise.FindAndParse(wd); err == nil && versions != nil {
+			r.RegisterMiseTools(versions)
+		}
+	}
+
 	return r
 }
 

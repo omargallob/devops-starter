@@ -200,7 +200,7 @@ Run `devops-starter config init` to generate the default config.
 
 | Group | Tools |
 |-------|-------|
-| **languages** | mise |
+| **languages** | mise, + all runtimes from `.mise.toml` (e.g., go, python, node) |
 | **containers** | docker, docker-compose, nerdctl |
 | **kubernetes** | kubectl, helm, kustomize, k9s, kubectx, kubens, stern, argocd, flux, istioctl, cilium, kind, kubeseal, velero |
 | **infra** | terraform, opentofu, pulumi, packer, vault, consul |

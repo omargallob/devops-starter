@@ -3,6 +3,8 @@
 package state
 
 import (
+	"strings"
+
 	"github.com/omargallob/devops-starter/internal/config"
 	"github.com/omargallob/devops-starter/internal/registry"
 	"github.com/omargallob/devops-starter/pkg/tooldef"
@@ -126,11 +128,28 @@ func ResolveAll(cfg *config.Config, store *Store, plat tooldef.Platform) []Group
 		case "":
 			// Not in state file — check if binary exists in PATH
 			if path := LookupInPath(t.Name); path != "" {
-				ts.Status = StatusDetected
-				ts.DetectedPath = path
-				// Try to detect the version of the system binary
 				if ver, err := DetectVersionAtPath(t.Name, path); err == nil {
-					ts.DetectedVersion = ver
+					// For mise-managed tools, treat PATH detection as installed
+					// (they won't be in the state store since mise manages them).
+					if t.ManagedBy != "" {
+						ts.InstalledVersion = ver
+						if versionMatches(ver, ts.DesiredVersion) {
+							ts.Status = StatusCurrent
+						} else {
+							ts.Status = StatusOutdated
+						}
+					} else {
+						ts.Status = StatusDetected
+						ts.DetectedPath = path
+						ts.DetectedVersion = ver
+					}
+				} else if t.ManagedBy != "" {
+					// Binary exists but version probe failed — still mark as detected
+					ts.Status = StatusUnknown
+					ts.DetectedPath = path
+				} else {
+					ts.Status = StatusDetected
+					ts.DetectedPath = path
 				}
 			} else {
 				ts.Status = StatusMissing
@@ -152,4 +171,26 @@ func ResolveAll(cfg *config.Config, store *Store, plat tooldef.Platform) []Group
 	}
 
 	return result
+}
+
+// versionMatches checks if an installed version satisfies the desired version
+// specification. Mise allows partial versions (e.g., "3.12" means any 3.12.x,
+// "22" means any 22.x.y), so we use prefix matching on dot-separated segments.
+func versionMatches(installed, desired string) bool {
+	if installed == desired {
+		return true
+	}
+	// Prefix match: "3.12" should match "3.12.7"
+	// Split into segments and compare prefix.
+	dParts := strings.Split(desired, ".")
+	iParts := strings.Split(installed, ".")
+	if len(dParts) > len(iParts) {
+		return false
+	}
+	for i, dp := range dParts {
+		if dp != iParts[i] {
+			return false
+		}
+	}
+	return true
 }
