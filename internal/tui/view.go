@@ -417,7 +417,18 @@ func (m Model) renderToolRow(t toolModel) string {
 		versionInfo = fmt.Sprintf("%-10s ~  %-10s", "(system)", t.DesiredVersion)
 	}
 
-	line := fmt.Sprintf("    %s %s %-16s %s  %s", sel, icon, t.Name, versionInfo, t.Description)
+	// Source label
+	var sourceLabel string
+	switch t.Source {
+	case state.SourceMise:
+		sourceLabel = "[mise]"
+	case state.SourceSystem:
+		sourceLabel = "[system]"
+	case state.SourceManaged:
+		sourceLabel = "[managed]"
+	}
+
+	line := fmt.Sprintf("    %s %s %-16s %s  %-10s %s", sel, icon, t.Name, versionInfo, sourceLabel, t.Description)
 	return style.Render(line)
 }
 
