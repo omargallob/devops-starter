@@ -143,6 +143,10 @@ The TUI features:
 - Status bar showing the running version and update availability
 - Automatic update check (non-blocking) against GitHub Releases
 
+![Main view](docs/images/main-view.png)
+
+![Cloud group view](docs/images/category-cloud-view.png)
+
 ### Manage Dotfiles
 
 ```sh
