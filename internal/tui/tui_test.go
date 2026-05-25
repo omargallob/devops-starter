@@ -37,7 +37,7 @@ func newTestModel() Model {
 	store := &state.Store{Tools: map[string]state.InstalledTool{}}
 	plat := tooldef.Platform{OS: "linux", Arch: "amd64"}
 
-	return NewModel(groups, cfg, nil, store, plat, "/usr/local/bin")
+	return NewModel(groups, cfg, nil, store, plat, "/usr/local/bin", "0.1.4")
 }
 
 func TestNewModel(t *testing.T) {
@@ -60,8 +60,8 @@ func TestNewModel(t *testing.T) {
 func TestModel_Init(t *testing.T) {
 	m := newTestModel()
 	cmd := m.Init()
-	if cmd != nil {
-		t.Error("Init() should return nil")
+	if cmd == nil {
+		t.Error("Init() should return an update check command")
 	}
 }
 
@@ -628,7 +628,7 @@ func TestModel_ViewToolsSourceLabels(t *testing.T) {
 	cfg := config.DefaultConfig()
 	store := &state.Store{Tools: map[string]state.InstalledTool{}}
 	plat := tooldef.Platform{OS: "linux", Arch: "amd64"}
-	m := NewModel(groups, cfg, nil, store, plat, "/usr/local/bin")
+	m := NewModel(groups, cfg, nil, store, plat, "/usr/local/bin", "0.1.4")
 	m.width = 100
 	m.screen = screenTools
 	m.selectedGroup = 0

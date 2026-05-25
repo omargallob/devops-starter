@@ -40,6 +40,11 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case spinner.TickMsg:
 		return m.handleSpinnerTick(msg)
+
+	case updateCheckMsg:
+		m.latestVersion = msg.LatestVersion
+		m.updateAvailable = msg.UpdateAvailable
+		return m, nil
 	}
 
 	return m, nil

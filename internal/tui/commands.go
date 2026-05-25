@@ -9,6 +9,7 @@ import (
 
 	"github.com/omargallob/devops-starter/internal/installer"
 	"github.com/omargallob/devops-starter/internal/state"
+	"github.com/omargallob/devops-starter/internal/updater"
 	"github.com/omargallob/devops-starter/pkg/tooldef"
 )
 
@@ -82,6 +83,23 @@ func removeToolCmd(toolName, binName, installDir string, store *state.Store) tea
 			Name:       toolName,
 			SystemPath: systemPath,
 			Err:        nil,
+		}
+	}
+}
+
+// updateCheckMsg is sent when the async update check completes.
+type updateCheckMsg struct {
+	LatestVersion   string
+	UpdateAvailable bool
+}
+
+// checkForUpdateCmd returns a Bubble Tea command that checks for a newer release.
+func checkForUpdateCmd(currentVersion string) tea.Cmd {
+	return func() tea.Msg {
+		result := updater.Check(currentVersion)
+		return updateCheckMsg{
+			LatestVersion:   result.LatestVersion,
+			UpdateAvailable: result.UpdateAvailable,
 		}
 	}
 }

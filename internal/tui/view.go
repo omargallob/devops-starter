@@ -21,10 +21,33 @@ var (
 	detectedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("5")) // magenta/purple for system-installed
 	cursorStyle   = lipgloss.NewStyle().Background(lipgloss.Color("236"))
 	helpStyle     = lipgloss.NewStyle().Faint(true)
+	helpKeyStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("6")).Bold(true) // cyan+bold for keybinds
 	messageStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("2")).Bold(true)
 	errStyle      = lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Bold(true)
 	dimStyle      = lipgloss.NewStyle().Faint(true)
+	statusStyle   = lipgloss.NewStyle().Faint(true)
+	updateStyle   = lipgloss.NewStyle().Faint(true).Foreground(lipgloss.Color("3"))
 )
+
+// helpBinding represents a single key-action pair in the help bar.
+type helpBinding struct {
+	key  string
+	desc string
+}
+
+// renderHelp formats a list of key bindings with colored keys and dim descriptions.
+func renderHelp(bindings []helpBinding) string {
+	var b strings.Builder
+	b.WriteString(" ")
+	for i, bind := range bindings {
+		if i > 0 {
+			b.WriteString("  ")
+		}
+		b.WriteString(helpKeyStyle.Render(bind.key))
+		b.WriteString(helpStyle.Render(" " + bind.desc))
+	}
+	return b.String()
+}
 
 // View renders the TUI. Implements tea.Model.
 func (m Model) View() string {
@@ -32,27 +55,96 @@ func (m Model) View() string {
 		return ""
 	}
 
+	var content string
+	var helpLine string
+
 	switch m.screen {
 	case screenGroups:
-		return m.viewGroups()
+		content, helpLine = m.viewGroupsContent()
 	case screenTools:
-		return m.viewTools()
+		content, helpLine = m.viewToolsContent()
 	case screenProgress:
-		return m.viewProgress()
+		content, helpLine = m.viewProgressContent()
 	case screenConfirm:
-		return m.viewConfirm()
+		content, helpLine = m.viewConfirmContent()
 	}
-	return ""
+
+	return m.composeFullScreen(content, helpLine)
 }
 
-// viewGroups renders the category picker screen.
-func (m Model) viewGroups() string {
+// composeFullScreen arranges the content into a full-screen layout with a
+// status bar pinned to the bottom.
+func (m Model) composeFullScreen(content, helpLine string) string {
+	width := m.contentWidth()
+	height := m.height
+	if height <= 0 {
+		height = 24 // sensible default before first WindowSizeMsg
+	}
+
+	// Build the footer (help + separator + status bar): 3 lines
+	separator := strings.Repeat("━", width)
+	statusBar := m.renderStatusBar(width)
+
+	footer := separator + "\n" + helpLine + "\n" + separator + "\n" + statusBar
+
+	// Count lines in content and footer
+	contentLines := strings.Count(content, "\n")
+	footerLines := strings.Count(footer, "\n") + 1 // +1 for the last line without \n
+
+	// Pad content to fill the screen above the footer
+	padLines := height - contentLines - footerLines
+	if padLines < 0 {
+		padLines = 0
+	}
+	padding := strings.Repeat("\n", padLines)
+
+	return content + padding + footer
+}
+
+// renderStatusBar produces the single-line status bar with version and update info.
+func (m Model) renderStatusBar(width int) string {
+	// Format version display - make dev mode obvious
+	var left string
+	if m.version == "dev" || m.version == "" {
+		devStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Bold(true)
+		left = devStyle.Render("devops-starter [DEV BUILD]")
+	} else {
+		left = statusStyle.Render(fmt.Sprintf("devops-starter v%s", m.version))
+	}
+
+	var right string
+	if m.updateAvailable && m.latestVersion != "" {
+		right = updateStyle.Render(fmt.Sprintf("update available: v%s", m.latestVersion))
+	}
+
+	if right == "" {
+		return left
+	}
+
+	// Calculate spacing to right-align the update notice
+	var leftLen int
+	if m.version == "dev" || m.version == "" {
+		leftLen = len("devops-starter [DEV BUILD]")
+	} else {
+		leftLen = len(fmt.Sprintf("devops-starter v%s", m.version))
+	}
+	rightLen := len(fmt.Sprintf("update available: v%s", m.latestVersion))
+	gap := width - leftLen - rightLen
+	if gap < 2 {
+		gap = 2
+	}
+
+	return left + strings.Repeat(" ", gap) + right
+}
+
+// viewGroupsContent renders the category picker screen content and help line.
+func (m Model) viewGroupsContent() (string, string) {
 	var b strings.Builder
 
 	// Title bar
 	b.WriteString(titleStyle.Render("devops-starter status"))
 	fmt.Fprintf(&b, "  [%s/%s]\n", m.platform.OS, m.platform.Arch)
-	b.WriteString(strings.Repeat("━", clamp(m.width, 40, 80)))
+	b.WriteString(strings.Repeat("━", m.contentWidth()))
 	b.WriteString("\n\n")
 	b.WriteString("  Select a category:\n\n")
 
@@ -110,18 +202,17 @@ func (m Model) viewGroups() string {
 		b.WriteString("\n")
 	}
 
-	// Help footer
-	b.WriteString("\n")
-	b.WriteString(strings.Repeat("━", clamp(m.width, 40, 80)))
-	b.WriteString("\n")
-	b.WriteString(helpStyle.Render(" ↑↓/jk navigate  enter select category  a install group  q quit"))
-	b.WriteString("\n")
-
-	return b.String()
+	helpLine := renderHelp([]helpBinding{
+		{"↑↓/jk", "navigate"},
+		{"enter", "select category"},
+		{"a", "install group"},
+		{"q", "quit"},
+	})
+	return b.String(), helpLine
 }
 
-// viewTools renders the tool list within the selected group.
-func (m Model) viewTools() string {
+// viewToolsContent renders the tool list within the selected group.
+func (m Model) viewToolsContent() (string, string) {
 	var b strings.Builder
 
 	g := m.groups[m.selectedGroup]
@@ -129,7 +220,7 @@ func (m Model) viewTools() string {
 	// Title bar
 	b.WriteString(titleStyle.Render("devops-starter status"))
 	fmt.Fprintf(&b, "  [%s/%s]\n", m.platform.OS, m.platform.Arch)
-	b.WriteString(strings.Repeat("━", clamp(m.width, 40, 80)))
+	b.WriteString(strings.Repeat("━", m.contentWidth()))
 	b.WriteString("\n\n")
 
 	// Group header with back hint
@@ -168,18 +259,22 @@ func (m Model) viewTools() string {
 		b.WriteString("\n")
 	}
 
-	// Help footer
-	b.WriteString("\n")
-	b.WriteString(strings.Repeat("━", clamp(m.width, 40, 80)))
-	b.WriteString("\n")
-	b.WriteString(helpStyle.Render(" ↑↓/jk navigate  space select  i install  r remove  a all  v verify  d disable  esc back  q quit"))
-	b.WriteString("\n")
-
-	return b.String()
+	helpLine := renderHelp([]helpBinding{
+		{"↑↓/jk", "navigate"},
+		{"space", "select"},
+		{"i", "install"},
+		{"r", "remove"},
+		{"a", "all"},
+		{"v", "verify"},
+		{"d", "disable"},
+		{"esc", "back"},
+		{"q", "quit"},
+	})
+	return b.String(), helpLine
 }
 
-// viewProgress renders the install progress screen.
-func (m Model) viewProgress() string {
+// viewProgressContent renders the install progress screen.
+func (m Model) viewProgressContent() (string, string) {
 	var b strings.Builder
 
 	groupName := ""
@@ -190,7 +285,7 @@ func (m Model) viewProgress() string {
 	// Title
 	b.WriteString(titleStyle.Render("devops-starter status"))
 	fmt.Fprintf(&b, "  [%s/%s]\n", m.platform.OS, m.platform.Arch)
-	b.WriteString(strings.Repeat("━", clamp(m.width, 40, 80)))
+	b.WriteString(strings.Repeat("━", m.contentWidth()))
 	b.WriteString("\n\n")
 
 	if m.progressDone {
@@ -247,6 +342,7 @@ func (m Model) viewProgress() string {
 
 	// Summary when done
 	b.WriteString("\n")
+	var helpLine string
 	if m.progressDone {
 		var success, failed int
 		for _, item := range m.progressTools {
@@ -262,27 +358,23 @@ func (m Model) viewProgress() string {
 			summary += errStyle.Render(fmt.Sprintf("  ✗ %d failed", failed))
 		}
 		b.WriteString(summary)
-		b.WriteString("\n\n")
-		b.WriteString(helpStyle.Render("  Press any key to continue..."))
 		b.WriteString("\n")
+		helpLine = helpStyle.Render("  Press any key to continue...")
+	} else {
+		helpLine = helpStyle.Render("  Installing...")
 	}
 
-	// Footer
-	b.WriteString("\n")
-	b.WriteString(strings.Repeat("━", clamp(m.width, 40, 80)))
-	b.WriteString("\n")
-
-	return b.String()
+	return b.String(), helpLine
 }
 
-// viewConfirm renders the confirmation prompt screen.
-func (m Model) viewConfirm() string {
+// viewConfirmContent renders the confirmation prompt screen.
+func (m Model) viewConfirmContent() (string, string) {
 	var b strings.Builder
 
 	// Title bar
 	b.WriteString(titleStyle.Render("devops-starter status"))
 	fmt.Fprintf(&b, "  [%s/%s]\n", m.platform.OS, m.platform.Arch)
-	b.WriteString(strings.Repeat("━", clamp(m.width, 40, 80)))
+	b.WriteString(strings.Repeat("━", m.contentWidth()))
 	b.WriteString("\n\n")
 
 	switch m.confirmType {
@@ -357,14 +449,11 @@ func (m Model) viewConfirm() string {
 	b.WriteString(messageStyle.Render("  Proceed? (y/n)"))
 	b.WriteString("\n")
 
-	// Footer
-	b.WriteString("\n")
-	b.WriteString(strings.Repeat("━", clamp(m.width, 40, 80)))
-	b.WriteString("\n")
-	b.WriteString(helpStyle.Render(" y confirm  n/esc cancel"))
-	b.WriteString("\n")
-
-	return b.String()
+	helpLine := renderHelp([]helpBinding{
+		{"y", "confirm"},
+		{"n/esc", "cancel"},
+	})
+	return b.String(), helpLine
 }
 
 // renderToolRow renders a single tool row with status icon, versions, and description.
@@ -441,4 +530,18 @@ func clamp(val, lo, hi int) int {
 		return hi
 	}
 	return val
+}
+
+// contentWidth returns the width to use for full-screen layout elements
+// (separators, status bar). Uses the actual terminal width from the last
+// WindowSizeMsg, with a sensible fallback before the first resize event.
+func (m Model) contentWidth() int {
+	switch {
+	case m.width <= 0:
+		return 80 // default before first WindowSizeMsg
+	case m.width < 40:
+		return 40 // minimum usable width
+	default:
+		return m.width
+	}
 }

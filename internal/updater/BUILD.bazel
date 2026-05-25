@@ -1,0 +1,14 @@
+load("@rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "updater",
+    srcs = ["updater.go"],
+    importpath = "github.com/omargallob/devops-starter/internal/updater",
+    visibility = ["//:__subpackages__"],
+)
+
+go_test(
+    name = "updater_test",
+    srcs = ["updater_test.go"],
+    embed = [":updater"],
+)

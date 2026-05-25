@@ -58,6 +58,11 @@ type Model struct {
 	message  string // transient status message
 	err      error
 
+	// Version and update status
+	version         string // current build version
+	latestVersion   string // latest available version (populated async)
+	updateAvailable bool   // true if a newer version exists
+
 	// Dependencies injected at creation
 	cfg        *config.Config
 	inst       *installer.Installer
@@ -110,6 +115,7 @@ func NewModel(
 	store *state.Store,
 	platform tooldef.Platform,
 	installDir string,
+	version string,
 ) Model {
 	gm := make([]groupModel, 0, len(groups))
 	for _, g := range groups {
@@ -133,12 +139,13 @@ func NewModel(
 		store:      store,
 		platform:   platform,
 		installDir: installDir,
+		version:    version,
 	}
 }
 
-// Init implements tea.Model. Returns no initial command.
+// Init implements tea.Model. Fires an async update check on startup.
 func (m Model) Init() tea.Cmd {
-	return nil
+	return checkForUpdateCmd(m.version)
 }
 
 // selectedGroupTools returns the tools in the currently selected group.
