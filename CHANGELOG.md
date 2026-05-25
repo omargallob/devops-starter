@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.4](https://github.com/omargallob/devops-starter/compare/v0.1.3...v0.1.4) (2026-05-25)
+
+
+### Features
+
+* **registry:** add lcov and genhtml tools ([#34](https://github.com/omargallob/devops-starter/issues/34)) ([a1a8162](https://github.com/omargallob/devops-starter/commit/a1a8162344a0e72a1bd35e26d9cb1636b918fab5))
+
 ## [0.1.3](https://github.com/omargallob/devops-starter/compare/v0.1.2...v0.1.3) (2026-05-25)
 
 
