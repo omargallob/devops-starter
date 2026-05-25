@@ -28,16 +28,26 @@ golangci_lint_test(
 )
 
 # Lint all YAML files
+filegroup(
+    name = "github_workflows",
+    srcs = glob([
+        ".github/workflows/*.yml",
+    ]),
+)
+
+filegroup(
+    name = "root_yaml_files",
+    srcs = glob([
+        ".*.yaml",
+    ]),
+)
+
 yamllint_test(
     name = "yamllint",
     srcs = [
-        ".commitlintrc.yaml",
-        ".pre-commit-config.yaml",
-        ".yamllint.yaml",
+        ":root_yaml_files",
         "//configs:default.yaml",
-        ".github/workflows/ci.yml",
-        ".github/workflows/pr-title.yml",
-        ".github/workflows/release.yml",
+        ":github_workflows",
     ],
     config = ".yamllint.yaml",
 )
@@ -45,10 +55,6 @@ yamllint_test(
 # Lint GitHub Actions workflow files
 actionlint_test(
     name = "actionlint",
-    srcs = [
-        ".github/workflows/ci.yml",
-        ".github/workflows/pr-title.yml",
-        ".github/workflows/release.yml",
-    ],
+    srcs = [":github_workflows"],
     tags = ["local"],
 )
