@@ -105,6 +105,9 @@ func TestAllToolsHaveValidFormat(t *testing.T) {
 
 	reg := New()
 	for _, tool := range reg.All() {
+		if tool.ManagedBy != "" {
+			continue // managed tools don't have a download format
+		}
 		if !validFormats[tool.Format] {
 			t.Errorf("tool %s has invalid format %q", tool.Name, tool.Format)
 		}
