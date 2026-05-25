@@ -11,7 +11,6 @@ groups:
   kubernetes: true
   infra: true
   cloud: true
-  ansible: true
   rust_tools: true
   utilities: true
 

@@ -1,23 +1,43 @@
 # devops-starter
 
 [![CI](https://github.com/omargallob/devops-starter/actions/workflows/ci.yml/badge.svg)](https://github.com/omargallob/devops-starter/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/omargallob/devops-starter?label=version)](https://github.com/omargallob/devops-starter/releases/latest)
 [![Go](https://img.shields.io/badge/Go-1.26-00ADD8?logo=go)](https://go.dev)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Coverage](badges/coverage.svg)](https://github.com/omargallob/devops-starter/actions/workflows/ci.yml)
 
-An opinionated, cross-platform DevOps tool installer and dotfile manager. Downloads and installs 60+ pre-built CLI binaries (no package manager required) and manages shell/editor configuration via symlinks. One command to bootstrap a fully-configured development workstation.
+An opinionated, cross-platform DevOps tool installer and dotfile manager.
+Downloads and installs 61 pre-built CLI binaries (no package manager required) and manages shell/editor configuration via symlinks.
+One command to bootstrap a fully-configured development workstation.
 
-## Features
+---
 
-- **60+ tools** across 7 categories: languages, containers, Kubernetes, infrastructure, cloud, Rust-based CLI tools, and utilities
-- **Cross-platform**: Linux (Ubuntu, Arch) and macOS (Intel, Apple Silicon)
-- **No package manager dependency**: downloads pre-built binaries directly from upstream releases
-- **SHA256 checksum verification** for download integrity
-- **Concurrent downloads** (4 by default) with progress bars
-- **Dotfile management**: symlinks shell, git, tmux, starship, and Neovim configs with automatic backup of existing files
-- **Configuration-driven**: YAML config to enable/disable groups and pin tool versions
-- **Hermetic builds** with Bazel 9 for reproducibility and cross-compilation
-- **CI/CD** via GitHub Actions (test, lint, build matrix, tag-triggered releases)
+## Table of Contents
+
+- [Why devops-starter?](#why-devops-starter)
+- [Quick Install](#quick-install)
+- [Build from Source](#build-from-source)
+- [Usage](#usage)
+- [Configuration](#configuration)
+- [Tool Catalog](#tool-catalog)
+- [Dotfiles](#dotfiles)
+- [Project Structure](#project-structure)
+- [Development](#development)
+- [Contributing](#contributing)
+- [License](#license)
+
+## Why devops-starter?
+
+Setting up a new machine (or a CI runner) with a consistent DevOps toolchain is tedious:
+different package managers, outdated repos, manual binary downloads, and scattered dotfiles.
+
+**devops-starter** solves this by:
+
+1. Downloading tools **directly from upstream releases** -- no Homebrew, apt, or pacman needed.
+2. Verifying every download with **SHA256 checksums**.
+3. Running downloads **concurrently** with progress bars.
+4. Managing **dotfiles** (shell, git, tmux, starship, Neovim) via symlinks with automatic backup.
+5. Providing a single **YAML config** to control everything.
 
 ## Quick Install
 
@@ -25,7 +45,8 @@ An opinionated, cross-platform DevOps tool installer and dotfile manager. Downlo
 curl -fsSL https://raw.githubusercontent.com/omargallob/devops-starter/main/scripts/install.sh | sh
 ```
 
-This downloads the correct binary for your platform to `~/.local/bin`.
+This detects your OS and architecture, downloads the correct binary, and places it in `~/.local/bin`.
+Make sure `~/.local/bin` is in your `$PATH`.
 
 ## Build from Source
 
@@ -37,30 +58,19 @@ This downloads the correct binary for your platform to `~/.local/bin`.
 ### Using Make
 
 ```sh
-# Build the binary
-make build
-
-# Run tests
-make test
-
-# Lint (requires golangci-lint + shellcheck)
-make lint
-
-# Install to ~/.local/bin
-make install
+make build          # compile for current platform
+make test           # run tests with race detector
+make lint           # golangci-lint + shellcheck
+make install        # build and copy to ~/.local/bin
+make help           # list all available targets
 ```
 
 ### Using Bazel
 
 ```sh
-# Build
 bazelisk build //cmd/devops-starter
-
-# Test
 bazelisk test //...
-
-# Cross-compile all platforms
-make bazel-release
+make bazel-release   # cross-compile all platforms
 ```
 
 ## Usage
@@ -83,6 +93,36 @@ devops-starter install --only kubernetes
 ```sh
 # Show all tools with installation status
 devops-starter list
+```
+
+### Adopt System Tools
+
+```sh
+# Adopt a specific tool already on your system
+devops-starter adopt kubectl helm
+
+# Adopt all detected system tools
+devops-starter adopt --all-detected
+```
+
+### Remove Managed Tools
+
+```sh
+# Remove managed binaries (reverts to system version if available)
+devops-starter remove terraform packer
+```
+
+### Status Dashboard
+
+```sh
+# Launch interactive TUI showing tool state
+devops-starter status
+
+# Plain text output (CI-friendly)
+devops-starter status --no-tui
+
+# Detect actual installed versions
+devops-starter status --verify
 ```
 
 ### Manage Dotfiles
@@ -108,7 +148,7 @@ devops-starter dotfiles link --source /path/to/dotfiles
 devops-starter doctor
 ```
 
-### Configuration
+### Configuration Management
 
 ```sh
 # Create default config at ~/.config/devops-starter/config.yaml
@@ -124,6 +164,7 @@ devops-starter config show
 |------|-------------|
 | `--config <path>` | Use a custom config file |
 | `--dry-run` | Preview actions without executing |
+| `--yes`, `-y` | Skip confirmation prompts |
 
 ## Configuration
 
@@ -140,7 +181,6 @@ groups:
   kubernetes: true
   infra: true
   cloud: true
-  ansible: true
   rust_tools: true
   utilities: true
 
@@ -154,7 +194,9 @@ overrides:
 
 Run `devops-starter config init` to generate the default config.
 
-## Tool Groups
+## Tool Catalog
+
+61 tools across 7 groups:
 
 | Group | Tools |
 |-------|-------|
@@ -168,7 +210,7 @@ Run `devops-starter config init` to generate the default config.
 
 ### Platform Availability
 
-Not all tools provide pre-built binaries for every platform. The installer will skip tools that don't have a binary for your OS/architecture:
+Most tools provide pre-built binaries for all four platforms. Exceptions:
 
 | Tool | linux/amd64 | linux/arm64 | darwin/amd64 | darwin/arm64 |
 |------|:-----------:|:-----------:|:------------:|:------------:|
@@ -179,7 +221,9 @@ Not all tools provide pre-built binaries for every platform. The installer will 
 | neovim | yes | - | yes | yes |
 | trivy | yes | yes | yes | yes |
 
-All other tools support all four platforms (linux/amd64, linux/arm64, darwin/amd64, darwin/arm64).
+All other tools support linux/amd64, linux/arm64, darwin/amd64, and darwin/arm64.
+
+Want a tool added? See [CONTRIBUTING.md](CONTRIBUTING.md#adding-a-new-tool) for how to add tools to the registry.
 
 ## Dotfiles
 
@@ -202,14 +246,16 @@ When linking, existing files are backed up to `~/.dotfiles.bak` before being rep
 ## Project Structure
 
 ```
-cmd/devops-starter/       Entry point
+cmd/devops-starter/       Entry point (main package)
 internal/
-  cli/                    Cobra command definitions (install, list, dotfiles, doctor, config)
+  cli/                    Cobra commands: install, list, adopt, remove, status, dotfiles, doctor, config
   config/                 YAML configuration loading/saving
   dotfiles/               Symlink manager with backup/restore
   installer/              Download, checksum, archive extraction, install orchestration
   platform/               OS/arch/distro detection
   registry/               Tool definitions organised by group
+  state/                  Persistent state store for managed tools
+  tui/                    Bubbletea interactive UI components
 pkg/tooldef/              Public types: Tool, Platform, Group, ArchiveFormat
 configs/                  Default config template
 dotfiles/                 Managed dotfiles (shell, git, tmux, starship, nvim)
@@ -217,27 +263,25 @@ scripts/                  Bootstrap install script
 oci/                      Container test image definitions (Ubuntu, Arch)
 platforms/                Bazel cross-compilation platform configs
 bazel/                    Custom Bazel rules (shellcheck, golangci-lint) and macros
-.github/workflows/        CI and release workflows
+.github/workflows/        CI, release, and PR title enforcement workflows
 ```
 
 ## Development
 
 ```sh
-# Format code
-make fmt
-
-# Run vet + linters
-make lint
-
-# Run tests with race detector
-make test
-
-# Cross-compile release binaries (no Bazel)
-make release
-
-# Regenerate Bazel BUILD files
-make gazelle
+make help           # list all targets
+make check          # fmt + vet + lint + test (full local validation)
+make test-coverage  # tests with coverage report
+make release        # cross-compile release binaries
+make gazelle        # regenerate Bazel BUILD files
+make setup          # install dev tools and pre-commit hooks
 ```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the full development guide and [ARCHITECTURE.md](ARCHITECTURE.md) for design decisions.
+
+## Contributing
+
+Contributions are welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) before submitting a PR.
 
 ## License
 
