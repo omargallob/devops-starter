@@ -1,7 +1,9 @@
 package registry
 
 import (
+	"strings"
 	"testing"
+	"text/template"
 
 	"github.com/omargallob/devops-starter/pkg/tooldef"
 )
@@ -69,6 +71,143 @@ func TestAllToolsHaveRequiredFields(t *testing.T) {
 		}
 		if tool.URLTemplate == "" && len(tool.URLs) == 0 {
 			t.Fatalf("tool %s has neither URLTemplate nor URLs", tool.Name)
+		}
+	}
+}
+
+func TestAllToolsHaveValidGroup(t *testing.T) {
+	validGroups := map[tooldef.Group]bool{
+		tooldef.GroupLanguages:  true,
+		tooldef.GroupContainers: true,
+		tooldef.GroupKubernetes: true,
+		tooldef.GroupInfra:      true,
+		tooldef.GroupCloud:      true,
+		tooldef.GroupAnsible:    true,
+		tooldef.GroupRustTools:  true,
+		tooldef.GroupUtilities:  true,
+	}
+
+	reg := New()
+	for _, tool := range reg.All() {
+		if !validGroups[tool.Group] {
+			t.Errorf("tool %s has invalid group %q", tool.Name, tool.Group)
+		}
+	}
+}
+
+func TestAllToolsHaveValidFormat(t *testing.T) {
+	validFormats := map[tooldef.ArchiveFormat]bool{
+		tooldef.FormatTarGz:  true,
+		tooldef.FormatTarXz:  true,
+		tooldef.FormatZip:    true,
+		tooldef.FormatBinary: true,
+	}
+
+	reg := New()
+	for _, tool := range reg.All() {
+		if !validFormats[tool.Format] {
+			t.Errorf("tool %s has invalid format %q", tool.Name, tool.Format)
+		}
+	}
+}
+
+func TestAllToolURLTemplatesRender(t *testing.T) {
+	platforms := []tooldef.Platform{
+		{OS: "linux", Arch: "amd64"},
+		{OS: "linux", Arch: "arm64"},
+		{OS: "darwin", Arch: "amd64"},
+		{OS: "darwin", Arch: "arm64"},
+	}
+
+	type urlTemplateData struct {
+		Name       string
+		Version    string
+		OS         string
+		Arch       string
+		Format     string
+		BinaryName string
+	}
+
+	reg := New()
+	for _, tool := range reg.All() {
+		if tool.URLTemplate == "" {
+			continue
+		}
+
+		tmpl, err := template.New("url").Parse(tool.URLTemplate)
+		if err != nil {
+			t.Errorf("tool %s: URL template parse error: %v", tool.Name, err)
+			continue
+		}
+
+		for _, plat := range platforms {
+			// Skip if tool doesn't support this platform
+			if !tool.SupportsPlatform(plat) {
+				continue
+			}
+
+			data := urlTemplateData{
+				Name:       tool.Name,
+				Version:    tool.Version,
+				OS:         plat.OS,
+				Arch:       plat.Arch,
+				Format:     string(tool.Format),
+				BinaryName: tool.GetBinaryName(),
+			}
+
+			var buf strings.Builder
+			if err := tmpl.Execute(&buf, data); err != nil {
+				t.Errorf("tool %s on %s: URL template execution error: %v", tool.Name, plat, err)
+				continue
+			}
+
+			url := buf.String()
+			if url == "" {
+				t.Errorf("tool %s on %s: rendered URL is empty", tool.Name, plat)
+			}
+			if !strings.HasPrefix(url, "https://") && !strings.HasPrefix(url, "http://") {
+				t.Errorf("tool %s on %s: URL %q does not start with http(s)://", tool.Name, plat, url)
+			}
+		}
+	}
+}
+
+func TestAllToolsHaveDescription(t *testing.T) {
+	reg := New()
+	for _, tool := range reg.All() {
+		if tool.Description == "" {
+			t.Errorf("tool %s has empty description", tool.Name)
+		}
+	}
+}
+
+func TestNoToolNameDuplicates(t *testing.T) {
+	reg := New()
+	seen := make(map[string]bool)
+	for _, tool := range reg.All() {
+		if seen[tool.Name] {
+			t.Errorf("duplicate tool name: %s", tool.Name)
+		}
+		seen[tool.Name] = true
+	}
+}
+
+func TestAllGroupsHaveTools(t *testing.T) {
+	groups := []tooldef.Group{
+		tooldef.GroupLanguages,
+		tooldef.GroupContainers,
+		tooldef.GroupKubernetes,
+		tooldef.GroupInfra,
+		tooldef.GroupCloud,
+		tooldef.GroupRustTools,
+		tooldef.GroupUtilities,
+	}
+
+	reg := New()
+	for _, group := range groups {
+		tools := reg.GetByGroup(group)
+		if len(tools) == 0 {
+			t.Errorf("group %q has no tools registered", group)
 		}
 	}
 }

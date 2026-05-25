@@ -2,6 +2,7 @@ package installer
 
 import (
 	"archive/tar"
+	"archive/zip"
 	"compress/gzip"
 	"crypto/sha256"
 	"encoding/hex"
@@ -252,5 +253,302 @@ func TestInstall_NoURLTemplate(t *testing.T) {
 	err := inst.Install(ctx, tool)
 	if err == nil {
 		t.Fatal("expected error when no URL template is set")
+	}
+}
+
+// --- archive.go tests ---
+
+func TestStripPath(t *testing.T) {
+	tests := []struct {
+		name   string
+		path   string
+		n      int
+		want   string
+	}{
+		{"no strip", "foo/bar/baz", 0, "foo/bar/baz"},
+		{"strip 1", "foo/bar/baz", 1, "bar/baz"},
+		{"strip 2", "foo/bar/baz", 2, "baz"},
+		{"strip all", "foo/bar", 2, ""},
+		{"strip more than exists", "foo", 2, ""},
+		{"negative strip", "foo/bar", -1, "foo/bar"},
+		{"single component strip 1", "foo", 1, ""},
+		{"strip with trailing slash", "prefix/dir/", 1, "dir/"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := stripPath(tt.path, tt.n)
+			if got != tt.want {
+				t.Errorf("stripPath(%q, %d) = %q, want %q", tt.path, tt.n, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestExtractZip(t *testing.T) {
+	tmp := t.TempDir()
+
+	// Create a zip archive with two files
+	archivePath := filepath.Join(tmp, "archive.zip")
+	f, err := os.Create(archivePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	zw := zip.NewWriter(f)
+
+	// Add a file
+	w, err := zw.Create("hello.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	w.Write([]byte("hello world"))
+
+	// Add a file in a subdirectory
+	w, err = zw.Create("subdir/nested.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	w.Write([]byte("nested content"))
+
+	zw.Close()
+	f.Close()
+
+	destDir := filepath.Join(tmp, "out")
+	os.MkdirAll(destDir, 0o755)
+
+	if err := Extract(archivePath, destDir, tooldef.FormatZip, 0); err != nil {
+		t.Fatal(err)
+	}
+
+	// Verify first file
+	got, err := os.ReadFile(filepath.Join(destDir, "hello.txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "hello world" {
+		t.Errorf("hello.txt content = %q, want %q", got, "hello world")
+	}
+
+	// Verify nested file
+	got, err = os.ReadFile(filepath.Join(destDir, "subdir", "nested.txt"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "nested content" {
+		t.Errorf("nested.txt content = %q, want %q", got, "nested content")
+	}
+}
+
+func TestExtractZip_StripComponents(t *testing.T) {
+	tmp := t.TempDir()
+
+	archivePath := filepath.Join(tmp, "archive.zip")
+	f, err := os.Create(archivePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	zw := zip.NewWriter(f)
+	w, err := zw.Create("prefix/mybin")
+	if err != nil {
+		t.Fatal(err)
+	}
+	w.Write([]byte("binary content"))
+	zw.Close()
+	f.Close()
+
+	destDir := filepath.Join(tmp, "out")
+	os.MkdirAll(destDir, 0o755)
+
+	if err := Extract(archivePath, destDir, tooldef.FormatZip, 1); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := os.ReadFile(filepath.Join(destDir, "mybin"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "binary content" {
+		t.Errorf("content = %q, want %q", got, "binary content")
+	}
+}
+
+func TestExtractZip_ZipSlipPrevention(t *testing.T) {
+	tmp := t.TempDir()
+
+	// Create a zip with a path-traversal entry
+	archivePath := filepath.Join(tmp, "evil.zip")
+	f, err := os.Create(archivePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	zw := zip.NewWriter(f)
+	// This entry tries to escape destDir
+	w, err := zw.Create("../../../etc/evil.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	w.Write([]byte("malicious"))
+
+	// Also add a safe entry to ensure extraction still works
+	w, err = zw.Create("safe.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	w.Write([]byte("safe"))
+	zw.Close()
+	f.Close()
+
+	destDir := filepath.Join(tmp, "out")
+	os.MkdirAll(destDir, 0o755)
+
+	if err := Extract(archivePath, destDir, tooldef.FormatZip, 0); err != nil {
+		t.Fatal(err)
+	}
+
+	// The evil file should NOT exist outside destDir
+	evilPath := filepath.Join(tmp, "etc", "evil.txt")
+	if _, err := os.Stat(evilPath); err == nil {
+		t.Fatal("zip-slip: malicious file was extracted outside destDir")
+	}
+
+	// The safe file should exist
+	if _, err := os.Stat(filepath.Join(destDir, "safe.txt")); err != nil {
+		t.Error("safe.txt should have been extracted")
+	}
+}
+
+func TestExtractTarGz_ZipSlipPrevention(t *testing.T) {
+	tmp := t.TempDir()
+
+	archivePath := filepath.Join(tmp, "evil.tar.gz")
+	f, err := os.Create(archivePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	gw := gzip.NewWriter(f)
+	tw := tar.NewWriter(gw)
+
+	// Malicious entry with path traversal
+	content := []byte("malicious")
+	tw.WriteHeader(&tar.Header{
+		Name: "../../../etc/evil.txt",
+		Mode: 0o644,
+		Size: int64(len(content)),
+	})
+	tw.Write(content)
+
+	// Safe entry
+	safe := []byte("safe")
+	tw.WriteHeader(&tar.Header{
+		Name: "safe.txt",
+		Mode: 0o644,
+		Size: int64(len(safe)),
+	})
+	tw.Write(safe)
+
+	tw.Close()
+	gw.Close()
+	f.Close()
+
+	destDir := filepath.Join(tmp, "out")
+	os.MkdirAll(destDir, 0o755)
+
+	if err := Extract(archivePath, destDir, tooldef.FormatTarGz, 0); err != nil {
+		t.Fatal(err)
+	}
+
+	// Evil file should not exist
+	evilPath := filepath.Join(tmp, "etc", "evil.txt")
+	if _, err := os.Stat(evilPath); err == nil {
+		t.Fatal("zip-slip: malicious file was extracted outside destDir")
+	}
+
+	// Safe file should exist
+	if _, err := os.Stat(filepath.Join(destDir, "safe.txt")); err != nil {
+		t.Error("safe.txt should have been extracted")
+	}
+}
+
+func TestExtractTarGz_StripComponents(t *testing.T) {
+	tmp := t.TempDir()
+
+	archivePath := filepath.Join(tmp, "archive.tar.gz")
+	f, err := os.Create(archivePath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	gw := gzip.NewWriter(f)
+	tw := tar.NewWriter(gw)
+
+	content := []byte("stripped binary")
+	tw.WriteHeader(&tar.Header{
+		Name: "prefix/subdir/mybin",
+		Mode: 0o755,
+		Size: int64(len(content)),
+	})
+	tw.Write(content)
+
+	tw.Close()
+	gw.Close()
+	f.Close()
+
+	destDir := filepath.Join(tmp, "out")
+	os.MkdirAll(destDir, 0o755)
+
+	if err := Extract(archivePath, destDir, tooldef.FormatTarGz, 2); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := os.ReadFile(filepath.Join(destDir, "mybin"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "stripped binary" {
+		t.Errorf("content = %q, want %q", got, "stripped binary")
+	}
+}
+
+func TestCopyBinary(t *testing.T) {
+	tmp := t.TempDir()
+
+	// Create a fake binary
+	srcPath := filepath.Join(tmp, "mytool")
+	content := []byte("#!/bin/sh\necho hello")
+	os.WriteFile(srcPath, content, 0o644)
+
+	destDir := filepath.Join(tmp, "out")
+	os.MkdirAll(destDir, 0o755)
+
+	if err := Extract(srcPath, destDir, tooldef.FormatBinary, 0); err != nil {
+		t.Fatal(err)
+	}
+
+	got, err := os.ReadFile(filepath.Join(destDir, "mytool"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != string(content) {
+		t.Errorf("content mismatch")
+	}
+
+	// Verify it's executable
+	info, _ := os.Stat(filepath.Join(destDir, "mytool"))
+	if info.Mode()&0o111 == 0 {
+		t.Error("expected executable permissions")
+	}
+}
+
+func TestExtract_UnsupportedFormat(t *testing.T) {
+	tmp := t.TempDir()
+	archivePath := filepath.Join(tmp, "file")
+	os.WriteFile(archivePath, []byte("data"), 0o644)
+
+	err := Extract(archivePath, tmp, "unknown-format", 0)
+	if err == nil {
+		t.Fatal("expected error for unsupported format")
 	}
 }
