@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -30,47 +31,74 @@ func newDoctorCmd() *cobra.Command {
 	return cmd
 }
 
-// runDoctor performs a series of health checks:
-// - ~/.local/bin exists and is in $PATH
-// - Shell RC file has PATH configured
-// - Platform can be detected (supported OS/arch)
-// - git and curl are available on $PATH
+// doctorEnv holds the environment queries for the doctor command, allowing
+// tests to inject fakes.
+type doctorEnv struct {
+	lookPath    func(name string) (string, error)
+	getenv      func(key string) string
+	stat        func(path string) (os.FileInfo, error)
+	readFile    func(path string) ([]byte, error)
+	mkdirAll    func(path string, perm os.FileMode) error
+	openFile    func(name string, flag int, perm os.FileMode) (*os.File, error)
+	detectPlat  func() (*platform.Info, error)
+}
+
+// realDoctorEnv returns the real OS environment for production use.
+func realDoctorEnv() doctorEnv {
+	return doctorEnv{
+		lookPath:   exec.LookPath,
+		getenv:     os.Getenv,
+		stat:       os.Stat,
+		readFile:   os.ReadFile,
+		mkdirAll:   os.MkdirAll,
+		openFile:   os.OpenFile,
+		detectPlat: platform.Detect,
+	}
+}
+
+// runDoctor is the Cobra entry point that delegates to doDoctor with real env.
 func runDoctor(cmd *cobra.Command, args []string) error {
+	return doDoctor(os.Stdout, realDoctorEnv(), doctorFix)
+}
+
+// doDoctor performs a series of health checks. It is extracted for testability.
+func doDoctor(out io.Writer, env doctorEnv, fix bool) error {
 	passStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("2"))
 	failStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("1"))
 	warnStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("3"))
 	infoStyle := lipgloss.NewStyle().Faint(true)
 
 	pass := func(msg string) {
-		fmt.Println(passStyle.Render(fmt.Sprintf("  ✓ %s", msg)))
+		fmt.Fprintln(out, passStyle.Render(fmt.Sprintf("  ✓ %s", msg)))
 	}
 	fail := func(msg string) {
-		fmt.Println(failStyle.Render(fmt.Sprintf("  ✗ %s", msg)))
+		fmt.Fprintln(out, failStyle.Render(fmt.Sprintf("  ✗ %s", msg)))
 	}
 	warn := func(msg string) {
-		fmt.Println(warnStyle.Render(fmt.Sprintf("    ℹ %s", msg)))
+		fmt.Fprintln(out, warnStyle.Render(fmt.Sprintf("    ℹ %s", msg)))
 	}
 	info := func(msg string) {
-		fmt.Println(infoStyle.Render(fmt.Sprintf("    %s", msg)))
+		fmt.Fprintln(out, infoStyle.Render(fmt.Sprintf("    %s", msg)))
 	}
 
-	fmt.Println("System Health Check")
-	fmt.Println("───────────────────")
+	fmt.Fprintln(out, "System Health Check")
+	fmt.Fprintln(out, "───────────────────")
 
 	allPassed := true
 
 	// Check ~/.local/bin exists
-	localBin := filepath.Join(os.Getenv("HOME"), ".local", "bin")
+	home := env.getenv("HOME")
+	localBin := filepath.Join(home, ".local", "bin")
 	localBinExists := false
-	if fi, err := os.Stat(localBin); err == nil && fi.IsDir() {
+	if fi, err := env.stat(localBin); err == nil && fi.IsDir() {
 		pass(fmt.Sprintf("%s exists", localBin))
 		localBinExists = true
 	} else {
 		fail(fmt.Sprintf("%s does not exist", localBin))
 		allPassed = false
 
-		if doctorFix {
-			if err := os.MkdirAll(localBin, 0o755); err != nil {
+		if fix {
+			if err := env.mkdirAll(localBin, 0o755); err != nil {
 				fail(fmt.Sprintf("failed to create %s: %v", localBin, err))
 			} else {
 				pass(fmt.Sprintf("created %s", localBin))
@@ -80,7 +108,7 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 	}
 
 	// Check ~/.local/bin is in PATH
-	pathEnv := os.Getenv("PATH")
+	pathEnv := env.getenv("PATH")
 	pathOK := strings.Contains(pathEnv, localBin)
 	if pathOK {
 		pass(fmt.Sprintf("%s is in PATH", localBin))
@@ -89,8 +117,8 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 		allPassed = false
 
 		// Evaluate shell RC file
-		zshrcPath := filepath.Join(os.Getenv("HOME"), ".zshrc")
-		rcStatus := evaluateShellRC(zshrcPath, localBin)
+		zshrcPath := filepath.Join(home, ".zshrc")
+		rcStatus := evaluateShellRCWith(env.readFile, env.getenv, zshrcPath, localBin)
 
 		switch rcStatus.state {
 		case rcActive:
@@ -99,7 +127,7 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 			info("Run 'source ~/.zshrc' or open a new terminal to activate")
 		case rcCommented:
 			warn(fmt.Sprintf("Found commented entry in %s (line %d)", zshrcPath, rcStatus.line))
-			if doctorFix {
+			if fix {
 				if err := appendPathToRC(zshrcPath); err != nil {
 					fail(fmt.Sprintf("failed to update %s: %v", zshrcPath, err))
 				} else {
@@ -112,7 +140,7 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 			}
 		case rcAbsent:
 			warn(fmt.Sprintf("%s has no PATH entry for %s", zshrcPath, localBin))
-			if doctorFix {
+			if fix {
 				if err := appendPathToRC(zshrcPath); err != nil {
 					fail(fmt.Sprintf("failed to update %s: %v", zshrcPath, err))
 				} else {
@@ -127,12 +155,12 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 	}
 
 	// Ensure directory exists if --fix and PATH was just added
-	if doctorFix && !localBinExists {
-		_ = os.MkdirAll(localBin, 0o755)
+	if fix && !localBinExists {
+		_ = env.mkdirAll(localBin, 0o755)
 	}
 
 	// Check platform detection works
-	pinfo, err := platform.Detect()
+	pinfo, err := env.detectPlat()
 	if err == nil {
 		pass(fmt.Sprintf("Platform detected: %s/%s", pinfo.OS, pinfo.Arch))
 	} else {
@@ -141,7 +169,7 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 	}
 
 	// Check git is available (needed for dotfiles operations)
-	if _, err := exec.LookPath("git"); err == nil {
+	if _, err := env.lookPath("git"); err == nil {
 		pass("git is available")
 	} else {
 		fail("git is NOT available")
@@ -149,18 +177,18 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 	}
 
 	// Check curl is available (needed for bootstrap install script)
-	if _, err := exec.LookPath("curl"); err == nil {
+	if _, err := env.lookPath("curl"); err == nil {
 		pass("curl is available")
 	} else {
 		fail("curl is NOT available")
 		allPassed = false
 	}
 
-	fmt.Println()
+	fmt.Fprintln(out)
 	if allPassed {
-		fmt.Println(passStyle.Render("All checks passed!"))
+		fmt.Fprintln(out, passStyle.Render("All checks passed!"))
 	} else {
-		fmt.Println(failStyle.Render("Some checks failed. Please fix the issues above."))
+		fmt.Fprintln(out, failStyle.Render("Some checks failed. Please fix the issues above."))
 	}
 
 	return nil
@@ -181,16 +209,17 @@ type rcResult struct {
 	line  int // 1-indexed line number where entry was found (0 if absent)
 }
 
-// evaluateShellRC reads the given RC file and checks whether it contains
-// a PATH entry that includes the target directory.
-func evaluateShellRC(rcPath, targetDir string) rcResult {
-	data, err := os.ReadFile(rcPath)
+// evaluateShellRCWith reads the given RC file and checks whether it contains
+// a PATH entry that includes the target directory. It accepts function deps
+// for testability.
+func evaluateShellRCWith(readFile func(string) ([]byte, error), getenv func(string) string, rcPath, targetDir string) rcResult {
+	data, err := readFile(rcPath)
 	if err != nil {
 		return rcResult{state: rcAbsent}
 	}
 
 	// Normalize the target for matching — check both expanded and variable forms
-	home := os.Getenv("HOME")
+	home := getenv("HOME")
 	patterns := []string{
 		".local/bin",
 		targetDir,

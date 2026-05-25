@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/charmbracelet/lipgloss"
@@ -30,12 +31,8 @@ func newInstallCmd() *cobra.Command {
 	return cmd
 }
 
-// runInstall is the main logic for the install command. It:
-// 1. Detects the current platform (OS/arch/distro)
-// 2. Loads user configuration (group enables, version overrides)
-// 3. Filters the registry to applicable tools
-// 4. Runs concurrent installations with progress output
-// 5. Prints a summary of successes and failures
+// runInstall is the entry point that constructs real dependencies and delegates
+// to doInstall for the actual logic.
 func runInstall(cmd *cobra.Command, args []string) error {
 	// Detect platform
 	info, err := platform.Detect()
@@ -53,30 +50,52 @@ func runInstall(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("loading config: %w", err)
 	}
 
-	// Get tools from registry
+	// Create real dependencies
 	reg := registry.New()
-	allTools := reg.All()
+	inst := installer.New(
+		cfg.InstallDir,
+		info.Platform,
+		installer.WithDryRun(dryRun),
+	)
+
+	deps := installDeps{
+		cfg:       cfg,
+		registry:  reg,
+		installer: inst,
+		out:       os.Stdout,
+		dryRun:    dryRun,
+		autoYes:   autoYes,
+		only:      only,
+	}
+
+	return doInstall(deps, info.Platform)
+}
+
+// doInstall contains the testable install logic, separated from Cobra wiring.
+// It filters the registry, confirms with the user, and runs installations.
+func doInstall(deps installDeps, plat tooldef.Platform) error {
+	allTools := deps.registry.All()
 
 	// Filter tools by group, platform support, and per-tool overrides
 	var tools []*tooldef.Tool
 	for _, t := range allTools {
 		// Filter by --only flag
-		if only != "" && string(t.Group) != only {
+		if deps.only != "" && string(t.Group) != deps.only {
 			continue
 		}
 
 		// Filter by config group enables
-		if !cfg.IsGroupEnabled(string(t.Group)) {
+		if !deps.cfg.IsGroupEnabled(string(t.Group)) {
 			continue
 		}
 
 		// Check if tool supports this platform
-		if !t.SupportsPlatform(info.Platform) {
+		if !t.SupportsPlatform(plat) {
 			continue
 		}
 
 		// Check if tool is disabled in overrides
-		if override, ok := cfg.Overrides[t.Name]; ok {
+		if override, ok := deps.cfg.Overrides[t.Name]; ok {
 			if override.Disabled {
 				continue
 			}
@@ -90,52 +109,55 @@ func runInstall(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(tools) == 0 {
-		fmt.Println("No tools to install.")
+		fmt.Fprintln(deps.out, "No tools to install.")
 		return nil
 	}
 
 	// Show what will be installed and confirm
-	fmt.Printf("\nThe following %d tool(s) will be installed to %s:\n\n", len(tools), cfg.InstallDir)
+	fmt.Fprintf(deps.out, "\nThe following %d tool(s) will be installed to %s:\n\n", len(tools), deps.cfg.InstallDir)
 	for _, t := range tools {
 		if t.ManagedBy != "" {
-			fmt.Printf("  • %s %s (via %s)\n", t.Name, t.Version, t.ManagedBy)
+			fmt.Fprintf(deps.out, "  • %s %s (via %s)\n", t.Name, t.Version, t.ManagedBy)
 		} else {
-			fmt.Printf("  • %s %s\n", t.Name, t.Version)
+			fmt.Fprintf(deps.out, "  • %s %s\n", t.Name, t.Version)
 		}
 	}
-	fmt.Println()
+	fmt.Fprintln(deps.out)
 
-	if !dryRun && !confirmAction("Proceed with installation?") {
-		fmt.Println("Cancelled.")
-		return nil
+	if !deps.dryRun && !deps.autoYes {
+		if !confirmAction("Proceed with installation?") {
+			fmt.Fprintln(deps.out, "Cancelled.")
+			return nil
+		}
 	}
-
-	// Create installer with platform info and dry-run setting
-	inst := installer.New(
-		cfg.InstallDir,
-		info.Platform,
-		installer.WithDryRun(dryRun),
-	)
 
 	// Install all filtered tools concurrently
 	ctx := context.Background()
-	errs := inst.InstallAll(ctx, tools)
+	errs := deps.installer.InstallAll(ctx, tools)
 
-	// Print summary with coloured output
-	successStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("2"))
-	errorStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("1"))
-
-	installed := len(tools) - len(errs)
-	fmt.Println()
-	fmt.Println(successStyle.Render(fmt.Sprintf("✓ %d tools installed successfully", installed)))
+	// Print summary
+	printInstallSummary(deps.out, len(tools), errs)
 
 	if len(errs) > 0 {
-		fmt.Println(errorStyle.Render(fmt.Sprintf("✗ %d tools failed:", len(errs))))
-		for _, e := range errs {
-			fmt.Fprintf(os.Stderr, "  - %v\n", e)
-		}
 		return fmt.Errorf("%d installations failed", len(errs))
 	}
 
 	return nil
+}
+
+// printInstallSummary outputs the success/failure summary for install operations.
+func printInstallSummary(out io.Writer, total int, errs []error) {
+	successStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("2"))
+	errorStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("1"))
+
+	installed := total - len(errs)
+	fmt.Fprintln(out)
+	fmt.Fprintln(out, successStyle.Render(fmt.Sprintf("✓ %d tools installed successfully", installed)))
+
+	if len(errs) > 0 {
+		fmt.Fprintln(out, errorStyle.Render(fmt.Sprintf("✗ %d tools failed:", len(errs))))
+		for _, e := range errs {
+			fmt.Fprintf(out, "  - %v\n", e)
+		}
+	}
 }

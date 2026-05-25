@@ -45,9 +45,9 @@ filegroup(
 yamllint_test(
     name = "yamllint",
     srcs = [
+        ":github_workflows",
         ":root_yaml_files",
         "//configs:default.yaml",
-        ":github_workflows",
     ],
     config = ".yamllint.yaml",
 )
