@@ -15,12 +15,12 @@ import (
 type Status int
 
 const (
-	StatusMissing   Status = iota // Not installed
-	StatusCurrent                 // Installed version matches desired
-	StatusOutdated                // Installed but version differs from desired
-	StatusDisabled                // Disabled in user config
-	StatusUnknown                 // Binary exists but version could not be determined
-	StatusDetected                // Binary found in PATH but not managed by devops-starter
+	StatusMissing  Status = iota // Not installed
+	StatusCurrent                // Installed version matches desired
+	StatusOutdated               // Installed but version differs from desired
+	StatusDisabled               // Disabled in user config
+	StatusUnknown                // Binary exists but version could not be determined
+	StatusDetected               // Binary found in PATH but not managed by devops-starter
 )
 
 // String returns a human-readable status label.
@@ -123,47 +123,47 @@ func ResolveAll(cfg *config.Config, store *Store, plat tooldef.Platform) []Group
 				continue // skip entirely for unsupported platforms
 			}
 
-		// Resolve installed version from state store
-		ts.InstalledVersion = store.GetVersion(t.Name)
+			// Resolve installed version from state store
+			ts.InstalledVersion = store.GetVersion(t.Name)
 
-		// Determine status
-		switch ts.InstalledVersion {
-		case "":
-			// Not in state file — check if binary exists in PATH
-			if path := LookupInPath(t.Name); path != "" {
-				if ver, err := DetectVersionAtPath(t.Name, path); err == nil {
-					// For mise-managed tools, treat PATH detection as installed
-					// (they won't be in the state store since mise manages them).
-					if t.ManagedBy != "" {
-						ts.InstalledVersion = ver
-						if versionMatches(ver, ts.DesiredVersion) {
-							ts.Status = StatusCurrent
+			// Determine status
+			switch ts.InstalledVersion {
+			case "":
+				// Not in state file — check if binary exists in PATH
+				if path := LookupInPath(t.Name); path != "" {
+					if ver, err := DetectVersionAtPath(t.Name, path); err == nil {
+						// For mise-managed tools, treat PATH detection as installed
+						// (they won't be in the state store since mise manages them).
+						if t.ManagedBy != "" {
+							ts.InstalledVersion = ver
+							if versionMatches(ver, ts.DesiredVersion) {
+								ts.Status = StatusCurrent
+							} else {
+								ts.Status = StatusOutdated
+							}
 						} else {
-							ts.Status = StatusOutdated
+							ts.Status = StatusDetected
+							ts.DetectedPath = path
+							ts.DetectedVersion = ver
 						}
+					} else if t.ManagedBy != "" {
+						// Binary exists but version probe failed — still mark as detected
+						ts.Status = StatusUnknown
+						ts.DetectedPath = path
 					} else {
 						ts.Status = StatusDetected
 						ts.DetectedPath = path
-						ts.DetectedVersion = ver
 					}
-				} else if t.ManagedBy != "" {
-					// Binary exists but version probe failed — still mark as detected
-					ts.Status = StatusUnknown
-					ts.DetectedPath = path
 				} else {
-					ts.Status = StatusDetected
-					ts.DetectedPath = path
+					ts.Status = StatusMissing
 				}
-			} else {
-				ts.Status = StatusMissing
+			case ts.DesiredVersion:
+				ts.Status = StatusCurrent
+			case "unknown":
+				ts.Status = StatusUnknown
+			default:
+				ts.Status = StatusOutdated
 			}
-		case ts.DesiredVersion:
-			ts.Status = StatusCurrent
-		case "unknown":
-			ts.Status = StatusUnknown
-		default:
-			ts.Status = StatusOutdated
-		}
 
 			gs.Tools = append(gs.Tools, ts)
 		}

@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "commands.go",
         "model.go",
+        "setup.go",
         "table.go",
         "update.go",
         "view.go",
@@ -17,6 +18,7 @@ go_library(
         "//internal/state",
         "//pkg/tooldef",
         "@com_github_charmbracelet_bubbles//spinner",
+        "@com_github_charmbracelet_bubbles//textinput",
         "@com_github_charmbracelet_bubbletea//:bubbletea",
         "@com_github_charmbracelet_lipgloss//:lipgloss",
     ],
@@ -24,7 +26,10 @@ go_library(
 
 go_test(
     name = "tui_test",
-    srcs = ["tui_test.go"],
+    srcs = [
+        "setup_test.go",
+        "tui_test.go",
+    ],
     embed = [":tui"],
     deps = [
         "//internal/config",

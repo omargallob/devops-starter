@@ -75,6 +75,18 @@ make bazel-release   # cross-compile all platforms
 
 ## Usage
 
+### Guided Setup
+
+```sh
+# Interactive wizard: groups, install dir, dotfiles
+devops-starter setup
+
+# Non-interactive (uses existing config or defaults)
+devops-starter setup --non-interactive
+```
+
+See [docs/setup.md](docs/setup.md) for a detailed walkthrough of each wizard screen.
+
 ### Install Tools
 
 ```sh
@@ -248,7 +260,7 @@ When linking, existing files are backed up to `~/.dotfiles.bak` before being rep
 ```
 cmd/devops-starter/       Entry point (main package)
 internal/
-  cli/                    Cobra commands: install, list, adopt, remove, status, dotfiles, doctor, config
+  cli/                    Cobra commands: setup, install, list, adopt, remove, status, dotfiles, doctor, config
   config/                 YAML configuration loading/saving
   dotfiles/               Symlink manager with backup/restore
   installer/              Download, checksum, archive extraction, install orchestration
@@ -258,6 +270,7 @@ internal/
   tui/                    Bubbletea interactive UI components
 pkg/tooldef/              Public types: Tool, Platform, Group, ArchiveFormat
 configs/                  Default config template
+docs/                     Documentation (setup wizard walkthrough, etc.)
 dotfiles/                 Managed dotfiles (shell, git, tmux, starship, nvim)
 scripts/                  Bootstrap install script
 oci/                      Container test image definitions (Ubuntu, Arch)

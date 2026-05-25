@@ -31,6 +31,7 @@ verifies checksums, and manages dotfile configurations.`,
 	root.PersistentFlags().BoolVarP(&autoYes, "yes", "y", false, "skip confirmation prompts")
 
 	root.AddCommand(
+		newSetupCmd(),
 		newInstallCmd(),
 		newListCmd(),
 		newAdoptCmd(),
