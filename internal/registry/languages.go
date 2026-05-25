@@ -7,6 +7,12 @@ import (
 	"github.com/omargallob/devops-starter/pkg/tooldef"
 )
 
+// Subgroup constants for the languages group.
+const (
+	SubgroupPlatforms = "Platforms"
+	SubgroupLanguages = "Languages"
+)
+
 // registerLanguages adds the mise tool manager to the registry.
 // Mise-managed language runtimes are registered separately via
 // RegisterMiseTools after .mise.toml discovery.
@@ -16,6 +22,7 @@ func registerLanguages(r *Registry) {
 		Version:     "2025.1.6",
 		Description: "Polyglot runtime manager (formerly rtx)",
 		Group:       tooldef.GroupLanguages,
+		Subgroup:    SubgroupPlatforms,
 		Format:          tooldef.FormatTarGz,
 		BinaryName:      "mise",
 		StripComponents: 2,
@@ -44,6 +51,7 @@ func (r *Registry) RegisterMiseTools(versions mise.ToolVersions) {
 			Version:      version,
 			Description:  mise.DescriptionFor(name),
 			Group:        tooldef.GroupLanguages,
+			Subgroup:     SubgroupLanguages,
 			ManagedBy:    "mise",
 			Dependencies: []string{"mise"},
 		})

@@ -3,6 +3,7 @@
 package state
 
 import (
+	"sort"
 	"strings"
 
 	"github.com/omargallob/devops-starter/internal/config"
@@ -46,6 +47,7 @@ func (s Status) String() string {
 type ToolState struct {
 	Name             string
 	Group            string
+	Subgroup         string // optional visual sub-category (e.g., "Platforms", "Languages")
 	Description      string
 	DesiredVersion   string // from registry + config overrides
 	InstalledVersion string // from state file or verify
@@ -91,6 +93,7 @@ func ResolveAll(cfg *config.Config, store *Store, plat tooldef.Platform) []Group
 			ts := ToolState{
 				Name:           t.Name,
 				Group:          string(t.Group),
+				Subgroup:       t.Subgroup,
 				Description:    t.Description,
 				DesiredVersion: t.Version,
 				Tool:           t,
@@ -166,6 +169,16 @@ func ResolveAll(cfg *config.Config, store *Store, plat tooldef.Platform) []Group
 		}
 
 		if len(gs.Tools) > 0 {
+			// Sort tools by subgroup (Platforms before Languages),
+			// then alphabetically within each subgroup.
+			sort.SliceStable(gs.Tools, func(i, j int) bool {
+				si := subgroupOrder(gs.Tools[i].Subgroup)
+				sj := subgroupOrder(gs.Tools[j].Subgroup)
+				if si != sj {
+					return si < sj
+				}
+				return gs.Tools[i].Name < gs.Tools[j].Name
+			})
 			result = append(result, gs)
 		}
 	}
@@ -193,4 +206,17 @@ func versionMatches(installed, desired string) bool {
 		}
 	}
 	return true
+}
+
+// subgroupOrder returns a sort key for subgroups. "Platforms" sorts first (0),
+// "Languages" second (1), empty/unknown last (2).
+func subgroupOrder(subgroup string) int {
+	switch subgroup {
+	case "Platforms":
+		return 0
+	case "Languages":
+		return 1
+	default:
+		return 2
+	}
 }

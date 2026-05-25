@@ -138,7 +138,15 @@ func (m Model) viewTools() string {
 	b.WriteString("\n\n")
 
 	// Tool rows
+	currentSubgroup := ""
 	for i, t := range g.Tools {
+		// Insert subgroup header when it changes (non-selectable divider)
+		if t.Subgroup != "" && t.Subgroup != currentSubgroup {
+			currentSubgroup = t.Subgroup
+			b.WriteString(dimStyle.Render(fmt.Sprintf("    ── %s ──", currentSubgroup)))
+			b.WriteString("\n")
+		}
+
 		isCursor := i == m.toolCursor
 		line := m.renderToolRow(t)
 

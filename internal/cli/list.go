@@ -59,7 +59,14 @@ func runList(cmd *cobra.Command, args []string) error {
 	for _, group := range groups {
 		fmt.Println(headerStyle.Render(fmt.Sprintf("\n[%s]", group.Name)))
 
+		currentSubgroup := ""
 		for _, ts := range group.Tools {
+			// Render subgroup header when it changes
+			if ts.Subgroup != "" && ts.Subgroup != currentSubgroup {
+				currentSubgroup = ts.Subgroup
+				fmt.Println(dimStyle.Render(fmt.Sprintf("  ── %s ──", currentSubgroup)))
+			}
+
 			var statusIcon string
 			var style lipgloss.Style
 
