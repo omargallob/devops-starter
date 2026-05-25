@@ -23,9 +23,14 @@ go_library(
 
 go_test(
     name = "installer_test",
-    srcs = ["installer_test.go"],
+    srcs = [
+        "installer_e2e_test.go",
+        "installer_test.go",
+        "progress_test.go",
+    ],
     embed = [":installer"],
     deps = [
+        "//internal/state",
         "//pkg/tooldef",
     ],
 )

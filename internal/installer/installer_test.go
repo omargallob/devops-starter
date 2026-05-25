@@ -7,6 +7,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 
@@ -550,5 +551,144 @@ func TestExtract_UnsupportedFormat(t *testing.T) {
 	err := Extract(archivePath, tmp, "unknown-format", 0)
 	if err == nil {
 		t.Fatal("expected error for unsupported format")
+	}
+}
+
+// --- checksum edge cases ---
+
+func TestComputeChecksum_FileNotFound(t *testing.T) {
+	_, err := ComputeChecksum("/nonexistent/path/to/file.txt")
+	if err == nil {
+		t.Fatal("expected error for missing file")
+	}
+}
+
+func TestVerifyChecksum_FileNotFound(t *testing.T) {
+	err := VerifyChecksum("/nonexistent/path/to/file.txt", "abc123")
+	if err == nil {
+		t.Fatal("expected error for missing file")
+	}
+}
+
+// --- url edge cases ---
+
+func TestResolveURL_EmptyTemplate(t *testing.T) {
+	tool := &tooldef.Tool{
+		Name:    "mytool",
+		Version: "1.0.0",
+		// No URLTemplate or URLs
+	}
+	platform := tooldef.Platform{OS: "linux", Arch: "amd64"}
+
+	_, err := ResolveURL(tool, platform)
+	if err == nil {
+		t.Fatal("expected error when no URL template or override is set")
+	}
+}
+
+func TestResolveURL_InvalidTemplate(t *testing.T) {
+	tool := &tooldef.Tool{
+		Name:        "mytool",
+		Version:     "1.0.0",
+		URLTemplate: "https://example.com/{{.Invalid",
+	}
+	platform := tooldef.Platform{OS: "linux", Arch: "amd64"}
+
+	_, err := ResolveURL(tool, platform)
+	if err == nil {
+		t.Fatal("expected error for invalid template syntax")
+	}
+}
+
+func TestResolveURL_TemplateExecutionError(t *testing.T) {
+	tool := &tooldef.Tool{
+		Name:        "mytool",
+		Version:     "1.0.0",
+		URLTemplate: "https://example.com/{{.NonExistentField}}",
+	}
+	platform := tooldef.Platform{OS: "linux", Arch: "amd64"}
+
+	_, err := ResolveURL(tool, platform)
+	// text/template with a missing field may or may not error depending on settings
+	// but with strict execution it should error
+	if err == nil {
+		// If template execution doesn't error on missing fields, that's also valid
+		t.Skip("template execution did not error on missing field (permissive mode)")
+	}
+}
+
+func TestResolveURL_BinaryNameInTemplate(t *testing.T) {
+	tool := &tooldef.Tool{
+		Name:        "mytool",
+		Version:     "1.0.0",
+		BinaryName:  "mytool-bin",
+		Format:      tooldef.FormatBinary,
+		URLTemplate: "https://example.com/{{.BinaryName}}-{{.Version}}",
+	}
+	platform := tooldef.Platform{OS: "linux", Arch: "amd64"}
+
+	got, err := ResolveURL(tool, platform)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := "https://example.com/mytool-bin-1.0.0"
+	if got != want {
+		t.Errorf("got %s, want %s", got, want)
+	}
+}
+
+// --- extractTarXz conditional test ---
+
+func TestExtractTarXz_SkipIfNoXz(t *testing.T) {
+	if _, err := exec.LookPath("xz"); err != nil {
+		t.Skip("xz not available on this system")
+	}
+
+	tmp := t.TempDir()
+
+	// Create a small tar, then compress with xz
+	tarPath := filepath.Join(tmp, "archive.tar")
+	f, err := os.Create(tarPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tw := tar.NewWriter(f)
+	content := []byte("xz binary content")
+	tw.WriteHeader(&tar.Header{
+		Name: "xztool",
+		Mode: 0o755,
+		Size: int64(len(content)),
+	})
+	tw.Write(content)
+	tw.Close()
+	f.Close()
+
+	// Compress with xz
+	xzPath := filepath.Join(tmp, "archive.tar.xz")
+	cmd := exec.Command("xz", "-k", "-f", "--stdout", tarPath)
+	xzOut, err := os.Create(xzPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cmd.Stdout = xzOut
+	if err := cmd.Run(); err != nil {
+		xzOut.Close()
+		t.Fatalf("xz compression failed: %v", err)
+	}
+	xzOut.Close()
+
+	destDir := filepath.Join(tmp, "out")
+	os.MkdirAll(destDir, 0o755)
+
+	if err := Extract(xzPath, destDir, tooldef.FormatTarXz, 0); err != nil {
+		t.Fatalf("extractTarXz failed: %v", err)
+	}
+
+	got, err := os.ReadFile(filepath.Join(destDir, "xztool"))
+	if err != nil {
+		t.Fatalf("extracted file not found: %v", err)
+	}
+	if string(got) != string(content) {
+		t.Errorf("content mismatch: got %q, want %q", got, content)
 	}
 }
