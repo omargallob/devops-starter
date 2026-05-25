@@ -89,8 +89,8 @@ jobs:
       - name: Run tests
         run: bazel test --config=ci //... -- -//:golangci_lint -//:shellcheck -//:yamllint -//:actionlint
 
-  build:
-    name: bazel build, coverage, and badge update
+  coverage:
+    name: Coverage badge update
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [test]
     runs-on: ubuntu-latest
@@ -100,17 +100,8 @@ jobs:
       - uses: bazel-contrib/setup-bazel@0.19.0
         with:
           bazelisk-cache: true
-          disk-cache: ${{ github.workflow }}-build
+          disk-cache: ${{ github.workflow }}-coverage
           repository-cache: true
-
-      - name: Build release binaries
-        run: bazel build --config=ci //cmd/devops-starter:release
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v6
-        with:
-          name: devops-starter-binaries
-          path: bazel-bin/cmd/devops-starter/devops-starter-*
 
       - name: Coverage
         run: bazel coverage --config=ci --combined_report=lcov //...
