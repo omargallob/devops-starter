@@ -43,16 +43,16 @@ type Model struct {
 	height int
 
 	// Progress tracking
-	installing      map[string]bool          // tools currently being installed
-	spinners        map[string]spinner.Model // per-tool spinners during install
-	progressTools   []progressItem           // ordered list for progress screen
-	progressDone    bool                     // all installs in current batch completed
-	returnToScreen  screen                   // where to go when progress is dismissed
+	installing     map[string]bool          // tools currently being installed
+	spinners       map[string]spinner.Model // per-tool spinners during install
+	progressTools  []progressItem           // ordered list for progress screen
+	progressDone   bool                     // all installs in current batch completed
+	returnToScreen screen                   // where to go when progress is dismissed
 
 	// Confirmation screen state
-	confirmType     confirmAction            // what action is being confirmed
-	confirmTools    []*tooldef.Tool          // tools pending confirmation
-	confirmNames    []string                 // tool names for remove confirmation
+	confirmType  confirmAction   // what action is being confirmed
+	confirmTools []*tooldef.Tool // tools pending confirmation
+	confirmNames []string        // tool names for remove confirmation
 
 	quitting bool
 	message  string // transient status message
@@ -79,9 +79,9 @@ type toolModel struct {
 
 // progressItem tracks an individual tool's install progress.
 type progressItem struct {
-	Name    string
-	Status  progressStatus
-	Error   error
+	Name   string
+	Status progressStatus
+	Error  error
 }
 
 // progressStatus represents the state of a tool during installation.

@@ -260,10 +260,10 @@ func TestInstall_NoURLTemplate(t *testing.T) {
 
 func TestStripPath(t *testing.T) {
 	tests := []struct {
-		name   string
-		path   string
-		n      int
-		want   string
+		name string
+		path string
+		n    int
+		want string
 	}{
 		{"no strip", "foo/bar/baz", 0, "foo/bar/baz"},
 		{"strip 1", "foo/bar/baz", 1, "bar/baz"},
