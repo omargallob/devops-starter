@@ -335,3 +335,134 @@ func TestResolveAll_DetectedStatus(t *testing.T) {
 	// This test is environment-dependent; if we have any of the tools in PATH, we should find them
 	_ = foundDetected // just verifying no panics; actual detection depends on environment
 }
+
+func TestResolveAll_SourceManaged(t *testing.T) {
+	cfg := config.DefaultConfig()
+	plat := tooldef.Platform{OS: "linux", Arch: "amd64"}
+
+	emptyStore := &Store{Tools: map[string]InstalledTool{}}
+	groups := ResolveAll(cfg, emptyStore, plat)
+	if len(groups) == 0 || len(groups[0].Tools) == 0 {
+		t.Skip("no tools in registry for this platform")
+	}
+
+	// Pick the first tool and mark it as installed in the store
+	firstTool := groups[0].Tools[0]
+	store := &Store{
+		Tools: map[string]InstalledTool{
+			firstTool.Name: {Version: firstTool.DesiredVersion},
+		},
+	}
+
+	groups = ResolveAll(cfg, store, plat)
+	for _, g := range groups {
+		for _, ts := range g.Tools {
+			if ts.Name == firstTool.Name {
+				if ts.Source != SourceManaged {
+					t.Errorf("tool %s: expected Source=%q, got %q", ts.Name, SourceManaged, ts.Source)
+				}
+				return
+			}
+		}
+	}
+	t.Fatalf("tool %s not found", firstTool.Name)
+}
+
+func TestResolveAll_SourceManagedOutdated(t *testing.T) {
+	cfg := config.DefaultConfig()
+	plat := tooldef.Platform{OS: "linux", Arch: "amd64"}
+
+	emptyStore := &Store{Tools: map[string]InstalledTool{}}
+	groups := ResolveAll(cfg, emptyStore, plat)
+	if len(groups) == 0 || len(groups[0].Tools) == 0 {
+		t.Skip("no tools")
+	}
+
+	firstTool := groups[0].Tools[0]
+	store := &Store{
+		Tools: map[string]InstalledTool{
+			firstTool.Name: {Version: "0.0.1"},
+		},
+	}
+
+	groups = ResolveAll(cfg, store, plat)
+	for _, g := range groups {
+		for _, ts := range g.Tools {
+			if ts.Name == firstTool.Name {
+				if ts.Source != SourceManaged {
+					t.Errorf("tool %s: expected Source=%q, got %q", ts.Name, SourceManaged, ts.Source)
+				}
+				if ts.Status != StatusOutdated {
+					t.Errorf("tool %s: expected StatusOutdated, got %s", ts.Name, ts.Status.String())
+				}
+				return
+			}
+		}
+	}
+	t.Fatalf("tool %s not found", firstTool.Name)
+}
+
+func TestResolveAll_SourceSystem(t *testing.T) {
+	cfg := config.DefaultConfig()
+	plat := tooldef.Platform{OS: "linux", Arch: "amd64"}
+	store := &Store{Tools: map[string]InstalledTool{}}
+
+	groups := ResolveAll(cfg, store, plat)
+
+	for _, g := range groups {
+		for _, ts := range g.Tools {
+			if ts.Status == StatusDetected {
+				if ts.Source != SourceSystem {
+					t.Errorf("tool %s: StatusDetected should have Source=%q, got %q", ts.Name, SourceSystem, ts.Source)
+				}
+			}
+		}
+	}
+}
+
+func TestResolveAll_SourceMise(t *testing.T) {
+	cfg := config.DefaultConfig()
+	plat := tooldef.Platform{OS: "linux", Arch: "amd64"}
+	store := &Store{Tools: map[string]InstalledTool{}}
+
+	groups := ResolveAll(cfg, store, plat)
+
+	// Mise-managed tools (Tool.ManagedBy != "") that are found in PATH
+	// should have Source == SourceMise
+	for _, g := range groups {
+		for _, ts := range g.Tools {
+			if ts.Tool != nil && ts.Tool.ManagedBy != "" {
+				switch ts.Status {
+				case StatusCurrent, StatusOutdated, StatusUnknown:
+					if ts.Source != SourceMise {
+						t.Errorf("tool %s: mise-managed with status %s should have Source=%q, got %q",
+							ts.Name, ts.Status.String(), SourceMise, ts.Source)
+					}
+				case StatusMissing:
+					if ts.Source != SourceNone {
+						t.Errorf("tool %s: missing mise-managed should have Source=%q, got %q",
+							ts.Name, SourceNone, ts.Source)
+					}
+				}
+			}
+		}
+	}
+}
+
+func TestResolveAll_SourceNoneForMissing(t *testing.T) {
+	cfg := config.DefaultConfig()
+	plat := tooldef.Platform{OS: "linux", Arch: "amd64"}
+	store := &Store{Tools: map[string]InstalledTool{}}
+
+	groups := ResolveAll(cfg, store, plat)
+
+	for _, g := range groups {
+		for _, ts := range g.Tools {
+			if ts.Status == StatusMissing {
+				if ts.Source != SourceNone {
+					t.Errorf("tool %s: StatusMissing should have Source=%q, got %q", ts.Name, SourceNone, ts.Source)
+				}
+			}
+		}
+	}
+}

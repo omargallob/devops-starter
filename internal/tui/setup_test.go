@@ -418,6 +418,23 @@ func TestSetupModel_GroupsView(t *testing.T) {
 	}
 }
 
+func TestSetupModel_GroupsView_LanguagesHint(t *testing.T) {
+	m := newTestSetupModel()
+	m.screen = setupScreenGroups
+	m.width = 80
+
+	view := m.View()
+	if !strings.Contains(view, "Optional") {
+		t.Error("groups view should show 'Optional' hint for languages group")
+	}
+	if !strings.Contains(view, "mise") {
+		t.Error("groups view should mention mise in languages hint")
+	}
+	if !strings.Contains(view, "Deselect if you manage runtimes yourself") {
+		t.Error("groups view should tell users they can deselect languages")
+	}
+}
+
 func TestSetupModel_DotfilesNavigation(t *testing.T) {
 	m := newTestSetupModel()
 	m.screen = setupScreenDotfiles

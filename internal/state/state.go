@@ -43,6 +43,16 @@ func (s Status) String() string {
 	}
 }
 
+// Source indicates how a tool is managed.
+type Source string
+
+const (
+	SourceManaged Source = "managed" // installed/managed by devops-starter
+	SourceMise    Source = "mise"    // managed by mise
+	SourceSystem  Source = "system"  // found in PATH, not managed
+	SourceNone    Source = ""        // not installed / unknown
+)
+
 // ToolState holds the computed state of a single tool for display.
 type ToolState struct {
 	Name             string
@@ -54,7 +64,8 @@ type ToolState struct {
 	DetectedPath     string // path to system binary (when StatusDetected)
 	DetectedVersion  string // version of system binary (when StatusDetected)
 	Status           Status
-	Selected         bool // TUI selection state (not persisted)
+	Source           Source // how the tool is managed (mise, managed, system)
+	Selected         bool   // TUI selection state (not persisted)
 	Tool             *tooldef.Tool
 }
 
@@ -126,7 +137,7 @@ func ResolveAll(cfg *config.Config, store *Store, plat tooldef.Platform) []Group
 			// Resolve installed version from state store
 			ts.InstalledVersion = store.GetVersion(t.Name)
 
-			// Determine status
+			// Determine status and source
 			switch ts.InstalledVersion {
 			case "":
 				// Not in state file — check if binary exists in PATH
@@ -136,6 +147,7 @@ func ResolveAll(cfg *config.Config, store *Store, plat tooldef.Platform) []Group
 						// (they won't be in the state store since mise manages them).
 						if t.ManagedBy != "" {
 							ts.InstalledVersion = ver
+							ts.Source = SourceMise
 							if versionMatches(ver, ts.DesiredVersion) {
 								ts.Status = StatusCurrent
 							} else {
@@ -143,15 +155,18 @@ func ResolveAll(cfg *config.Config, store *Store, plat tooldef.Platform) []Group
 							}
 						} else {
 							ts.Status = StatusDetected
+							ts.Source = SourceSystem
 							ts.DetectedPath = path
 							ts.DetectedVersion = ver
 						}
 					} else if t.ManagedBy != "" {
 						// Binary exists but version probe failed — still mark as detected
 						ts.Status = StatusUnknown
+						ts.Source = SourceMise
 						ts.DetectedPath = path
 					} else {
 						ts.Status = StatusDetected
+						ts.Source = SourceSystem
 						ts.DetectedPath = path
 					}
 				} else {
@@ -159,10 +174,13 @@ func ResolveAll(cfg *config.Config, store *Store, plat tooldef.Platform) []Group
 				}
 			case ts.DesiredVersion:
 				ts.Status = StatusCurrent
+				ts.Source = SourceManaged
 			case "unknown":
 				ts.Status = StatusUnknown
+				ts.Source = SourceManaged
 			default:
 				ts.Status = StatusOutdated
+				ts.Source = SourceManaged
 			}
 
 			gs.Tools = append(gs.Tools, ts)

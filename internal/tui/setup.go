@@ -432,6 +432,16 @@ func (m SetupModel) viewGroups() string {
 			b.WriteString(missingStyle.Render(line))
 		}
 		b.WriteString("\n")
+
+		// Show hint for the languages group
+		if g.Name == "languages" {
+			hint := "         ↳ Optional: uses mise to manage Go, Python, Node versions."
+			hint2 := "           Deselect if you manage runtimes yourself."
+			b.WriteString(dimStyle.Render(hint))
+			b.WriteString("\n")
+			b.WriteString(dimStyle.Render(hint2))
+			b.WriteString("\n")
+		}
 	}
 
 	b.WriteString("\n")

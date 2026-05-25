@@ -612,3 +612,74 @@ func TestModel_ToggleDisable(t *testing.T) {
 		t.Errorf("helm should be missing after toggling disable back, got %s", m.groups[0].Tools[1].Status.String())
 	}
 }
+
+func TestModel_ViewToolsSourceLabels(t *testing.T) {
+	groups := []state.GroupState{
+		{
+			Name: "languages",
+			Tools: []state.ToolState{
+				{Name: "go", Group: "languages", Description: "Go language", DesiredVersion: "1.26.3", InstalledVersion: "1.26.3", Status: state.StatusCurrent, Source: state.SourceMise, Tool: &tooldef.Tool{Name: "go", Version: "1.26.3", ManagedBy: "mise"}},
+				{Name: "python", Group: "languages", Description: "Python", DesiredVersion: "3.12", InstalledVersion: "3.12.7", Status: state.StatusCurrent, Source: state.SourceSystem, DetectedPath: "/usr/bin/python3", Tool: &tooldef.Tool{Name: "python", Version: "3.12"}},
+				{Name: "mise", Group: "languages", Description: "Tool manager", DesiredVersion: "2025.1.6", InstalledVersion: "2025.1.6", Status: state.StatusCurrent, Source: state.SourceManaged, Tool: &tooldef.Tool{Name: "mise", Version: "2025.1.6"}},
+			},
+		},
+	}
+
+	cfg := config.DefaultConfig()
+	store := &state.Store{Tools: map[string]state.InstalledTool{}}
+	plat := tooldef.Platform{OS: "linux", Arch: "amd64"}
+	m := NewModel(groups, cfg, nil, store, plat, "/usr/local/bin")
+	m.width = 100
+	m.screen = screenTools
+	m.selectedGroup = 0
+
+	view := m.View()
+
+	if !strings.Contains(view, "[mise]") {
+		t.Error("tool view should show [mise] label for mise-managed tools")
+	}
+	if !strings.Contains(view, "[system: /usr/bin/python3]") {
+		t.Error("tool view should show [system: /path] label for system-detected tools")
+	}
+	if !strings.Contains(view, "[managed]") {
+		t.Error("tool view should show [managed] label for devops-starter-managed tools")
+	}
+}
+
+func TestPrintTable_SourceColumn(t *testing.T) {
+	groups := []state.GroupState{
+		{
+			Name: "languages",
+			Tools: []state.ToolState{
+				{Name: "go", DesiredVersion: "1.26.3", InstalledVersion: "1.26.3", Status: state.StatusCurrent, Source: state.SourceMise},
+				{Name: "mise", DesiredVersion: "2025.1.6", InstalledVersion: "2025.1.6", Status: state.StatusCurrent, Source: state.SourceManaged},
+				{Name: "node", DesiredVersion: "22", InstalledVersion: "", Status: state.StatusDetected, Source: state.SourceSystem, DetectedPath: "/usr/local/bin/node"},
+				{Name: "ruby", DesiredVersion: "3.3", InstalledVersion: "", Status: state.StatusMissing, Source: state.SourceNone},
+			},
+		},
+	}
+
+	var buf bytes.Buffer
+	PrintTable(&buf, groups)
+	output := buf.String()
+
+	// Check SOURCE header is present
+	if !strings.Contains(output, "SOURCE") {
+		t.Error("output should contain SOURCE header")
+	}
+
+	// Check source values appear in output
+	if !strings.Contains(output, "mise") {
+		t.Error("output should contain 'mise' source for mise-managed tool")
+	}
+	if !strings.Contains(output, "managed") {
+		t.Error("output should contain 'managed' source for devops-starter tool")
+	}
+	if !strings.Contains(output, "system (/usr/local/bin/node)") {
+		t.Error("output should contain 'system (/path)' for system-detected tool")
+	}
+	// Missing tools with no source should show "-"
+	if !strings.Contains(output, "-") {
+		t.Error("output should contain '-' for tools with no source")
+	}
+}

@@ -13,9 +13,9 @@ import (
 // Suitable for CI, scripting, or piping to other tools.
 func PrintTable(w io.Writer, groups []state.GroupState) {
 	// Header
-	fmt.Fprintf(w, "%-14s %-18s %-12s %-12s %s\n",
-		"GROUP", "TOOL", "INSTALLED", "DESIRED", "STATUS")
-	fmt.Fprintf(w, "%s\n", strings.Repeat("─", 76))
+	fmt.Fprintf(w, "%-14s %-18s %-12s %-12s %-10s %s\n",
+		"GROUP", "TOOL", "INSTALLED", "DESIRED", "SOURCE", "STATUS")
+	fmt.Fprintf(w, "%s\n", strings.Repeat("─", 86))
 
 	// Counters for summary
 	var current, outdated, missing, disabled, unknown, detected int
@@ -42,8 +42,16 @@ func PrintTable(w io.Writer, groups []state.GroupState) {
 				desired = "-"
 			}
 
-			fmt.Fprintf(w, "%-14s %-18s %-12s %-12s %s\n",
-				g.Name, t.Name, installed, desired, t.Status.String())
+			source := string(t.Source)
+			if source == "" {
+				source = "-"
+			}
+			if t.Source == state.SourceSystem && t.DetectedPath != "" {
+				source = fmt.Sprintf("system (%s)", t.DetectedPath)
+			}
+
+			fmt.Fprintf(w, "%-14s %-18s %-12s %-12s %-10s %s\n",
+				g.Name, t.Name, installed, desired, source, t.Status.String())
 
 			switch t.Status {
 			case state.StatusCurrent:
@@ -63,7 +71,7 @@ func PrintTable(w io.Writer, groups []state.GroupState) {
 	}
 
 	// Summary
-	fmt.Fprintf(w, "%s\n", strings.Repeat("─", 76))
+	fmt.Fprintf(w, "%s\n", strings.Repeat("─", 86))
 	parts := []string{}
 	if current > 0 {
 		parts = append(parts, fmt.Sprintf("%d current", current))
