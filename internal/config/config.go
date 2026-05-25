@@ -136,6 +136,51 @@ func (c *Config) IsGroupEnabled(group string) bool {
 	}
 }
 
+// SetGroup enables or disables a group by name string.
+func (c *Config) SetGroup(group string, enabled bool) {
+	switch group {
+	case "languages":
+		c.Groups.Languages = enabled
+	case "containers":
+		c.Groups.Containers = enabled
+	case "kubernetes":
+		c.Groups.Kubernetes = enabled
+	case "infra":
+		c.Groups.Infra = enabled
+	case "cloud":
+		c.Groups.Cloud = enabled
+	case "ansible":
+		c.Groups.Ansible = enabled
+	case "rust-tools", "rust_tools":
+		c.Groups.RustTools = enabled
+	case "utilities":
+		c.Groups.Utilities = enabled
+	}
+}
+
+// MergeGroups applies group selections from a map into the config without
+// modifying the Overrides map. This preserves per-tool version pins and
+// disable flags when the user re-runs the setup wizard.
+func (c *Config) MergeGroups(groups map[string]bool) {
+	for group, enabled := range groups {
+		c.SetGroup(group, enabled)
+	}
+}
+
+// AllGroupNames returns the ordered list of group name strings.
+func AllGroupNames() []string {
+	return []string{
+		"languages",
+		"containers",
+		"kubernetes",
+		"infra",
+		"cloud",
+		"ansible",
+		"rust-tools",
+		"utilities",
+	}
+}
+
 // homeDir returns the user's home directory, falling back to $HOME if
 // os.UserHomeDir fails (e.g., in minimal container environments).
 func homeDir() string {
