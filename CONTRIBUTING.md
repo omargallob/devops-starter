@@ -146,6 +146,121 @@ URLs: map[string]string{
 6. Run `make gazelle` if you added new files.
 7. Update the Tool Catalog table in `README.md`.
 
+### Tool Fields Reference
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `Name` | string | Yes | Canonical tool name (used as install filename) |
+| `Version` | string | Yes | Pinned version |
+| `Description` | string | Yes | Short human-readable description |
+| `Group` | Group | Yes | Functional category (see below) |
+| `Format` | ArchiveFormat | Yes | `FormatTarGz`, `FormatTarXz`, `FormatZip`, or `FormatBinary` |
+| `URLTemplate` | string | * | Go template URL (mutually exclusive with `URLs`) |
+| `URLs` | map[string]string | * | Per-platform URL overrides (keys: `"linux/amd64"`, etc.) |
+| `BinaryName` | string | No | Path to binary inside archive (defaults to `Name`) |
+| `InstallName` | string | No | Filename in install dir (defaults to `Name`) |
+| `StripComponents` | int | No | Leading path components to strip on extraction |
+| `Checksums` | map[string]string | No | SHA256 hex digests per platform |
+| `ManagedBy` | string | No | Delegate to external manager (e.g., `"mise"`) |
+| `PostInstall` | string | No | Shell command to run after install |
+| `Dependencies` | []string | No | Tools that must be installed first |
+
+\* One of `URLTemplate` or `URLs` is required (unless `ManagedBy` is set).
+
+### Template Variables
+
+Available variables in `URLTemplate`:
+
+| Variable | Value |
+|----------|-------|
+| `{{.Name}}` | Tool name |
+| `{{.Version}}` | Tool version |
+| `{{.OS}}` | `linux` or `darwin` |
+| `{{.Arch}}` | `amd64` or `arm64` |
+| `{{.Format}}` | Archive extension (e.g., `tar.gz`) |
+| `{{.BinaryName}}` | Binary name |
+
+### Available Groups
+
+| Constant | Use for |
+|----------|---------|
+| `GroupLanguages` | Language runtimes (Go, Node, Python) |
+| `GroupContainers` | Container tools (Docker, Podman, Buildah) |
+| `GroupKubernetes` | Kubernetes ecosystem (kubectl, helm, k9s) |
+| `GroupInfra` | Infrastructure-as-code (Terraform, Pulumi) |
+| `GroupCloud` | Cloud CLIs (aws, gcloud, az) |
+| `GroupAnsible` | Ansible and related tools |
+| `GroupRustTools` | Rust-based dev tools (ripgrep, fd, bat) |
+| `GroupUtilities` | General utilities, linters, formatters |
+
+### Multi-Binary Tools
+
+When a single archive contains multiple useful binaries, register each
+binary as a separate tool pointing to the same URL:
+
+```go
+// lcov and genhtml come from the same tarball
+r.register(&tooldef.Tool{
+    Name:            "lcov",
+    Version:         "2.4",
+    Description:     "Linux code coverage reporting tool",
+    Group:           tooldef.GroupUtilities,
+    Format:          tooldef.FormatTarGz,
+    URLTemplate:     "https://github.com/linux-test-project/lcov/releases/download/v{{.Version}}/lcov-{{.Version}}.tar.gz",
+    BinaryName:      "bin/lcov",
+    StripComponents: 1,
+})
+
+r.register(&tooldef.Tool{
+    Name:            "genhtml",
+    Version:         "2.4",
+    Description:     "Generate HTML coverage reports from lcov data",
+    Group:           tooldef.GroupUtilities,
+    Format:          tooldef.FormatTarGz,
+    URLTemplate:     "https://github.com/linux-test-project/lcov/releases/download/v{{.Version}}/lcov-{{.Version}}.tar.gz",
+    BinaryName:      "bin/genhtml",
+    StripComponents: 1,
+})
+```
+
+Key points:
+- `StripComponents: 1` removes the version-prefixed directory (e.g., `lcov-2.4/`)
+- `BinaryName: "bin/lcov"` specifies the path *after* stripping to the desired binary
+- Each tool is installed independently (the tarball is downloaded per tool)
+
+### Understanding `StripComponents`
+
+Many release tarballs wrap files in a version-prefixed directory:
+
+```
+mytool-1.2.3/
+  bin/
+    mytool
+    mytool-helper
+  README.md
+```
+
+Setting `StripComponents: 1` removes the top-level `mytool-1.2.3/` prefix, so
+the installer sees `bin/mytool` as the binary path. Combine with
+`BinaryName: "bin/mytool"` to extract the correct file.
+
+### Managed Tools
+
+For tools managed by an external tool manager (e.g., mise), set `ManagedBy`
+instead of providing a URL:
+
+```go
+r.register(&tooldef.Tool{
+    Name:        "go",
+    Version:     "1.24.3",
+    Description: "Go programming language",
+    Group:       tooldef.GroupLanguages,
+    ManagedBy:   "mise",
+})
+```
+
+These tools are installed via `mise install` rather than direct download.
+
 ## Project Layout
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed design documentation.

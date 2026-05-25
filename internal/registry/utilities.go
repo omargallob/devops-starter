@@ -156,4 +156,26 @@ func registerUtilities(r *Registry) {
 			"darwin/arm64": "https://github.com/neovim/neovim/releases/download/v0.10.3/nvim-macos-arm64.tar.gz",
 		},
 	})
+
+	r.register(&tooldef.Tool{
+		Name:            "lcov",
+		Version:         "2.4",
+		Description:     "Linux code coverage reporting tool",
+		Group:           tooldef.GroupUtilities,
+		Format:          tooldef.FormatTarGz,
+		URLTemplate:     "https://github.com/linux-test-project/lcov/releases/download/v{{.Version}}/lcov-{{.Version}}.tar.gz",
+		BinaryName:      "bin/lcov",
+		StripComponents: 1,
+	})
+
+	r.register(&tooldef.Tool{
+		Name:            "genhtml",
+		Version:         "2.4",
+		Description:     "Generate HTML coverage reports from lcov data",
+		Group:           tooldef.GroupUtilities,
+		Format:          tooldef.FormatTarGz,
+		URLTemplate:     "https://github.com/linux-test-project/lcov/releases/download/v{{.Version}}/lcov-{{.Version}}.tar.gz",
+		BinaryName:      "bin/genhtml",
+		StripComponents: 1,
+	})
 }
