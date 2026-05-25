@@ -39,3 +39,6 @@ pull(
 
 # ─── Platforms ───────────────────────────────────────────────────────────────
 bazel_dep(name = "platforms", version = "1.0.0")
+
+# ─── Shell rules ─────────────────────────────────────────────────────────────
+bazel_dep(name = "rules_shell", version = "0.6.1")

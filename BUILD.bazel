@@ -1,4 +1,5 @@
 load("@gazelle//:def.bzl", "gazelle")
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 load("//bazel/rules:actionlint.bzl", "actionlint_test")
 load("//bazel/rules:golangci_lint.bzl", "golangci_lint_test")
 load("//bazel/rules:shellcheck.bzl", "shellcheck_test")
@@ -11,6 +12,7 @@ gazelle(name = "gazelle")
 shellcheck_test(
     name = "shellcheck",
     srcs = [
+        "scripts/genhtml.sh",
         "scripts/install.sh",
     ] + ["//dotfiles:shell_scripts"],
 )
@@ -56,5 +58,12 @@ yamllint_test(
 actionlint_test(
     name = "actionlint",
     srcs = [":github_workflows"],
+    tags = ["local"],
+)
+
+# Generate HTML coverage report and open in browser
+sh_binary(
+    name = "genhtml",
+    srcs = ["scripts/genhtml.sh"],
     tags = ["local"],
 )
