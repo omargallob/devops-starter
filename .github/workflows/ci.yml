@@ -15,6 +15,7 @@ env:
 jobs:
   golangci-lint:
     name: Linter - golangci-lint
+    if: github.event_name != 'pull_request' || !startsWith(github.head_ref, 'release-please--')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -30,6 +31,7 @@ jobs:
 
   shellcheck:
     name: Linter - shellcheck
+    if: github.event_name != 'pull_request' || !startsWith(github.head_ref, 'release-please--')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -45,6 +47,7 @@ jobs:
 
   yamllint:
     name: Linter - yamllint
+    if: github.event_name != 'pull_request' || !startsWith(github.head_ref, 'release-please--')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -60,6 +63,7 @@ jobs:
 
   actionlint:
     name: Linter - actionlint
+    if: github.event_name != 'pull_request' || !startsWith(github.head_ref, 'release-please--')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -75,7 +79,7 @@ jobs:
 
   test:
     name: bazel test //...
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && !startsWith(github.head_ref, 'release-please--')
     needs: [golangci-lint, shellcheck, yamllint, actionlint]
     runs-on: ubuntu-latest
     steps:
