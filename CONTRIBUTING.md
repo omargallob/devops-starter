@@ -23,7 +23,7 @@ submitting changes.
 |------|---------|-----------|
 | Go | 1.26+ | Yes |
 | mise | latest | Recommended (manages Node, Python for hooks) |
-| Bazel / Bazelisk | 9+ | Optional (for hermetic builds) |
+| Bazel (via Bazelisk) | 9+ | Optional (for hermetic builds) |
 | golangci-lint | latest | For `make lint` |
 | shellcheck | latest | For `make lint` |
 | pre-commit | latest | For commit hooks |
