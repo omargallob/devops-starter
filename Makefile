@@ -88,7 +88,7 @@ clean:
 	rm -f $(BINARY)
 	rm -f coverage.out
 	rm -rf $(DIST_DIR)
-	bazelisk clean 2>/dev/null || true
+	bazel clean 2>/dev/null || true
 
 # ─── Bazel ───────────────────────────────────────────────────────────────────
 
@@ -96,22 +96,22 @@ clean:
 
 ## bazel-build: Build with Bazel
 bazel-build:
-	bazelisk build //cmd/devops-starter
+	bazel build //cmd/devops-starter
 
 ## bazel-test: Test with Bazel
 bazel-test:
-	bazelisk test //...
+	bazel test //...
 
 ## gazelle: Regenerate BUILD files
 gazelle:
-	bazelisk run //:gazelle
+	bazel run //:gazelle
 
 ## bazel-release: Build all platforms with Bazel
 bazel-release:
-	bazelisk build //cmd/devops-starter --config=linux_amd64
-	bazelisk build //cmd/devops-starter --config=linux_arm64
-	bazelisk build //cmd/devops-starter --config=darwin_amd64
-	bazelisk build //cmd/devops-starter --config=darwin_arm64
+	bazel build //cmd/devops-starter --config=linux_amd64
+	bazel build //cmd/devops-starter --config=linux_arm64
+	bazel build //cmd/devops-starter --config=darwin_amd64
+	bazel build //cmd/devops-starter --config=darwin_arm64
 
 # ─── Development Setup ────────────────────────────────────────────────────────
 

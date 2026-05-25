@@ -53,7 +53,7 @@ Make sure `~/.local/bin` is in your `$PATH`.
 ### Prerequisites
 
 - Go 1.26+
-- (Optional) Bazel 9 / Bazelisk for hermetic builds
+- (Optional) Bazel 9 (installed via [Bazelisk](https://github.com/bazelbuild/bazelisk)) for hermetic builds
 
 ### Using Make
 
@@ -68,8 +68,8 @@ make help           # list all available targets
 ### Using Bazel
 
 ```sh
-bazelisk build //cmd/devops-starter
-bazelisk test //...
+bazel build //cmd/devops-starter
+bazel test //...
 make bazel-release   # cross-compile all platforms
 ```
 
