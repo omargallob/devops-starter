@@ -69,8 +69,8 @@ func TestAllToolsHaveRequiredFields(t *testing.T) {
 		if tool.Group == "" {
 			t.Fatalf("tool %s has empty group", tool.Name)
 		}
-		if tool.URLTemplate == "" && len(tool.URLs) == 0 {
-			t.Fatalf("tool %s has neither URLTemplate nor URLs", tool.Name)
+		if tool.URLTemplate == "" && len(tool.URLs) == 0 && tool.ManagedBy == "" {
+			t.Fatalf("tool %s has neither URLTemplate nor URLs (and is not externally managed)", tool.Name)
 		}
 	}
 }

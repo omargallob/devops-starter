@@ -21,7 +21,14 @@ func PrintTable(w io.Writer, groups []state.GroupState) {
 	var current, outdated, missing, disabled, unknown, detected int
 
 	for _, g := range groups {
+		currentSubgroup := ""
 		for _, t := range g.Tools {
+			// Insert subgroup separator row when it changes
+			if t.Subgroup != "" && t.Subgroup != currentSubgroup {
+				currentSubgroup = t.Subgroup
+				fmt.Fprintf(w, "%-14s ── %s ──\n", g.Name, currentSubgroup)
+			}
+
 			installed := t.InstalledVersion
 			if installed == "" {
 				installed = "-"

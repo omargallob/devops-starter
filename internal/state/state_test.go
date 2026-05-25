@@ -41,11 +41,21 @@ func TestResolveAll_BasicFlow(t *testing.T) {
 		t.Fatal("expected at least one group")
 	}
 
-	// All tools should be StatusMissing or StatusDetected (if binary is in PATH)
+	// All tools should be StatusMissing or StatusDetected (if binary is in PATH).
+	// Mise-managed tools found in PATH may also be StatusCurrent or StatusOutdated
+	// since they are resolved via version detection rather than state store.
 	for _, g := range groups {
 		for _, ts := range g.Tools {
-			if ts.Status != StatusMissing && ts.Status != StatusDetected {
-				t.Errorf("tool %s: expected StatusMissing or StatusDetected, got %s", ts.Name, ts.Status.String())
+			switch ts.Status {
+			case StatusMissing, StatusDetected:
+				// expected for unmanaged tools
+			case StatusCurrent, StatusOutdated, StatusUnknown:
+				// acceptable for mise-managed tools found in PATH
+				if ts.Tool == nil || ts.Tool.ManagedBy == "" {
+					t.Errorf("tool %s: expected StatusMissing or StatusDetected, got %s", ts.Name, ts.Status.String())
+				}
+			default:
+				t.Errorf("tool %s: unexpected status %s", ts.Name, ts.Status.String())
 			}
 		}
 	}

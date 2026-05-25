@@ -96,6 +96,15 @@ type Tool struct {
 
 	// Dependencies lists other tool names that must be installed first.
 	Dependencies []string `yaml:"dependencies,omitempty"`
+
+	// ManagedBy indicates this tool is installed by another tool (e.g., "mise")
+	// rather than downloaded directly. The installer will delegate to the
+	// manager binary instead of resolving a download URL.
+	ManagedBy string `yaml:"managed_by,omitempty"`
+
+	// Subgroup provides an optional visual sub-category within a group.
+	// Used for display purposes only (e.g., "Platforms" vs "Languages").
+	Subgroup string `yaml:"subgroup,omitempty"`
 }
 
 // GetBinaryName returns the binary name, defaulting to Tool.Name.

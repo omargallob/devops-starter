@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sync"
 
@@ -74,10 +75,20 @@ func (inst *Installer) IsInstalled(tool *tooldef.Tool) bool {
 }
 
 // Install orchestrates download, verify, extract, and install for a single tool.
+// Tools with ManagedBy set are delegated to their manager (e.g., mise install).
 func (inst *Installer) Install(ctx context.Context, tool *tooldef.Tool) error {
 	if inst.DryRun {
-		fmt.Printf("[dry-run] Would install %s %s\n", tool.Name, tool.Version)
+		if tool.ManagedBy != "" {
+			fmt.Printf("[dry-run] Would install %s %s via %s\n", tool.Name, tool.Version, tool.ManagedBy)
+		} else {
+			fmt.Printf("[dry-run] Would install %s %s\n", tool.Name, tool.Version)
+		}
 		return nil
+	}
+
+	// Delegate to the manager if this tool is externally managed.
+	if tool.ManagedBy != "" {
+		return inst.installViaManager(ctx, tool)
 	}
 
 	if err := inst.EnsureDir(); err != nil {
@@ -142,15 +153,29 @@ func (inst *Installer) Install(ctx context.Context, tool *tooldef.Tool) error {
 }
 
 // InstallAll installs multiple tools concurrently, returning any errors.
+// Tools managed by an external manager (e.g., mise) are batched and installed
+// after all direct tools complete, using a single manager invocation.
 func (inst *Installer) InstallAll(ctx context.Context, tools []*tooldef.Tool) []error {
 	var (
-		mu     sync.Mutex
-		errs   []error
-		wg     sync.WaitGroup
-		sem    = make(chan struct{}, inst.Concurrency)
+		mu           sync.Mutex
+		errs         []error
+		wg           sync.WaitGroup
+		sem          = make(chan struct{}, inst.Concurrency)
+		managedTools []*tooldef.Tool
+		directTools  []*tooldef.Tool
 	)
 
-	for _, tool := range tools {
+	// Separate managed and direct tools.
+	for _, t := range tools {
+		if t.ManagedBy != "" {
+			managedTools = append(managedTools, t)
+		} else {
+			directTools = append(directTools, t)
+		}
+	}
+
+	// Install direct tools concurrently.
+	for _, tool := range directTools {
 		wg.Add(1)
 		sem <- struct{}{}
 		go func(t *tooldef.Tool) {
@@ -163,7 +188,50 @@ func (inst *Installer) InstallAll(ctx context.Context, tools []*tooldef.Tool) []
 			}
 		}(tool)
 	}
-
 	wg.Wait()
+
+	// Install managed tools (batched by manager).
+	if len(managedTools) > 0 {
+		if mErr := inst.InstallMiseTools(ctx); mErr != nil {
+			errs = append(errs, mErr)
+		}
+	}
+
 	return errs
+}
+
+// installViaManager delegates installation of a single tool to its external
+// manager. Currently only supports "mise" as a manager.
+func (inst *Installer) installViaManager(ctx context.Context, tool *tooldef.Tool) error {
+	switch tool.ManagedBy {
+	case "mise":
+		return inst.InstallMiseTools(ctx)
+	default:
+		return fmt.Errorf("unsupported manager %q for tool %s", tool.ManagedBy, tool.Name)
+	}
+}
+
+// InstallMiseTools runs "mise install" to install all tools defined in
+// .mise.toml. This is a single invocation that handles all mise-managed tools.
+func (inst *Installer) InstallMiseTools(ctx context.Context) error {
+	// Find mise binary — check install dir first, then PATH.
+	miseBin := filepath.Join(inst.InstallDir, "mise")
+	if _, err := os.Stat(miseBin); err != nil {
+		// Fall back to PATH lookup.
+		found, lookErr := exec.LookPath("mise")
+		if lookErr != nil {
+			return fmt.Errorf("mise binary not found in %s or PATH — install mise first", inst.InstallDir)
+		}
+		miseBin = found
+	}
+
+	cmd := exec.CommandContext(ctx, miseBin, "install")
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Env = append(os.Environ(), "MISE_YES=1") // non-interactive
+
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("running mise install: %w", err)
+	}
+	return nil
 }

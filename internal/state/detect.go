@@ -33,7 +33,27 @@ type VersionProbe struct {
 // BinName is only set when it differs from the tool name.
 var probes = map[string]VersionProbe{
 	// languages
-	"mise": {Args: []string{"--version"}, Regex: re(`(\d+\.\d+\.\d+)`)},
+	"mise":   {Args: []string{"--version"}, Regex: re(`(\d+\.\d+\.\d+)`)},
+	"go":     {Args: []string{"version"}, Regex: re(`go(\d+\.\d+\.\d+)`)},
+	"python": {Args: []string{"--version"}, Regex: re(`(\d+\.\d+\.\d+)`)},
+	"node":   {Args: []string{"--version"}, Regex: re(`v?(\d+\.\d+\.\d+)`)},
+	"ruby":   {Args: []string{"--version"}, Regex: re(`(\d+\.\d+\.\d+)`)},
+	"java":   {Args: []string{"-version"}, Regex: re(`"(\d+\.\d+\.\d+)"`)},
+	"rust":   {BinName: "rustc", Args: []string{"--version"}, Regex: re(`(\d+\.\d+\.\d+)`)},
+	"deno":   {Args: []string{"--version"}, Regex: re(`deno (\d+\.\d+\.\d+)`)},
+	"bun":    {Args: []string{"--version"}, Regex: re(`(\d+\.\d+\.\d+)`)},
+	"erlang": {BinName: "erl", Args: []string{"-eval", "io:format(\"~s~n\", [erlang:system_info(otp_release)]), halt()."}, Regex: re(`(\d+)`)},
+	"elixir": {Args: []string{"--version"}, Regex: re(`(\d+\.\d+\.\d+)`)},
+	"zig":    {Args: []string{"version"}, Regex: re(`(\d+\.\d+\.\d+)`)},
+	"kotlin": {BinName: "kotlin", Args: []string{"-version"}, Regex: re(`(\d+\.\d+\.\d+)`)},
+	"scala":  {Args: []string{"-version"}, Regex: re(`(\d+\.\d+\.\d+)`)},
+	"lua":    {Args: []string{"-v"}, Regex: re(`(\d+\.\d+\.\d+)`)},
+	"perl":   {Args: []string{"--version"}, Regex: re(`v(\d+\.\d+\.\d+)`)},
+	"php":    {Args: []string{"--version"}, Regex: re(`(\d+\.\d+\.\d+)`)},
+	"swift":  {Args: []string{"--version"}, Regex: re(`(\d+\.\d+\.\d+)`)},
+	"nim":    {Args: []string{"--version"}, Regex: re(`(\d+\.\d+\.\d+)`)},
+	"julia":  {Args: []string{"--version"}, Regex: re(`(\d+\.\d+\.\d+)`)},
+	"dotnet": {Args: []string{"--version"}, Regex: re(`(\d+\.\d+\.\d+)`)},
 
 	// containers
 	"docker":         {Args: []string{"--version"}, Regex: re(`(\d+\.\d+\.\d+)`)},

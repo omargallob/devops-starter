@@ -3,6 +3,9 @@
 package state
 
 import (
+	"sort"
+	"strings"
+
 	"github.com/omargallob/devops-starter/internal/config"
 	"github.com/omargallob/devops-starter/internal/registry"
 	"github.com/omargallob/devops-starter/pkg/tooldef"
@@ -44,6 +47,7 @@ func (s Status) String() string {
 type ToolState struct {
 	Name             string
 	Group            string
+	Subgroup         string // optional visual sub-category (e.g., "Platforms", "Languages")
 	Description      string
 	DesiredVersion   string // from registry + config overrides
 	InstalledVersion string // from state file or verify
@@ -89,6 +93,7 @@ func ResolveAll(cfg *config.Config, store *Store, plat tooldef.Platform) []Group
 			ts := ToolState{
 				Name:           t.Name,
 				Group:          string(t.Group),
+				Subgroup:       t.Subgroup,
 				Description:    t.Description,
 				DesiredVersion: t.Version,
 				Tool:           t,
@@ -126,11 +131,28 @@ func ResolveAll(cfg *config.Config, store *Store, plat tooldef.Platform) []Group
 		case "":
 			// Not in state file — check if binary exists in PATH
 			if path := LookupInPath(t.Name); path != "" {
-				ts.Status = StatusDetected
-				ts.DetectedPath = path
-				// Try to detect the version of the system binary
 				if ver, err := DetectVersionAtPath(t.Name, path); err == nil {
-					ts.DetectedVersion = ver
+					// For mise-managed tools, treat PATH detection as installed
+					// (they won't be in the state store since mise manages them).
+					if t.ManagedBy != "" {
+						ts.InstalledVersion = ver
+						if versionMatches(ver, ts.DesiredVersion) {
+							ts.Status = StatusCurrent
+						} else {
+							ts.Status = StatusOutdated
+						}
+					} else {
+						ts.Status = StatusDetected
+						ts.DetectedPath = path
+						ts.DetectedVersion = ver
+					}
+				} else if t.ManagedBy != "" {
+					// Binary exists but version probe failed — still mark as detected
+					ts.Status = StatusUnknown
+					ts.DetectedPath = path
+				} else {
+					ts.Status = StatusDetected
+					ts.DetectedPath = path
 				}
 			} else {
 				ts.Status = StatusMissing
@@ -147,9 +169,54 @@ func ResolveAll(cfg *config.Config, store *Store, plat tooldef.Platform) []Group
 		}
 
 		if len(gs.Tools) > 0 {
+			// Sort tools by subgroup (Platforms before Languages),
+			// then alphabetically within each subgroup.
+			sort.SliceStable(gs.Tools, func(i, j int) bool {
+				si := subgroupOrder(gs.Tools[i].Subgroup)
+				sj := subgroupOrder(gs.Tools[j].Subgroup)
+				if si != sj {
+					return si < sj
+				}
+				return gs.Tools[i].Name < gs.Tools[j].Name
+			})
 			result = append(result, gs)
 		}
 	}
 
 	return result
+}
+
+// versionMatches checks if an installed version satisfies the desired version
+// specification. Mise allows partial versions (e.g., "3.12" means any 3.12.x,
+// "22" means any 22.x.y), so we use prefix matching on dot-separated segments.
+func versionMatches(installed, desired string) bool {
+	if installed == desired {
+		return true
+	}
+	// Prefix match: "3.12" should match "3.12.7"
+	// Split into segments and compare prefix.
+	dParts := strings.Split(desired, ".")
+	iParts := strings.Split(installed, ".")
+	if len(dParts) > len(iParts) {
+		return false
+	}
+	for i, dp := range dParts {
+		if dp != iParts[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// subgroupOrder returns a sort key for subgroups. "Platforms" sorts first (0),
+// "Languages" second (1), empty/unknown last (2).
+func subgroupOrder(subgroup string) int {
+	switch subgroup {
+	case "Platforms":
+		return 0
+	case "Languages":
+		return 1
+	default:
+		return 2
+	}
 }
