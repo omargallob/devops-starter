@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/charmbracelet/lipgloss"
@@ -39,8 +40,23 @@ Use --all-detected to adopt all tools found on the system at once.`,
 	return cmd
 }
 
-// runAdopt installs managed versions of the specified tools (or all detected
-// tools if --all-detected is set).
+// adoptDeps bundles dependencies for the adopt command.
+type adoptDeps struct {
+	cfg       *config.Config
+	registry  ToolRegistry
+	installer ToolInstaller
+	store     StateStore
+	out       io.Writer
+	dryRun    bool
+	autoYes   bool
+	adoptAll  bool
+	platform  tooldef.Platform
+	// detected is a precomputed map of tools detected on the system
+	detected map[string]state.ToolState
+}
+
+// runAdopt is the entry point that constructs real dependencies and delegates
+// to doAdopt for the actual logic.
 func runAdopt(cmd *cobra.Command, args []string) error {
 	if len(args) == 0 && !adoptAll {
 		return fmt.Errorf("specify one or more tool names, or use --all-detected")
@@ -81,10 +97,35 @@ func runAdopt(cmd *cobra.Command, args []string) error {
 		}
 	}
 
+	reg := registry.New()
+	inst := installer.New(
+		cfg.InstallDir,
+		info.Platform,
+		installer.WithStateStore(store),
+	)
+
+	deps := adoptDeps{
+		cfg:       cfg,
+		registry:  reg,
+		installer: inst,
+		store:     store,
+		out:       os.Stdout,
+		dryRun:    dryRun,
+		autoYes:   autoYes,
+		adoptAll:  adoptAll,
+		platform:  info.Platform,
+		detected:  detected,
+	}
+
+	return doAdopt(deps, args)
+}
+
+// doAdopt contains the testable adopt logic, separated from Cobra wiring.
+func doAdopt(deps adoptDeps, args []string) error {
 	// Determine which tools to adopt
 	var toAdopt []string
-	if adoptAll {
-		for name := range detected {
+	if deps.adoptAll {
+		for name := range deps.detected {
 			toAdopt = append(toAdopt, name)
 		}
 	} else {
@@ -92,30 +133,29 @@ func runAdopt(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(toAdopt) == 0 {
-		fmt.Println("No detected tools to adopt.")
+		fmt.Fprintln(deps.out, "No detected tools to adopt.")
 		return nil
 	}
 
 	// Validate and resolve tools from registry
-	reg := registry.New()
 	var toolsToInstall []*tooldef.Tool
 	var warnings []string
 
 	for _, name := range toAdopt {
-		tool, ok := reg.Get(name)
+		tool, ok := deps.registry.Get(name)
 		if !ok {
 			warnings = append(warnings, fmt.Sprintf("unknown tool: %s", name))
 			continue
 		}
 
 		// Check platform support
-		if !tool.SupportsPlatform(info.Platform) {
-			warnings = append(warnings, fmt.Sprintf("%s: not supported on %s", name, info.Platform))
+		if !tool.SupportsPlatform(deps.platform) {
+			warnings = append(warnings, fmt.Sprintf("%s: not supported on %s", name, deps.platform))
 			continue
 		}
 
 		// Apply version override from config
-		if override, ok := cfg.Overrides[name]; ok {
+		if override, ok := deps.cfg.Overrides[name]; ok {
 			if override.Disabled {
 				warnings = append(warnings, fmt.Sprintf("%s: disabled in config", name))
 				continue
@@ -126,9 +166,9 @@ func runAdopt(cmd *cobra.Command, args []string) error {
 		}
 
 		// Check if already managed (current or outdated means we already manage it)
-		if _, isDetected := detected[name]; !isDetected {
+		if _, isDetected := deps.detected[name]; !isDetected {
 			// Check if it's already managed
-			if ver := store.GetVersion(name); ver != "" {
+			if ver := deps.store.GetVersion(name); ver != "" {
 				warnings = append(warnings, fmt.Sprintf("%s: already managed (version %s)", name, ver))
 				continue
 			}
@@ -140,54 +180,49 @@ func runAdopt(cmd *cobra.Command, args []string) error {
 	// Print warnings
 	warnStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("3"))
 	for _, w := range warnings {
-		fmt.Println(warnStyle.Render("  ⚠ " + w))
+		fmt.Fprintln(deps.out, warnStyle.Render("  ⚠ "+w))
 	}
 
 	if len(toolsToInstall) == 0 {
-		fmt.Println("No tools to adopt.")
+		fmt.Fprintln(deps.out, "No tools to adopt.")
 		return nil
 	}
 
 	// Show what we're about to do
 	infoStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("6"))
-	fmt.Println(infoStyle.Render(fmt.Sprintf("\nAdopting %d tool(s) into %s:\n", len(toolsToInstall), cfg.InstallDir)))
+	fmt.Fprintln(deps.out, infoStyle.Render(fmt.Sprintf("\nAdopting %d tool(s) into %s:\n", len(toolsToInstall), deps.cfg.InstallDir)))
 
 	for _, t := range toolsToInstall {
 		detail := ""
-		if ts, ok := detected[t.Name]; ok && ts.DetectedPath != "" {
+		if ts, ok := deps.detected[t.Name]; ok && ts.DetectedPath != "" {
 			detail = fmt.Sprintf(" (replacing system: %s", ts.DetectedPath)
 			if ts.DetectedVersion != "" {
 				detail += " v" + ts.DetectedVersion
 			}
 			detail += ")"
 		}
-		fmt.Printf("  • %s %s%s\n", t.Name, t.Version, detail)
+		fmt.Fprintf(deps.out, "  • %s %s%s\n", t.Name, t.Version, detail)
 	}
-	fmt.Println()
+	fmt.Fprintln(deps.out)
 
-	if dryRun {
-		fmt.Println("[dry-run] No changes made.")
+	if deps.dryRun {
+		fmt.Fprintln(deps.out, "[dry-run] No changes made.")
 		return nil
 	}
 
-	if !confirmAction("Proceed with adoption?") {
-		fmt.Println("Cancelled.")
-		return nil
+	if !deps.autoYes {
+		if !confirmAction("Proceed with adoption?") {
+			fmt.Fprintln(deps.out, "Cancelled.")
+			return nil
+		}
 	}
-
-	// Create installer with state store so versions are recorded
-	inst := installer.New(
-		cfg.InstallDir,
-		info.Platform,
-		installer.WithStateStore(store),
-	)
 
 	// Install tools
 	ctx := context.Background()
-	errs := inst.InstallAll(ctx, toolsToInstall)
+	errs := deps.installer.InstallAll(ctx, toolsToInstall)
 
 	// Save state
-	if err := store.Save(); err != nil {
+	if err := deps.store.Save(); err != nil {
 		fmt.Fprintf(os.Stderr, "warning: failed to save state: %v\n", err)
 	}
 
@@ -197,13 +232,13 @@ func runAdopt(cmd *cobra.Command, args []string) error {
 
 	adopted := len(toolsToInstall) - len(errs)
 	if adopted > 0 {
-		fmt.Println(successStyle.Render(fmt.Sprintf("✓ %d tool(s) adopted successfully", adopted)))
+		fmt.Fprintln(deps.out, successStyle.Render(fmt.Sprintf("✓ %d tool(s) adopted successfully", adopted)))
 	}
 
 	if len(errs) > 0 {
-		fmt.Println(errorStyle.Render(fmt.Sprintf("✗ %d tool(s) failed:", len(errs))))
+		fmt.Fprintln(deps.out, errorStyle.Render(fmt.Sprintf("✗ %d tool(s) failed:", len(errs))))
 		for _, e := range errs {
-			fmt.Fprintf(os.Stderr, "  - %v\n", e)
+			fmt.Fprintf(deps.out, "  - %v\n", e)
 		}
 		return fmt.Errorf("%d adoptions failed", len(errs))
 	}

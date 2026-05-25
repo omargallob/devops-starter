@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -29,7 +30,8 @@ automatically become the active version again.`,
 	return cmd
 }
 
-// runRemove deletes managed binaries and removes tools from the state store.
+// runRemove is the entry point that constructs real dependencies and delegates
+// to doRemove for the actual logic.
 func runRemove(cmd *cobra.Command, args []string) error {
 	// Load config
 	cfgPath := cfgFile
@@ -47,37 +49,49 @@ func runRemove(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("loading state: %w", err)
 	}
 
-	// Resolve tools from registry
 	reg := registry.New()
 
-	type removeTarget struct {
-		name       string
-		binPath    string
-		version    string
-		systemPath string
+	deps := removeDeps{
+		cfg:        cfg,
+		registry:   reg,
+		store:      store,
+		out:        os.Stdout,
+		dryRun:     dryRun,
+		autoYes:    autoYes,
+		installDir: cfg.InstallDir,
 	}
 
+	return doRemove(deps, args)
+}
+
+// removeTarget describes a single tool to be removed.
+type removeTarget struct {
+	name       string
+	binPath    string
+	version    string
+	systemPath string
+}
+
+// doRemove contains the testable remove logic, separated from Cobra wiring.
+func doRemove(deps removeDeps, args []string) error {
 	var targets []removeTarget
 	var warnings []string
 
-	warnStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("3"))
-
 	for _, name := range args {
-		tool, ok := reg.Get(name)
+		tool, ok := deps.registry.Get(name)
 		if !ok {
 			warnings = append(warnings, fmt.Sprintf("unknown tool: %s", name))
 			continue
 		}
 
-		binPath := filepath.Join(cfg.InstallDir, tool.GetInstallName())
+		binPath := filepath.Join(deps.installDir, tool.GetInstallName())
 		if _, err := os.Stat(binPath); os.IsNotExist(err) {
 			// Check if it's in the state store but binary is gone
-			if store.GetVersion(name) != "" {
-				// Still in state, clean it up
+			if deps.store.GetVersion(name) != "" {
 				targets = append(targets, removeTarget{
 					name:    name,
 					binPath: "",
-					version: store.GetVersion(name),
+					version: deps.store.GetVersion(name),
 				})
 			} else {
 				warnings = append(warnings, fmt.Sprintf("%s: not managed (no binary at %s)", name, binPath))
@@ -87,11 +101,8 @@ func runRemove(cmd *cobra.Command, args []string) error {
 
 		// Check for system fallback
 		systemPath := ""
-		// Temporarily check if removing our binary would expose a system one
-		// We look in PATH excluding our install dir
 		if path := state.LookupInPath(name); path != "" {
-			// Only report as system fallback if it's a different path
-			absInstall, _ := filepath.Abs(cfg.InstallDir)
+			absInstall, _ := filepath.Abs(deps.installDir)
 			absFound, _ := filepath.Abs(filepath.Dir(path))
 			if absFound != absInstall {
 				systemPath = path
@@ -101,24 +112,25 @@ func runRemove(cmd *cobra.Command, args []string) error {
 		targets = append(targets, removeTarget{
 			name:       name,
 			binPath:    binPath,
-			version:    store.GetVersion(name),
+			version:    deps.store.GetVersion(name),
 			systemPath: systemPath,
 		})
 	}
 
 	// Print warnings
+	warnStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("3"))
 	for _, w := range warnings {
-		fmt.Println(warnStyle.Render("  ⚠ " + w))
+		fmt.Fprintln(deps.out, warnStyle.Render("  ⚠ "+w))
 	}
 
 	if len(targets) == 0 {
-		fmt.Println("No tools to remove.")
+		fmt.Fprintln(deps.out, "No tools to remove.")
 		return nil
 	}
 
 	// Show what will be removed
 	infoStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("6"))
-	fmt.Println(infoStyle.Render(fmt.Sprintf("\nRemoving %d managed tool(s):\n", len(targets))))
+	fmt.Fprintln(deps.out, infoStyle.Render(fmt.Sprintf("\nRemoving %d managed tool(s):\n", len(targets))))
 
 	for _, t := range targets {
 		line := fmt.Sprintf("  • %s", t.name)
@@ -130,21 +142,28 @@ func runRemove(cmd *cobra.Command, args []string) error {
 		} else {
 			line += " → no system version available"
 		}
-		fmt.Println(line)
+		fmt.Fprintln(deps.out, line)
 	}
-	fmt.Println()
+	fmt.Fprintln(deps.out)
 
-	if dryRun {
-		fmt.Println("[dry-run] No changes made.")
+	if deps.dryRun {
+		fmt.Fprintln(deps.out, "[dry-run] No changes made.")
 		return nil
 	}
 
-	if !confirmAction("Proceed with removal?") {
-		fmt.Println("Cancelled.")
-		return nil
+	if !deps.autoYes {
+		if !confirmAction("Proceed with removal?") {
+			fmt.Fprintln(deps.out, "Cancelled.")
+			return nil
+		}
 	}
 
 	// Perform removal
+	return executeRemoval(deps.out, deps.store, targets)
+}
+
+// executeRemoval performs the actual file deletion and state updates.
+func executeRemoval(out io.Writer, store StateStore, targets []removeTarget) error {
 	successStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("2"))
 	errorStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("1"))
 
@@ -153,7 +172,7 @@ func runRemove(cmd *cobra.Command, args []string) error {
 		// Remove binary if it exists
 		if t.binPath != "" {
 			if err := os.Remove(t.binPath); err != nil && !os.IsNotExist(err) {
-				fmt.Println(errorStyle.Render(fmt.Sprintf("  ✗ %s: failed to remove binary: %v", t.name, err)))
+				fmt.Fprintln(out, errorStyle.Render(fmt.Sprintf("  ✗ %s: failed to remove binary: %v", t.name, err)))
 				failed++
 				continue
 			}
@@ -161,7 +180,7 @@ func runRemove(cmd *cobra.Command, args []string) error {
 
 		// Remove from state store
 		if err := store.Remove(t.name); err != nil {
-			fmt.Println(errorStyle.Render(fmt.Sprintf("  ✗ %s: failed to update state: %v", t.name, err)))
+			fmt.Fprintln(out, errorStyle.Render(fmt.Sprintf("  ✗ %s: failed to update state: %v", t.name, err)))
 			failed++
 			continue
 		}
@@ -170,13 +189,13 @@ func runRemove(cmd *cobra.Command, args []string) error {
 		if t.systemPath != "" {
 			msg += fmt.Sprintf(" (now using: %s)", t.systemPath)
 		}
-		fmt.Println(successStyle.Render(msg))
+		fmt.Fprintln(out, successStyle.Render(msg))
 		removed++
 	}
 
-	fmt.Println()
+	fmt.Fprintln(out)
 	if removed > 0 {
-		fmt.Println(successStyle.Render(fmt.Sprintf("✓ %d tool(s) removed", removed)))
+		fmt.Fprintln(out, successStyle.Render(fmt.Sprintf("✓ %d tool(s) removed", removed)))
 	}
 	if failed > 0 {
 		return fmt.Errorf("%d removal(s) failed", failed)

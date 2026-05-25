@@ -4,8 +4,9 @@ go_library(
     name = "cli",
     srcs = [
         "adopt.go",
-        "confirm.go",
         "config_cmd.go",
+        "confirm.go",
+        "deps.go",
         "doctor.go",
         "dotfiles.go",
         "install.go",
@@ -38,10 +39,24 @@ go_library(
 
 go_test(
     name = "cli_test",
-    srcs = ["setup_test.go"],
+    srcs = [
+        "adopt_test.go",
+        "config_cmd_test.go",
+        "doctor_test.go",
+        "dotfiles_test.go",
+        "install_test.go",
+        "list_test.go",
+        "remove_test.go",
+        "setup_test.go",
+        "status_test.go",
+        "testutil_test.go",
+    ],
     embed = [":cli"],
     deps = [
         "//internal/config",
+        "//internal/platform",
+        "//internal/state",
+        "//pkg/tooldef",
         "@com_github_spf13_cobra//:cobra",
     ],
 )
