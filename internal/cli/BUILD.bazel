@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "cli",
@@ -12,6 +12,7 @@ go_library(
         "list.go",
         "remove.go",
         "root.go",
+        "setup.go",
         "status.go",
     ],
     importpath = "github.com/omargallob/devops-starter/internal/cli",
@@ -32,5 +33,15 @@ go_library(
         "@com_github_charmbracelet_lipgloss//:lipgloss",
         "@com_github_spf13_cobra//:cobra",
         "@in_gopkg_yaml_v3//:yaml_v3",
+    ],
+)
+
+go_test(
+    name = "cli_test",
+    srcs = ["setup_test.go"],
+    embed = [":cli"],
+    deps = [
+        "//internal/config",
+        "@com_github_spf13_cobra//:cobra",
     ],
 )

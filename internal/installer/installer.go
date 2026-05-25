@@ -22,7 +22,7 @@ type Installer struct {
 	Concurrency int
 	// StateStore is an optional state store for recording installed versions.
 	// If nil, no state is recorded.
-	StateStore  *state.Store
+	StateStore *state.Store
 }
 
 // Option is a functional option for configuring an Installer.

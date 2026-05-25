@@ -106,3 +106,142 @@ func TestLoadInvalidYAML(t *testing.T) {
 		t.Error("expected error for invalid YAML")
 	}
 }
+
+func TestConfig_MergeGroups(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.Groups.Cloud = true
+	cfg.Groups.Ansible = true
+	cfg.Overrides["terraform"] = ToolOverride{Version: "1.8.0"}
+	cfg.Overrides["kubectl"] = ToolOverride{Disabled: true}
+
+	// Merge: disable some groups
+	groups := map[string]bool{
+		"languages":  true,
+		"containers": false,
+		"kubernetes": true,
+		"infra":      false,
+		"cloud":      false,
+		"ansible":    true,
+		"rust-tools": true,
+		"utilities":  true,
+	}
+
+	cfg.MergeGroups(groups)
+
+	// Check groups were updated
+	if cfg.Groups.Containers != false {
+		t.Error("containers should be disabled after merge")
+	}
+	if cfg.Groups.Infra != false {
+		t.Error("infra should be disabled after merge")
+	}
+	if cfg.Groups.Cloud != false {
+		t.Error("cloud should be disabled after merge")
+	}
+	if cfg.Groups.Languages != true {
+		t.Error("languages should still be enabled")
+	}
+
+	// Check overrides were NOT touched
+	if cfg.Overrides["terraform"].Version != "1.8.0" {
+		t.Errorf("terraform override should be preserved, got %q", cfg.Overrides["terraform"].Version)
+	}
+	if cfg.Overrides["kubectl"].Disabled != true {
+		t.Error("kubectl disabled override should be preserved")
+	}
+}
+
+func TestConfig_MergeGroups_RustToolsVariants(t *testing.T) {
+	cfg := DefaultConfig()
+	cfg.Groups.RustTools = false
+
+	// Merge using hyphenated form
+	cfg.MergeGroups(map[string]bool{"rust-tools": true})
+	if !cfg.Groups.RustTools {
+		t.Error("rust-tools (hyphenated) should enable RustTools")
+	}
+
+	cfg.Groups.RustTools = false
+	// Merge using underscore form
+	cfg.MergeGroups(map[string]bool{"rust_tools": true})
+	if !cfg.Groups.RustTools {
+		t.Error("rust_tools (underscore) should enable RustTools")
+	}
+}
+
+func TestConfig_SaveAndReload_Roundtrip(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "roundtrip.yaml")
+
+	original := DefaultConfig()
+	original.Groups.Cloud = false
+	original.Groups.Ansible = false
+	original.InstallDir = "/opt/devops/bin"
+	original.Overrides["helm"] = ToolOverride{Version: "3.15.0"}
+	original.Overrides["fzf"] = ToolOverride{Disabled: true}
+
+	if err := Save(original, path); err != nil {
+		t.Fatalf("Save() error: %v", err)
+	}
+
+	loaded, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load() error: %v", err)
+	}
+
+	// Verify all fields roundtrip correctly
+	if loaded.InstallDir != "/opt/devops/bin" {
+		t.Errorf("InstallDir: got %q, want /opt/devops/bin", loaded.InstallDir)
+	}
+	if loaded.Groups.Languages != true {
+		t.Error("Languages should be true")
+	}
+	if loaded.Groups.Containers != true {
+		t.Error("Containers should be true")
+	}
+	if loaded.Groups.Cloud != false {
+		t.Error("Cloud should be false")
+	}
+	if loaded.Groups.Ansible != false {
+		t.Error("Ansible should be false")
+	}
+	if loaded.Groups.RustTools != true {
+		t.Error("RustTools should be true")
+	}
+	if loaded.Overrides["helm"].Version != "3.15.0" {
+		t.Errorf("helm override: got %q, want 3.15.0", loaded.Overrides["helm"].Version)
+	}
+	if loaded.Overrides["fzf"].Disabled != true {
+		t.Error("fzf should be disabled")
+	}
+}
+
+func TestAllGroupNames(t *testing.T) {
+	names := AllGroupNames()
+	if len(names) != 8 {
+		t.Errorf("expected 8 group names, got %d", len(names))
+	}
+	expected := []string{"languages", "containers", "kubernetes", "infra", "cloud", "ansible", "rust-tools", "utilities"}
+	for i, name := range expected {
+		if names[i] != name {
+			t.Errorf("group %d: got %q, want %q", i, names[i], name)
+		}
+	}
+}
+
+func TestSetGroup(t *testing.T) {
+	cfg := DefaultConfig()
+
+	cfg.SetGroup("cloud", false)
+	if cfg.Groups.Cloud != false {
+		t.Error("SetGroup should disable cloud")
+	}
+
+	cfg.SetGroup("cloud", true)
+	if cfg.Groups.Cloud != true {
+		t.Error("SetGroup should enable cloud")
+	}
+
+	// Unknown group should not panic
+	cfg.SetGroup("nonexistent", true)
+}

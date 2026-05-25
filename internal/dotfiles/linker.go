@@ -12,10 +12,10 @@ import (
 type LinkStatus int
 
 const (
-	StatusLinked    LinkStatus = iota // Symlink exists and points to our file
-	StatusConflict                    // File exists but is not our symlink
-	StatusMissing                     // No file at destination
-	StatusBroken                      // Symlink exists but target is gone
+	StatusLinked   LinkStatus = iota // Symlink exists and points to our file
+	StatusConflict                   // File exists but is not our symlink
+	StatusMissing                    // No file at destination
+	StatusBroken                     // Symlink exists but target is gone
 )
 
 func (s LinkStatus) String() string {

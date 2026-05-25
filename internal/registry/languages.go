@@ -18,11 +18,11 @@ const (
 // RegisterMiseTools after .mise.toml discovery.
 func registerLanguages(r *Registry) {
 	r.register(&tooldef.Tool{
-		Name:        "mise",
-		Version:     "2025.1.6",
-		Description: "Polyglot runtime manager (formerly rtx)",
-		Group:       tooldef.GroupLanguages,
-		Subgroup:    SubgroupPlatforms,
+		Name:            "mise",
+		Version:         "2025.1.6",
+		Description:     "Polyglot runtime manager (formerly rtx)",
+		Group:           tooldef.GroupLanguages,
+		Subgroup:        SubgroupPlatforms,
 		Format:          tooldef.FormatTarGz,
 		BinaryName:      "mise",
 		StripComponents: 2,

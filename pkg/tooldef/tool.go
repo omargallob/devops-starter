@@ -33,14 +33,14 @@ func (p Platform) String() string {
 type Group string
 
 const (
-	GroupLanguages   Group = "languages"
-	GroupContainers  Group = "containers"
-	GroupKubernetes  Group = "kubernetes"
-	GroupInfra       Group = "infra"
-	GroupCloud       Group = "cloud"
-	GroupAnsible     Group = "ansible"
-	GroupRustTools   Group = "rust-tools"
-	GroupUtilities   Group = "utilities"
+	GroupLanguages  Group = "languages"
+	GroupContainers Group = "containers"
+	GroupKubernetes Group = "kubernetes"
+	GroupInfra      Group = "infra"
+	GroupCloud      Group = "cloud"
+	GroupAnsible    Group = "ansible"
+	GroupRustTools  Group = "rust-tools"
+	GroupUtilities  Group = "utilities"
 )
 
 // Tool defines a single installable tool with all metadata needed to

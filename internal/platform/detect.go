@@ -23,9 +23,9 @@ const (
 
 // Info contains detected platform information.
 type Info struct {
-	OS     string          // "linux" or "darwin"
-	Arch   string          // "amd64" or "arm64"
-	Distro Distro          // Linux distro or empty for macOS
+	OS       string           // "linux" or "darwin"
+	Arch     string           // "amd64" or "arm64"
+	Distro   Distro           // Linux distro or empty for macOS
 	Platform tooldef.Platform // Convenience accessor
 }
 
