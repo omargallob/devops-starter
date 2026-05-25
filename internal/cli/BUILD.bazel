@@ -15,6 +15,7 @@ go_library(
         "root.go",
         "setup.go",
         "status.go",
+        "version.go",
     ],
     importpath = "github.com/omargallob/devops-starter/internal/cli",
     visibility = [

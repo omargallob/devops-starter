@@ -127,7 +127,7 @@ devops-starter remove terraform packer
 ### Status Dashboard
 
 ```sh
-# Launch interactive TUI showing tool state
+# Launch interactive full-screen TUI showing tool state
 devops-starter status
 
 # Plain text output (CI-friendly)
@@ -136,6 +136,12 @@ devops-starter status --no-tui
 # Detect actual installed versions
 devops-starter status --verify
 ```
+
+The TUI features:
+- Full-screen layout that adapts to terminal size
+- Category-based navigation with install/remove/verify actions
+- Status bar showing the running version and update availability
+- Automatic update check (non-blocking) against GitHub Releases
 
 ### Manage Dotfiles
 
@@ -267,7 +273,8 @@ internal/
   platform/               OS/arch/distro detection
   registry/               Tool definitions organised by group
   state/                  Persistent state store for managed tools
-  tui/                    Bubbletea interactive UI components
+  tui/                    Bubbletea interactive UI (full-screen, status bar, update check)
+  updater/                Async update checker (GitHub Releases API)
 pkg/tooldef/              Public types: Tool, Platform, Group, ArchiveFormat
 configs/                  Default config template
 docs/                     Documentation (setup wizard walkthrough, etc.)

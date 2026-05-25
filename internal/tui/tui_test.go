@@ -37,7 +37,7 @@ func newTestModel() Model {
 	store := &state.Store{Tools: map[string]state.InstalledTool{}}
 	plat := tooldef.Platform{OS: "linux", Arch: "amd64"}
 
-	return NewModel(groups, cfg, nil, store, plat, "/usr/local/bin")
+	return NewModel(groups, cfg, nil, store, plat, "/usr/local/bin", "0.1.4")
 }
 
 func TestNewModel(t *testing.T) {
@@ -60,8 +60,8 @@ func TestNewModel(t *testing.T) {
 func TestModel_Init(t *testing.T) {
 	m := newTestModel()
 	cmd := m.Init()
-	if cmd != nil {
-		t.Error("Init() should return nil")
+	if cmd == nil {
+		t.Error("Init() should return an update check command")
 	}
 }
 
@@ -628,7 +628,7 @@ func TestModel_ViewToolsSourceLabels(t *testing.T) {
 	cfg := config.DefaultConfig()
 	store := &state.Store{Tools: map[string]state.InstalledTool{}}
 	plat := tooldef.Platform{OS: "linux", Arch: "amd64"}
-	m := NewModel(groups, cfg, nil, store, plat, "/usr/local/bin")
+	m := NewModel(groups, cfg, nil, store, plat, "/usr/local/bin", "0.1.4")
 	m.width = 100
 	m.screen = screenTools
 	m.selectedGroup = 0
@@ -681,5 +681,213 @@ func TestPrintTable_SourceColumn(t *testing.T) {
 	// Missing tools with no source should show "-"
 	if !strings.Contains(output, "-") {
 		t.Error("output should contain '-' for tools with no source")
+	}
+}
+
+// ─── Tests for dev_version.go ────────────────────────────────────────────────
+
+func TestDevVersionLabel(t *testing.T) {
+	label := devVersionLabel()
+	// The manifest has "0.1.4", so dev label should be "0.1.5-dev"
+	if !strings.HasSuffix(label, "-dev") {
+		t.Errorf("devVersionLabel() = %q, want suffix '-dev'", label)
+	}
+	if label == "dev" {
+		t.Error("devVersionLabel() should include a version number, not just 'dev'")
+	}
+	// Verify it produces a semver-like prefix
+	parts := strings.SplitN(strings.TrimSuffix(label, "-dev"), ".", 3)
+	if len(parts) != 3 {
+		t.Errorf("devVersionLabel() = %q, want format X.Y.Z-dev", label)
+	}
+}
+
+func TestItoa(t *testing.T) {
+	tests := []struct {
+		input int
+		want  string
+	}{
+		{0, "0"},
+		{1, "1"},
+		{9, "9"},
+		{10, "10"},
+		{42, "42"},
+		{100, "100"},
+		{999, "999"},
+	}
+	for _, tt := range tests {
+		got := itoa(tt.input)
+		if got != tt.want {
+			t.Errorf("itoa(%d) = %q, want %q", tt.input, got, tt.want)
+		}
+	}
+}
+
+// ─── Tests for view.go helpers ───────────────────────────────────────────────
+
+func TestContentWidth(t *testing.T) {
+	tests := []struct {
+		name  string
+		width int
+		want  int
+	}{
+		{"zero defaults to 80", 0, 80},
+		{"negative defaults to 80", -1, 80},
+		{"below minimum clamps to 40", 20, 40},
+		{"at minimum returns 40", 40, 40},
+		{"normal width passes through", 120, 120},
+		{"wide terminal passes through", 300, 300},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			m := Model{width: tt.width}
+			got := m.contentWidth()
+			if got != tt.want {
+				t.Errorf("contentWidth() with width=%d: got %d, want %d", tt.width, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestRenderHelp(t *testing.T) {
+	bindings := []helpBinding{
+		{"q", "quit"},
+		{"enter", "select"},
+	}
+	result := renderHelp(bindings)
+
+	// Keys should appear in output
+	if !strings.Contains(result, "q") {
+		t.Error("renderHelp should contain key 'q'")
+	}
+	if !strings.Contains(result, "enter") {
+		t.Error("renderHelp should contain key 'enter'")
+	}
+	// Descriptions should appear
+	if !strings.Contains(result, "quit") {
+		t.Error("renderHelp should contain description 'quit'")
+	}
+	if !strings.Contains(result, "select") {
+		t.Error("renderHelp should contain description 'select'")
+	}
+}
+
+func TestRenderStatusBar_ReleaseVersion(t *testing.T) {
+	m := Model{
+		version: "1.2.3",
+		width:   80,
+	}
+	bar := m.renderStatusBar(80)
+	if !strings.Contains(bar, "v1.2.3") {
+		t.Errorf("status bar should contain version, got: %q", bar)
+	}
+	if !strings.Contains(bar, "devops-starter") {
+		t.Error("status bar should contain app name")
+	}
+}
+
+func TestRenderStatusBar_DevVersion(t *testing.T) {
+	m := Model{
+		version: "dev",
+		width:   80,
+	}
+	bar := m.renderStatusBar(80)
+	if !strings.Contains(bar, "-dev") {
+		t.Errorf("status bar in dev mode should contain '-dev', got: %q", bar)
+	}
+}
+
+func TestRenderStatusBar_UpdateAvailable(t *testing.T) {
+	m := Model{
+		version:         "1.0.0",
+		latestVersion:   "2.0.0",
+		updateAvailable: true,
+		width:           100,
+	}
+	bar := m.renderStatusBar(100)
+	if !strings.Contains(bar, "update available") {
+		t.Errorf("status bar should show update notice, got: %q", bar)
+	}
+	if !strings.Contains(bar, "v2.0.0") {
+		t.Errorf("status bar should show latest version, got: %q", bar)
+	}
+}
+
+func TestRenderStatusBar_NoUpdate(t *testing.T) {
+	m := Model{
+		version:         "1.0.0",
+		updateAvailable: false,
+		width:           80,
+	}
+	bar := m.renderStatusBar(80)
+	if strings.Contains(bar, "update") {
+		t.Errorf("status bar should not show update notice when not available, got: %q", bar)
+	}
+}
+
+func TestComposeFullScreen_PadsContent(t *testing.T) {
+	m := Model{
+		version: "1.0.0",
+		width:   80,
+		height:  24,
+	}
+	content := "line1\nline2\n"
+	helpLine := "help text"
+
+	result := m.composeFullScreen(content, helpLine)
+
+	// Should contain the content
+	if !strings.Contains(result, "line1") {
+		t.Error("full screen should contain content")
+	}
+	// Should contain help
+	if !strings.Contains(result, "help text") {
+		t.Error("full screen should contain help line")
+	}
+	// Should contain status bar
+	if !strings.Contains(result, "devops-starter") {
+		t.Error("full screen should contain status bar")
+	}
+	// Total lines should approximately match height
+	lines := strings.Count(result, "\n") + 1
+	if lines < m.height-1 || lines > m.height+1 {
+		t.Errorf("full screen should fill terminal height (%d), got %d lines", m.height, lines)
+	}
+}
+
+func TestUpdateCheckMsg_SetsFields(t *testing.T) {
+	m := newTestModel()
+	m.width = 80
+	m.height = 24
+
+	msg := updateCheckMsg{
+		LatestVersion:   "2.0.0",
+		UpdateAvailable: true,
+	}
+	result, _ := m.Update(msg)
+	updated := result.(Model)
+
+	if updated.latestVersion != "2.0.0" {
+		t.Errorf("expected latestVersion=2.0.0, got %s", updated.latestVersion)
+	}
+	if !updated.updateAvailable {
+		t.Error("expected updateAvailable=true")
+	}
+}
+
+func TestViewGroupsContent_ContainsStatusBar(t *testing.T) {
+	m := newTestModel()
+	m.width = 100
+	m.height = 30
+
+	view := m.View()
+
+	// Should have separator lines (full width)
+	if !strings.Contains(view, strings.Repeat("━", 100)) {
+		t.Error("view should have full-width separators matching terminal width")
+	}
+	// Should have the version in status bar
+	if !strings.Contains(view, "devops-starter") {
+		t.Error("view should contain status bar with app name")
 	}
 }

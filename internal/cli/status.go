@@ -87,7 +87,7 @@ func runStatus(cmd *cobra.Command, args []string) error {
 	)
 
 	// Launch TUI
-	model := tui.NewModel(groups, cfg, inst, store, info.Platform, cfg.InstallDir)
+	model := tui.NewModel(groups, cfg, inst, store, info.Platform, cfg.InstallDir, Version())
 	p := tea.NewProgram(model, tea.WithAltScreen())
 
 	if _, err := p.Run(); err != nil {

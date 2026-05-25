@@ -276,6 +276,7 @@ internal/registry/     Tool definitions by group
 internal/platform/     OS/arch detection
 internal/dotfiles/     Symlink management
 internal/state/        Persistent state store
-internal/tui/          Bubbletea interactive components
+internal/tui/          Bubbletea interactive TUI (full-screen, status bar)
+internal/updater/      Async update checker (GitHub Releases API)
 pkg/tooldef/           Public types shared across packages
 ```
