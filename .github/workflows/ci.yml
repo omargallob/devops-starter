@@ -75,6 +75,7 @@ jobs:
 
   test:
     name: bazel test //...
+    if: github.event_name == 'pull_request'
     needs: [golangci-lint, shellcheck, yamllint, actionlint]
     runs-on: ubuntu-latest
     steps:
@@ -92,7 +93,7 @@ jobs:
   coverage:
     name: Coverage badge update
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [test]
+    needs: [golangci-lint, shellcheck, yamllint, actionlint]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
