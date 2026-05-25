@@ -18,7 +18,7 @@ func PrintTable(w io.Writer, groups []state.GroupState) {
 	fmt.Fprintf(w, "%s\n", strings.Repeat("─", 86))
 
 	// Counters for summary
-	var current, outdated, missing, disabled, unknown, detected int
+	var current, outdated, missing, disabled, unknown, detected, unavailable int
 
 	for _, g := range groups {
 		currentSubgroup := ""
@@ -40,6 +40,9 @@ func PrintTable(w io.Writer, groups []state.GroupState) {
 			desired := t.DesiredVersion
 			if t.Status == state.StatusDisabled {
 				desired = "-"
+			}
+			if t.Status == state.StatusUnavailable {
+				desired = "n/a"
 			}
 
 			source := string(t.Source)
@@ -66,6 +69,8 @@ func PrintTable(w io.Writer, groups []state.GroupState) {
 				unknown++
 			case state.StatusDetected:
 				detected++
+			case state.StatusUnavailable:
+				unavailable++
 			}
 		}
 	}
@@ -90,6 +95,9 @@ func PrintTable(w io.Writer, groups []state.GroupState) {
 	}
 	if unknown > 0 {
 		parts = append(parts, fmt.Sprintf("%d unknown", unknown))
+	}
+	if unavailable > 0 {
+		parts = append(parts, fmt.Sprintf("%d unavailable", unavailable))
 	}
 	fmt.Fprintf(w, "Summary: %s\n", strings.Join(parts, ", "))
 }

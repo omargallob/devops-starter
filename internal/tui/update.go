@@ -119,7 +119,7 @@ func (m Model) updateTools(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case " ":
 		// Toggle selection
 		t := m.currentToolInGroup()
-		if t != nil && t.Status != state.StatusDisabled && t.Status != state.StatusCurrent {
+		if t != nil && t.Status != state.StatusDisabled && t.Status != state.StatusCurrent && t.Status != state.StatusUnavailable {
 			t.Selected = !t.Selected
 		}
 

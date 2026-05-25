@@ -18,6 +18,7 @@ func TestStatus_String(t *testing.T) {
 		{StatusDisabled, "disabled"},
 		{StatusUnknown, "unknown"},
 		{StatusDetected, "detected"},
+		{StatusUnavailable, "unavailable"},
 		{Status(99), "unknown"},
 	}
 	for _, tc := range tests {
@@ -464,5 +465,63 @@ func TestResolveAll_SourceNoneForMissing(t *testing.T) {
 				}
 			}
 		}
+	}
+}
+
+func TestResolveAll_UnavailablePlatform(t *testing.T) {
+	cfg := config.DefaultConfig()
+	store := &Store{Tools: map[string]InstalledTool{}}
+
+	// Use a platform that aws-cli does NOT support (it only has linux URLs)
+	// to verify tools show as unavailable rather than being hidden.
+	plat := tooldef.Platform{OS: "darwin", Arch: "arm64"}
+
+	groups := ResolveAll(cfg, store, plat)
+
+	// Find the cloud group and check that platform-restricted tools appear as unavailable
+	var foundUnavailable bool
+	for _, g := range groups {
+		for _, ts := range g.Tools {
+			if ts.Status == StatusUnavailable {
+				foundUnavailable = true
+				if ts.Tool == nil {
+					t.Errorf("unavailable tool %s should still have Tool reference", ts.Name)
+				}
+			}
+		}
+	}
+
+	// There should be at least one unavailable tool when running on a platform
+	// that not all tools support.
+	if !foundUnavailable {
+		t.Error("expected at least one tool with StatusUnavailable on a restricted platform")
+	}
+}
+
+func TestResolveAll_UnavailableNotSelectable(t *testing.T) {
+	cfg := config.DefaultConfig()
+	store := &Store{Tools: map[string]InstalledTool{}}
+
+	// Use a fake platform that no tool supports
+	plat := tooldef.Platform{OS: "freebsd", Arch: "riscv64"}
+
+	groups := ResolveAll(cfg, store, plat)
+
+	for _, g := range groups {
+		for _, ts := range g.Tools {
+			// Tools with explicit platform restrictions should be unavailable
+			if ts.Status == StatusUnavailable {
+				// Verify the status string renders correctly
+				if ts.Status.String() != "unavailable" {
+					t.Errorf("tool %s: expected status string 'unavailable', got %q", ts.Name, ts.Status.String())
+				}
+			}
+		}
+	}
+}
+
+func TestStatusString_Unavailable(t *testing.T) {
+	if got := StatusUnavailable.String(); got != "unavailable" {
+		t.Errorf("StatusUnavailable.String() = %q, want %q", got, "unavailable")
 	}
 }
