@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.3](https://github.com/omargallob/devops-starter/compare/v0.1.2...v0.1.3) (2026-05-25)
+
+
+### Features
+
+* **installer:** improve test coverage and fix binary format install bug ([#32](https://github.com/omargallob/devops-starter/issues/32)) ([9c1942b](https://github.com/omargallob/devops-starter/commit/9c1942bbbc80e18af283f42c8f5c16be584ba7ac))
+
+
+### Bug Fixes
+
+* **ci:** push coverage badge to unprotected badges branch ([#30](https://github.com/omargallob/devops-starter/issues/30)) ([dc60295](https://github.com/omargallob/devops-starter/commit/dc60295d13285510a1727a3a6675f5d276a5b352))
+* **ci:** use GitHub API to update coverage badge on protected branch ([#28](https://github.com/omargallob/devops-starter/issues/28)) ([4610d66](https://github.com/omargallob/devops-starter/commit/4610d66da7448c413109e3fa4718daf364e4eec9))
+
 ## [0.1.2](https://github.com/omargallob/devops-starter/compare/v0.1.1...v0.1.2) (2026-05-25)
 
 
