@@ -121,10 +121,10 @@ jobs:
           # Encode new SVG for API upload
           NEW_CONTENT=$(base64 -w0 badges/coverage.svg)
 
-          # Fetch current file SHA and content from the API
-          SHA=$(gh api /repos/${{ github.repository }}/contents/badges/coverage.svg \
+          # Fetch current file SHA and content from the badges branch
+          SHA=$(gh api "/repos/${{ github.repository }}/contents/badges/coverage.svg?ref=badges" \
             --jq '.sha' 2>/dev/null || echo "")
-          OLD_CONTENT=$(gh api /repos/${{ github.repository }}/contents/badges/coverage.svg \
+          OLD_CONTENT=$(gh api "/repos/${{ github.repository }}/contents/badges/coverage.svg?ref=badges" \
             --jq '.content' 2>/dev/null | tr -d '\n' || echo "")
 
           if [[ "$NEW_CONTENT" == "$OLD_CONTENT" ]]; then
@@ -133,7 +133,7 @@ jobs:
             gh api --method PUT /repos/${{ github.repository }}/contents/badges/coverage.svg \
               --field message="ci: update coverage badge [skip ci]" \
               --field content="$NEW_CONTENT" \
-              --field sha="$SHA" \
-              --field branch="main"
-            echo "Badge updated via API."
+              ${SHA:+--field sha="$SHA"} \
+              --field branch="badges"
+            echo "Badge updated via API on badges branch."
           fi
