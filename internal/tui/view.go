@@ -480,6 +480,9 @@ func (m Model) renderToolRow(t toolModel) string {
 	case state.StatusDetected:
 		icon = "~"
 		style = detectedStyle
+	case state.StatusUnavailable:
+		icon = "⊘"
+		style = dimStyle
 	}
 
 	// Selection checkbox
@@ -503,16 +506,20 @@ func (m Model) renderToolRow(t toolModel) string {
 		versionInfo = fmt.Sprintf("%-10s ?  %-10s", "???", t.DesiredVersion)
 	case state.StatusDetected:
 		versionInfo = fmt.Sprintf("%-10s ~  %-10s", "(system)", t.DesiredVersion)
+	case state.StatusUnavailable:
+		versionInfo = fmt.Sprintf("%-10s    %-10s", "-", "n/a")
 	}
 
 	// Source label
 	var sourceLabel string
-	switch t.Source {
-	case state.SourceMise:
+	switch {
+	case t.Status == state.StatusUnavailable:
+		sourceLabel = "[not available on this platform — install manually or use Docker]"
+	case t.Source == state.SourceMise:
 		sourceLabel = "[mise]"
-	case state.SourceSystem:
+	case t.Source == state.SourceSystem:
 		sourceLabel = fmt.Sprintf("[system: %s]", t.DetectedPath)
-	case state.SourceManaged:
+	case t.Source == state.SourceManaged:
 		sourceLabel = "[managed]"
 	}
 

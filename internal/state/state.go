@@ -15,12 +15,13 @@ import (
 type Status int
 
 const (
-	StatusMissing  Status = iota // Not installed
-	StatusCurrent                // Installed version matches desired
-	StatusOutdated               // Installed but version differs from desired
-	StatusDisabled               // Disabled in user config
-	StatusUnknown                // Binary exists but version could not be determined
-	StatusDetected               // Binary found in PATH but not managed by devops-starter
+	StatusMissing     Status = iota // Not installed
+	StatusCurrent                   // Installed version matches desired
+	StatusOutdated                  // Installed but version differs from desired
+	StatusDisabled                  // Disabled in user config
+	StatusUnknown                   // Binary exists but version could not be determined
+	StatusDetected                  // Binary found in PATH but not managed by devops-starter
+	StatusUnavailable               // Not available on the current platform
 )
 
 // String returns a human-readable status label.
@@ -38,6 +39,8 @@ func (s Status) String() string {
 		return "unknown"
 	case StatusDetected:
 		return "detected"
+	case StatusUnavailable:
+		return "unavailable"
 	default:
 		return "unknown"
 	}
@@ -131,7 +134,9 @@ func ResolveAll(cfg *config.Config, store *Store, plat tooldef.Platform) []Group
 
 			// Check platform support
 			if !t.SupportsPlatform(plat) {
-				continue // skip entirely for unsupported platforms
+				ts.Status = StatusUnavailable
+				gs.Tools = append(gs.Tools, ts)
+				continue
 			}
 
 			// Resolve installed version from state store
