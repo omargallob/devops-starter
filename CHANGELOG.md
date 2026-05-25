@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.2](https://github.com/omargallob/devops-starter/compare/v0.1.1...v0.1.2) (2026-05-25)
+
+
+### Features
+
+* add interactive guided setup wizard ([#27](https://github.com/omargallob/devops-starter/issues/27)) ([88c35ef](https://github.com/omargallob/devops-starter/commit/88c35efb7c6aeafd228585ae262113d89b1f9cdb))
+* dynamically display mise-managed languages in CLI and TUI ([#22](https://github.com/omargallob/devops-starter/issues/22)) ([c685fc2](https://github.com/omargallob/devops-starter/commit/c685fc2dc650b5f700474464f4c59ca4f84cbd2b))
+
 ## [0.1.1](https://github.com/omargallob/devops-starter/compare/v0.1.0...v0.1.1) (2026-05-25)
 
 
