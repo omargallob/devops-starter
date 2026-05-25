@@ -4,12 +4,14 @@ go_library(
     name = "tui",
     srcs = [
         "commands.go",
+        "dev_version.go",
         "model.go",
         "setup.go",
         "table.go",
         "update.go",
         "view.go",
     ],
+    embedsrcs = ["version_manifest.json"],
     importpath = "github.com/omargallob/devops-starter/internal/tui",
     visibility = ["//:__subpackages__"],
     deps = [
