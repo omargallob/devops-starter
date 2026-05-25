@@ -105,11 +105,16 @@ func (m Model) composeFullScreen(content, helpLine string) string {
 func (m Model) renderStatusBar(width int) string {
 	// Format version display - make dev mode obvious
 	var left string
+	var leftLen int
 	if m.version == "dev" || m.version == "" {
 		devStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("1")).Bold(true)
-		left = devStyle.Render("devops-starter [DEV BUILD]")
+		label := fmt.Sprintf("devops-starter v%s", devVersionLabel())
+		left = devStyle.Render(label)
+		leftLen = len(label)
 	} else {
-		left = statusStyle.Render(fmt.Sprintf("devops-starter v%s", m.version))
+		label := fmt.Sprintf("devops-starter v%s", m.version)
+		left = statusStyle.Render(label)
+		leftLen = len(label)
 	}
 
 	var right string
@@ -122,12 +127,6 @@ func (m Model) renderStatusBar(width int) string {
 	}
 
 	// Calculate spacing to right-align the update notice
-	var leftLen int
-	if m.version == "dev" || m.version == "" {
-		leftLen = len("devops-starter [DEV BUILD]")
-	} else {
-		leftLen = len(fmt.Sprintf("devops-starter v%s", m.version))
-	}
 	rightLen := len(fmt.Sprintf("update available: v%s", m.latestVersion))
 	gap := width - leftLen - rightLen
 	if gap < 2 {
