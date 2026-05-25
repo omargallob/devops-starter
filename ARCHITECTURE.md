@@ -109,7 +109,22 @@ managed vs. system-installed tools.
 ### `internal/tui/`
 
 Bubbletea-based interactive components for the `status` command. Provides a
-dashboard view of tool state with install/remove actions.
+full-screen dashboard view of tool state with install/remove actions.
+
+Architecture:
+- **Elm pattern** — `Model`, `Update`, `View` in separate files
+- **Full-screen layout** — content fills terminal height, footer pinned to bottom
+- **Status bar** — displays version (with `-dev` suffix for dev builds) and
+  update availability (checked async on startup via `internal/updater`)
+- **Styled help bar** — keybinds rendered in bold cyan, descriptions in dim text
+- **Dynamic width** — adapts to terminal resize via `tea.WindowSizeMsg`
+
+### `internal/updater/`
+
+Non-blocking update checker. On TUI startup, queries the GitHub Releases API
+(`/repos/omargallob/devops-starter/releases/latest`) with a 5-second timeout.
+Compares the remote tag against the running version using simple semver comparison.
+Results are displayed in the TUI status bar when an update is available.
 
 ### `pkg/tooldef/`
 
