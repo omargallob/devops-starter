@@ -74,23 +74,62 @@ func (inst *Installer) IsInstalled(tool *tooldef.Tool) bool {
 	return err == nil
 }
 
-// Install orchestrates download, verify, extract, and install for a single tool.
-// Tools with ManagedBy set are delegated to their manager (e.g., mise install).
+// Install orchestrates installation of a single tool, routing to the
+// appropriate backend based on the tool's InstallMode.
 func (inst *Installer) Install(ctx context.Context, tool *tooldef.Tool) error {
+	mode := tool.EffectiveInstallMode()
+
 	if inst.DryRun {
-		if tool.ManagedBy != "" {
-			fmt.Printf("[dry-run] Would install %s %s via %s\n", tool.Name, tool.Version, tool.ManagedBy)
-		} else {
-			fmt.Printf("[dry-run] Would install %s %s\n", tool.Name, tool.Version)
-		}
+		fmt.Printf("[dry-run] Would install %s %s (mode: %s)\n", tool.Name, tool.Version, mode)
 		return nil
 	}
 
-	// Delegate to the manager if this tool is externally managed.
-	if tool.ManagedBy != "" {
-		return inst.installViaManager(ctx, tool)
+	var err error
+	switch mode {
+	case tooldef.InstallModeEget:
+		err = inst.installViaEget(ctx, tool)
+	case tooldef.InstallModeEgetURL:
+		err = inst.installViaEgetURL(ctx, tool)
+	case tooldef.InstallModeMise:
+		err = inst.installViaManager(ctx, tool)
+	case tooldef.InstallModeCustom:
+		err = inst.installCustom(ctx, tool)
+	default:
+		err = fmt.Errorf("unknown install mode %q for tool %s", mode, tool.Name)
 	}
 
+	if err != nil {
+		return err
+	}
+
+	// Record the installed version in state store (if configured)
+	if inst.StateStore != nil {
+		// Best-effort: don't fail the install if state recording fails
+		_ = inst.StateStore.Record(tool.Name, tool.Version)
+	}
+
+	return nil
+}
+
+// installViaEget installs using eget in GitHub repo mode.
+func (inst *Installer) installViaEget(ctx context.Context, tool *tooldef.Tool) error {
+	if err := inst.EnsureDir(); err != nil {
+		return fmt.Errorf("ensuring install dir: %w", err)
+	}
+	return inst.installWithEget(ctx, tool)
+}
+
+// installViaEgetURL installs using eget in direct URL mode.
+func (inst *Installer) installViaEgetURL(ctx context.Context, tool *tooldef.Tool) error {
+	if err := inst.EnsureDir(); err != nil {
+		return fmt.Errorf("ensuring install dir: %w", err)
+	}
+	return inst.installWithEgetURL(ctx, tool)
+}
+
+// installCustom is the legacy download/extract/install pipeline for tools
+// that cannot use eget (e.g., aws-cli, gcloud-cli, azure-cli).
+func (inst *Installer) installCustom(ctx context.Context, tool *tooldef.Tool) error {
 	if err := inst.EnsureDir(); err != nil {
 		return fmt.Errorf("ensuring install dir: %w", err)
 	}
@@ -143,12 +182,6 @@ func (inst *Installer) Install(ctx context.Context, tool *tooldef.Tool) error {
 		return fmt.Errorf("writing binary %s: %w", tool.Name, err)
 	}
 
-	// Record the installed version in state store (if configured)
-	if inst.StateStore != nil {
-		// Best-effort: don't fail the install if state recording fails
-		_ = inst.StateStore.Record(tool.Name, tool.Version)
-	}
-
 	return nil
 }
 
@@ -167,7 +200,7 @@ func (inst *Installer) InstallAll(ctx context.Context, tools []*tooldef.Tool) []
 
 	// Separate managed and direct tools.
 	for _, t := range tools {
-		if t.ManagedBy != "" {
+		if t.EffectiveInstallMode() == tooldef.InstallModeMise {
 			managedTools = append(managedTools, t)
 		} else {
 			directTools = append(directTools, t)
