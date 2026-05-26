@@ -23,6 +23,7 @@ const (
 	StatusUnknown                   // Binary exists but version could not be determined
 	StatusDetected                  // Binary found in PATH but not managed by devops-starter
 	StatusUnavailable               // Not available on the current platform
+	StatusLinked                    // Symlinked from install dir to system binary
 )
 
 // String returns a human-readable status label.
@@ -40,6 +41,8 @@ func (s Status) String() string {
 		return "unknown"
 	case StatusDetected:
 		return "detected"
+	case StatusLinked:
+		return "linked"
 	case StatusUnavailable:
 		return "unavailable"
 	default:
@@ -66,8 +69,9 @@ type ToolState struct {
 	Description      string
 	DesiredVersion   string // from registry + config overrides
 	InstalledVersion string // from state file or verify
-	DetectedPath     string // path to system binary (when StatusDetected)
-	DetectedVersion  string // version of system binary (when StatusDetected)
+	DetectedPath     string // path to system binary (when StatusDetected or StatusLinked)
+	DetectedVersion  string // version of system binary (when StatusDetected or StatusLinked)
+	ConflictPolicy   string // conflict resolution policy from config: "skip", "overwrite", "link", or ""
 	Status           Status
 	Source           Source // how the tool is managed (mise, managed, system)
 	Selected         bool   // TUI selection state (not persisted)
@@ -139,7 +143,7 @@ func resolveTool(t *tooldef.Tool, cfg *config.Config, store *Store, plat tooldef
 		Tool:           t,
 	}
 
-	// Apply version override from config
+	// Apply version override and conflict policy from config
 	if override, ok := cfg.Overrides[t.Name]; ok {
 		if override.Disabled {
 			ts.Status = StatusDisabled
@@ -148,6 +152,7 @@ func resolveTool(t *tooldef.Tool, cfg *config.Config, store *Store, plat tooldef
 		if override.Version != "" {
 			ts.DesiredVersion = override.Version
 		}
+		ts.ConflictPolicy = override.Conflict
 	}
 
 	// Check if group is disabled
@@ -166,15 +171,15 @@ func resolveTool(t *tooldef.Tool, cfg *config.Config, store *Store, plat tooldef
 	ts.InstalledVersion = store.GetVersion(t.Name)
 
 	// Determine status and source
-	resolveToolStatus(&ts, t)
+	resolveToolStatus(&ts, t, cfg)
 	return ts
 }
 
 // resolveToolStatus sets the status and source on ts based on the installed version.
-func resolveToolStatus(ts *ToolState, t *tooldef.Tool) {
+func resolveToolStatus(ts *ToolState, t *tooldef.Tool, cfg *config.Config) {
 	switch ts.InstalledVersion {
 	case "":
-		resolveNotInstalled(ts, t)
+		resolveNotInstalled(ts, t, cfg)
 	case ts.DesiredVersion:
 		ts.Status = StatusCurrent
 		ts.Source = SourceManaged
@@ -188,7 +193,7 @@ func resolveToolStatus(ts *ToolState, t *tooldef.Tool) {
 }
 
 // resolveNotInstalled handles the case where a tool is not in the state store.
-func resolveNotInstalled(ts *ToolState, t *tooldef.Tool) {
+func resolveNotInstalled(ts *ToolState, t *tooldef.Tool, cfg *config.Config) {
 	path := LookupInPath(t.Name)
 	if path == "" {
 		ts.Status = StatusMissing
@@ -202,9 +207,16 @@ func resolveNotInstalled(ts *ToolState, t *tooldef.Tool) {
 			ts.Source = SourceMise
 			ts.DetectedPath = path
 		} else {
-			ts.Status = StatusDetected
-			ts.Source = SourceSystem
-			ts.DetectedPath = path
+			// Check if this tool has a "link" conflict policy — it may be a symlink we created.
+			if override, ok := cfg.Overrides[t.Name]; ok && override.Conflict == "link" {
+				ts.Status = StatusLinked
+				ts.Source = SourceSystem
+				ts.DetectedPath = path
+			} else {
+				ts.Status = StatusDetected
+				ts.Source = SourceSystem
+				ts.DetectedPath = path
+			}
 		}
 		return
 	}
@@ -218,10 +230,18 @@ func resolveNotInstalled(ts *ToolState, t *tooldef.Tool) {
 			ts.Status = StatusOutdated
 		}
 	} else {
-		ts.Status = StatusDetected
-		ts.Source = SourceSystem
-		ts.DetectedPath = path
-		ts.DetectedVersion = ver
+		// Check if this is a linked tool.
+		if override, ok := cfg.Overrides[t.Name]; ok && override.Conflict == "link" {
+			ts.Status = StatusLinked
+			ts.Source = SourceSystem
+			ts.DetectedPath = path
+			ts.DetectedVersion = ver
+		} else {
+			ts.Status = StatusDetected
+			ts.Source = SourceSystem
+			ts.DetectedPath = path
+			ts.DetectedVersion = ver
+		}
 	}
 }
 

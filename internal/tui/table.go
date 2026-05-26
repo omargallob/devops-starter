@@ -11,7 +11,7 @@ import (
 
 // statusCounters tracks the number of tools in each status for the summary line.
 type statusCounters struct {
-	current, outdated, missing, disabled, unknown, detected, unavailable int
+	current, outdated, missing, disabled, unknown, detected, linked, unavailable int
 }
 
 // increment adds one to the counter matching the given status.
@@ -29,6 +29,8 @@ func (c *statusCounters) increment(s state.Status) {
 		c.unknown++
 	case state.StatusDetected:
 		c.detected++
+	case state.StatusLinked:
+		c.linked++
 	case state.StatusUnavailable:
 		c.unavailable++
 	}
@@ -39,6 +41,9 @@ func (c *statusCounters) summaryParts() string {
 	var parts []string
 	if c.current > 0 {
 		parts = append(parts, fmt.Sprintf("%d current", c.current))
+	}
+	if c.linked > 0 {
+		parts = append(parts, fmt.Sprintf("%d linked", c.linked))
 	}
 	if c.detected > 0 {
 		parts = append(parts, fmt.Sprintf("%d detected", c.detected))
@@ -70,6 +75,13 @@ func formatToolRow(t *state.ToolState) (installed, desired, source string) {
 	if t.Status == state.StatusDetected {
 		installed = "(system)"
 	}
+	if t.Status == state.StatusLinked {
+		if t.DetectedVersion != "" {
+			installed = t.DetectedVersion
+		} else {
+			installed = "(linked)"
+		}
+	}
 
 	desired = t.DesiredVersion
 	if t.Status == state.StatusDisabled {
@@ -83,8 +95,14 @@ func formatToolRow(t *state.ToolState) (installed, desired, source string) {
 	if source == "" {
 		source = "-"
 	}
-	if t.Source == state.SourceSystem && t.DetectedPath != "" {
-		source = fmt.Sprintf("system (%s)", t.DetectedPath)
+	if t.Status == state.StatusLinked && t.DetectedPath != "" {
+		source = fmt.Sprintf("linked (%s)", t.DetectedPath)
+	} else if t.Source == state.SourceSystem && t.DetectedPath != "" {
+		if t.ConflictPolicy != "" {
+			source = fmt.Sprintf("system (%s) [%s]", t.DetectedPath, t.ConflictPolicy)
+		} else {
+			source = fmt.Sprintf("system (%s)", t.DetectedPath)
+		}
 	}
 	return
 }
