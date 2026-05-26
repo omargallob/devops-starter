@@ -4,7 +4,9 @@ go_library(
     name = "installer",
     srcs = [
         "archive.go",
+        "bootstrap.go",
         "checksum.go",
+        "eget.go",
         "installer.go",
         "progress.go",
         "url.go",
