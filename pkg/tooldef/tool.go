@@ -172,7 +172,11 @@ func (t *Tool) SupportsPlatform(p Platform) bool {
 	return false
 }
 
-// EffectiveInstallMode returns the install mode, falling back to ManagedBy
+// IsMiseManaged returns true if this tool is installed via mise.
+// Checks both the new InstallMode field and the deprecated ManagedBy field.
+func (t *Tool) IsMiseManaged() bool {
+	return t.EffectiveInstallMode() == InstallModeMise
+}
 // for backward compatibility during migration.
 func (t *Tool) EffectiveInstallMode() InstallMode {
 	if t.InstallMode != "" {
