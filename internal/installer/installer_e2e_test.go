@@ -2,6 +2,7 @@ package installer
 
 import (
 	"archive/tar"
+	"bytes"
 	"compress/gzip"
 	"context"
 	"crypto/sha256"
@@ -90,7 +91,7 @@ func TestInstall_EndToEnd_TarGz(t *testing.T) {
 	if err != nil {
 		t.Fatalf("binary not found at %s: %v", binPath, err)
 	}
-	if string(got) != string(binaryContent) {
+	if !bytes.Equal(got, binaryContent) {
 		t.Errorf("binary content mismatch: got %q", got)
 	}
 
@@ -137,7 +138,7 @@ func TestInstall_EndToEnd_Binary(t *testing.T) {
 	if err != nil {
 		t.Fatalf("binary not found: %v", err)
 	}
-	if string(got) != string(binaryContent) {
+	if !bytes.Equal(got, binaryContent) {
 		t.Errorf("binary content mismatch")
 	}
 
@@ -316,7 +317,7 @@ func TestInstallAll_EndToEnd(t *testing.T) {
 			t.Errorf("binary %s not found: %v", tool.name, err)
 			continue
 		}
-		if string(got) != string(tool.content) {
+		if !bytes.Equal(got, tool.content) {
 			t.Errorf("%s content mismatch: got %q", tool.name, got)
 		}
 	}
@@ -390,7 +391,7 @@ func TestInstall_StripComponents_Correct(t *testing.T) {
 	if err != nil {
 		t.Fatalf("binary not found: %v", err)
 	}
-	if string(got) != string(binaryContent) {
+	if !bytes.Equal(got, binaryContent) {
 		t.Errorf("content mismatch: got %q", got)
 	}
 }

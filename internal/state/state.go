@@ -14,6 +14,7 @@ import (
 // Status represents the install state of a tool.
 type Status int
 
+// Status represents the installation state of a tool.
 const (
 	StatusMissing     Status = iota // Not installed
 	StatusCurrent                   // Installed version matches desired
@@ -49,6 +50,7 @@ func (s Status) String() string {
 // Source indicates how a tool is managed.
 type Source string
 
+// Source values enumerate how a tool is managed.
 const (
 	SourceManaged Source = "managed" // installed/managed by devops-starter
 	SourceMise    Source = "mise"    // managed by mise
@@ -104,90 +106,7 @@ func ResolveAll(cfg *config.Config, store *Store, plat tooldef.Platform) []Group
 		gs := GroupState{Name: string(group)}
 
 		for _, t := range tools {
-			ts := ToolState{
-				Name:           t.Name,
-				Group:          string(t.Group),
-				Subgroup:       t.Subgroup,
-				Description:    t.Description,
-				DesiredVersion: t.Version,
-				Tool:           t,
-			}
-
-			// Apply version override from config
-			if override, ok := cfg.Overrides[t.Name]; ok {
-				if override.Disabled {
-					ts.Status = StatusDisabled
-					gs.Tools = append(gs.Tools, ts)
-					continue
-				}
-				if override.Version != "" {
-					ts.DesiredVersion = override.Version
-				}
-			}
-
-			// Check if group is disabled
-			if !cfg.IsGroupEnabled(string(t.Group)) {
-				ts.Status = StatusDisabled
-				gs.Tools = append(gs.Tools, ts)
-				continue
-			}
-
-			// Check platform support
-			if !t.SupportsPlatform(plat) {
-				ts.Status = StatusUnavailable
-				gs.Tools = append(gs.Tools, ts)
-				continue
-			}
-
-			// Resolve installed version from state store
-			ts.InstalledVersion = store.GetVersion(t.Name)
-
-			// Determine status and source
-			switch ts.InstalledVersion {
-			case "":
-				// Not in state file — check if binary exists in PATH
-				if path := LookupInPath(t.Name); path != "" {
-					if ver, err := DetectVersionAtPath(t.Name, path); err == nil {
-						// For mise-managed tools, treat PATH detection as installed
-						// (they won't be in the state store since mise manages them).
-						if t.ManagedBy != "" {
-							ts.InstalledVersion = ver
-							ts.Source = SourceMise
-							if versionMatches(ver, ts.DesiredVersion) {
-								ts.Status = StatusCurrent
-							} else {
-								ts.Status = StatusOutdated
-							}
-						} else {
-							ts.Status = StatusDetected
-							ts.Source = SourceSystem
-							ts.DetectedPath = path
-							ts.DetectedVersion = ver
-						}
-					} else if t.ManagedBy != "" {
-						// Binary exists but version probe failed — still mark as detected
-						ts.Status = StatusUnknown
-						ts.Source = SourceMise
-						ts.DetectedPath = path
-					} else {
-						ts.Status = StatusDetected
-						ts.Source = SourceSystem
-						ts.DetectedPath = path
-					}
-				} else {
-					ts.Status = StatusMissing
-				}
-			case ts.DesiredVersion:
-				ts.Status = StatusCurrent
-				ts.Source = SourceManaged
-			case "unknown":
-				ts.Status = StatusUnknown
-				ts.Source = SourceManaged
-			default:
-				ts.Status = StatusOutdated
-				ts.Source = SourceManaged
-			}
-
+			ts := resolveTool(t, cfg, store, plat)
 			gs.Tools = append(gs.Tools, ts)
 		}
 
@@ -207,6 +126,103 @@ func ResolveAll(cfg *config.Config, store *Store, plat tooldef.Platform) []Group
 	}
 
 	return result
+}
+
+// resolveTool computes the state of a single tool given config, store, and platform.
+func resolveTool(t *tooldef.Tool, cfg *config.Config, store *Store, plat tooldef.Platform) ToolState {
+	ts := ToolState{
+		Name:           t.Name,
+		Group:          string(t.Group),
+		Subgroup:       t.Subgroup,
+		Description:    t.Description,
+		DesiredVersion: t.Version,
+		Tool:           t,
+	}
+
+	// Apply version override from config
+	if override, ok := cfg.Overrides[t.Name]; ok {
+		if override.Disabled {
+			ts.Status = StatusDisabled
+			return ts
+		}
+		if override.Version != "" {
+			ts.DesiredVersion = override.Version
+		}
+	}
+
+	// Check if group is disabled
+	if !cfg.IsGroupEnabled(string(t.Group)) {
+		ts.Status = StatusDisabled
+		return ts
+	}
+
+	// Check platform support
+	if !t.SupportsPlatform(plat) {
+		ts.Status = StatusUnavailable
+		return ts
+	}
+
+	// Resolve installed version from state store
+	ts.InstalledVersion = store.GetVersion(t.Name)
+
+	// Determine status and source
+	resolveToolStatus(&ts, t)
+	return ts
+}
+
+// resolveToolStatus sets the status and source on ts based on the installed version.
+func resolveToolStatus(ts *ToolState, t *tooldef.Tool) {
+	switch ts.InstalledVersion {
+	case "":
+		resolveNotInstalled(ts, t)
+	case ts.DesiredVersion:
+		ts.Status = StatusCurrent
+		ts.Source = SourceManaged
+	case "unknown":
+		ts.Status = StatusUnknown
+		ts.Source = SourceManaged
+	default:
+		ts.Status = StatusOutdated
+		ts.Source = SourceManaged
+	}
+}
+
+// resolveNotInstalled handles the case where a tool is not in the state store.
+func resolveNotInstalled(ts *ToolState, t *tooldef.Tool) {
+	path := LookupInPath(t.Name)
+	if path == "" {
+		ts.Status = StatusMissing
+		return
+	}
+
+	ver, err := DetectVersionAtPath(t.Name, path)
+	if err != nil {
+		if t.ManagedBy != "" {
+			ts.Status = StatusUnknown
+			ts.Source = SourceMise
+			ts.DetectedPath = path
+		} else {
+			ts.Status = StatusDetected
+			ts.Source = SourceSystem
+			ts.DetectedPath = path
+		}
+		return
+	}
+
+	if t.ManagedBy != "" {
+		ts.InstalledVersion = ver
+		ts.Source = SourceMise
+		if versionMatches(ver, ts.DesiredVersion) {
+			ts.Status = StatusCurrent
+		} else {
+			ts.Status = StatusOutdated
+		}
+	} else {
+		ts.Status = StatusDetected
+		ts.Source = SourceSystem
+		ts.DetectedPath = path
+		ts.DetectedVersion = ver
+	}
 }
 
 // versionMatches checks if an installed version satisfies the desired version

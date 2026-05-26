@@ -42,7 +42,7 @@ func newConfigInitCmd() *cobra.Command {
 func runConfigInit(cmd *cobra.Command, args []string) error {
 	path := cfgFile
 	if path == "" {
-		path = config.ConfigPath()
+		path = config.Path()
 	}
 
 	// Check if file already exists
@@ -74,7 +74,7 @@ func newConfigShowCmd() *cobra.Command {
 func runConfigShow(cmd *cobra.Command, args []string) error {
 	path := cfgFile
 	if path == "" {
-		path = config.ConfigPath()
+		path = config.Path()
 	}
 
 	cfg, err := config.Load(path)

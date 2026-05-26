@@ -101,7 +101,6 @@ func (m Model) updateTools(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		return m, tea.Quit
 
 	case "esc", "backspace":
-		// Return to group screen
 		m.screen = screenGroups
 		m.message = ""
 		m.err = nil
@@ -117,86 +116,106 @@ func (m Model) updateTools(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 
 	case " ":
-		// Toggle selection
-		t := m.currentToolInGroup()
-		if t != nil && t.Status != state.StatusDisabled && t.Status != state.StatusCurrent && t.Status != state.StatusUnavailable {
-			t.Selected = !t.Selected
-		}
+		m.handleToolToggleSelection()
 
 	case "a":
-		// Select all installable in this group
-		for i := range m.groups[m.selectedGroup].Tools {
-			t := &m.groups[m.selectedGroup].Tools[i]
-			if t.Status == state.StatusMissing || t.Status == state.StatusOutdated || t.Status == state.StatusDetected {
-				t.Selected = true
-			}
-		}
+		m.handleToolSelectAll()
 
 	case "n":
-		// Deselect all
-		for i := range m.groups[m.selectedGroup].Tools {
-			m.groups[m.selectedGroup].Tools[i].Selected = false
-		}
+		m.handleToolDeselectAll()
 
 	case "i", "enter":
-		// Install selected (or current if none selected)
-		selected := m.installableToolsInGroup(m.selectedGroup, true)
-		if len(selected) == 0 {
-			// Try current tool
-			t := m.currentToolInGroup()
-			if t != nil && t.Status != state.StatusDisabled && t.Status != state.StatusCurrent {
-				selected = append(selected, t.Tool)
-			}
-		}
-		if len(selected) == 0 {
-			m.message = "Nothing to install"
-			return m, nil
-		}
-		return m.showConfirmInstall(selected, screenTools)
+		return m.handleToolInstall()
 
 	case "r":
-		// Remove managed tool(s) — revert to system version
-		var names []string
-		// Check if any are selected
-		for _, t := range m.groups[m.selectedGroup].Tools {
-			if t.Selected && (t.Status == state.StatusCurrent || t.Status == state.StatusOutdated || t.Status == state.StatusUnknown) {
-				names = append(names, t.Name)
-			}
-		}
-		// If none selected, try current tool under cursor
-		if len(names) == 0 {
-			t := m.currentToolInGroup()
-			if t != nil && (t.Status == state.StatusCurrent || t.Status == state.StatusOutdated || t.Status == state.StatusUnknown) {
-				names = append(names, t.Name)
-			}
-		}
-		if len(names) == 0 {
-			m.message = "Nothing to remove (select managed tools)"
-			return m, nil
-		}
-		return m.showConfirmRemove(names)
+		return m.handleToolRemove()
 
 	case "d":
-		// Toggle disable
-		t := m.currentToolInGroup()
-		if t != nil {
-			if t.Status == state.StatusDisabled {
-				t.Status = state.StatusMissing
-			} else {
-				t.Status = state.StatusDisabled
-				t.Selected = false
-			}
-		}
+		m.handleToolDisable()
 
 	case "v":
-		// Verify current tool
-		t := m.currentToolInGroup()
-		if t != nil && t.Status != state.StatusDisabled {
-			m.message = "Verifying " + t.Name + "..."
-			return m, verifyToolCmd(t.Name, m.installDir)
-		}
+		return m.handleToolVerify()
 	}
 
+	return m, nil
+}
+
+func (m *Model) handleToolToggleSelection() {
+	t := m.currentToolInGroup()
+	if t != nil && t.Status != state.StatusDisabled && t.Status != state.StatusCurrent && t.Status != state.StatusUnavailable {
+		t.Selected = !t.Selected
+	}
+}
+
+func (m *Model) handleToolSelectAll() {
+	for i := range m.groups[m.selectedGroup].Tools {
+		t := &m.groups[m.selectedGroup].Tools[i]
+		if t.Status == state.StatusMissing || t.Status == state.StatusOutdated || t.Status == state.StatusDetected {
+			t.Selected = true
+		}
+	}
+}
+
+func (m *Model) handleToolDeselectAll() {
+	for i := range m.groups[m.selectedGroup].Tools {
+		m.groups[m.selectedGroup].Tools[i].Selected = false
+	}
+}
+
+func (m Model) handleToolInstall() (tea.Model, tea.Cmd) {
+	selected := m.installableToolsInGroup(m.selectedGroup, true)
+	if len(selected) == 0 {
+		t := m.currentToolInGroup()
+		if t != nil && t.Status != state.StatusDisabled && t.Status != state.StatusCurrent {
+			selected = append(selected, t.Tool)
+		}
+	}
+	if len(selected) == 0 {
+		m.message = "Nothing to install"
+		return m, nil
+	}
+	return m.showConfirmInstall(selected, screenTools)
+}
+
+func (m Model) handleToolRemove() (tea.Model, tea.Cmd) {
+	var names []string
+	for ti := range m.groups[m.selectedGroup].Tools {
+		t := &m.groups[m.selectedGroup].Tools[ti]
+		if t.Selected && (t.Status == state.StatusCurrent || t.Status == state.StatusOutdated || t.Status == state.StatusUnknown) {
+			names = append(names, t.Name)
+		}
+	}
+	if len(names) == 0 {
+		t := m.currentToolInGroup()
+		if t != nil && (t.Status == state.StatusCurrent || t.Status == state.StatusOutdated || t.Status == state.StatusUnknown) {
+			names = append(names, t.Name)
+		}
+	}
+	if len(names) == 0 {
+		m.message = "Nothing to remove (select managed tools)"
+		return m, nil
+	}
+	return m.showConfirmRemove(names)
+}
+
+func (m *Model) handleToolDisable() {
+	t := m.currentToolInGroup()
+	if t != nil {
+		if t.Status == state.StatusDisabled {
+			t.Status = state.StatusMissing
+		} else {
+			t.Status = state.StatusDisabled
+			t.Selected = false
+		}
+	}
+}
+
+func (m Model) handleToolVerify() (tea.Model, tea.Cmd) {
+	t := m.currentToolInGroup()
+	if t != nil && t.Status != state.StatusDisabled {
+		m.message = "Verifying " + t.Name + "..."
+		return m, verifyToolCmd(t.Name, m.installDir)
+	}
 	return m, nil
 }
 
@@ -245,10 +264,7 @@ func (m Model) startProgressInstall(tools []*tooldef.Tool, returnTo screen) (tea
 		// Create spinner
 		s := newSpinner()
 		m.spinners[tool.Name] = s
-		cmds = append(cmds, s.Tick)
-
-		// Start install
-		cmds = append(cmds, installToolCmd(m.inst, tool))
+		cmds = append(cmds, s.Tick, installToolCmd(m.inst, tool))
 	}
 
 	return m, tea.Batch(cmds...)
@@ -339,9 +355,8 @@ func (m Model) handleVerifyComplete(msg verifyCompleteMsg) (tea.Model, tea.Cmd) 
 func (m Model) handleSpinnerTick(msg spinner.TickMsg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 	for name, s := range m.spinners {
-		var cmd tea.Cmd
-		s, cmd = s.Update(msg)
-		m.spinners[name] = s
+		updated, cmd := s.Update(msg)
+		m.spinners[name] = updated
 		if cmd != nil {
 			cmds = append(cmds, cmd)
 		}
@@ -425,8 +440,9 @@ func (m Model) startRemove(names []string) (tea.Model, tea.Cmd) {
 		// Determine the binary name for this tool
 		binName := name
 		// Look up the tool in groups to get the actual install name
-		for _, g := range m.groups {
-			for _, t := range g.Tools {
+		for gi := range m.groups {
+			for ti := range m.groups[gi].Tools {
+				t := &m.groups[gi].Tools[ti]
 				if t.Name == name && t.Tool != nil {
 					binName = t.Tool.GetInstallName()
 					break

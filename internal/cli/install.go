@@ -43,7 +43,7 @@ func runInstall(cmd *cobra.Command, args []string) error {
 	// Load config
 	cfgPath := cfgFile
 	if cfgPath == "" {
-		cfgPath = config.ConfigPath()
+		cfgPath = config.Path()
 	}
 	cfg, err := config.Load(cfgPath)
 	if err != nil {
@@ -71,42 +71,37 @@ func runInstall(cmd *cobra.Command, args []string) error {
 	return doInstall(deps, info.Platform)
 }
 
-// doInstall contains the testable install logic, separated from Cobra wiring.
-// It filters the registry, confirms with the user, and runs installations.
-func doInstall(deps installDeps, plat tooldef.Platform) error {
-	allTools := deps.registry.All()
-
-	// Filter tools by group, platform support, and per-tool overrides
+// filterToolsForInstall selects tools eligible for installation based on group,
+// platform, and config overrides.
+func filterToolsForInstall(allTools []*tooldef.Tool, cfg *config.Config, plat tooldef.Platform, onlyGroup string) []*tooldef.Tool {
 	var tools []*tooldef.Tool
 	for _, t := range allTools {
-		// Filter by --only flag
-		if deps.only != "" && string(t.Group) != deps.only {
+		if onlyGroup != "" && string(t.Group) != onlyGroup {
 			continue
 		}
-
-		// Filter by config group enables
-		if !deps.cfg.IsGroupEnabled(string(t.Group)) {
+		if !cfg.IsGroupEnabled(string(t.Group)) {
 			continue
 		}
-
-		// Check if tool supports this platform
 		if !t.SupportsPlatform(plat) {
 			continue
 		}
-
-		// Check if tool is disabled in overrides
-		if override, ok := deps.cfg.Overrides[t.Name]; ok {
+		if override, ok := cfg.Overrides[t.Name]; ok {
 			if override.Disabled {
 				continue
 			}
-			// Apply version override
 			if override.Version != "" {
 				t.Version = override.Version
 			}
 		}
-
 		tools = append(tools, t)
 	}
+	return tools
+}
+
+// doInstall contains the testable install logic, separated from Cobra wiring.
+// It filters the registry, confirms with the user, and runs installations.
+func doInstall(deps installDeps, plat tooldef.Platform) error {
+	tools := filterToolsForInstall(deps.registry.All(), deps.cfg, plat, deps.only)
 
 	if len(tools) == 0 {
 		fmt.Fprintln(deps.out, "No tools to install.")
@@ -131,11 +126,9 @@ func doInstall(deps installDeps, plat tooldef.Platform) error {
 		}
 	}
 
-	// Install all filtered tools concurrently
 	ctx := context.Background()
 	errs := deps.installer.InstallAll(ctx, tools)
 
-	// Print summary
 	printInstallSummary(deps.out, len(tools), errs)
 
 	if len(errs) > 0 {

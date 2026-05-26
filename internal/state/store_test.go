@@ -8,11 +8,11 @@ import (
 	"time"
 )
 
-func TestStatePath_DefaultsToHomeConfig(t *testing.T) {
+func TestPath_DefaultsToHomeConfig(t *testing.T) {
 	// Unset XDG so we exercise the home-dir branch.
 	t.Setenv("XDG_CONFIG_HOME", "")
 
-	p := StatePath()
+	p := Path()
 	if !filepath.IsAbs(p) {
 		t.Fatalf("expected absolute path, got %s", p)
 	}
@@ -21,10 +21,10 @@ func TestStatePath_DefaultsToHomeConfig(t *testing.T) {
 	}
 }
 
-func TestStatePath_XDG(t *testing.T) {
+func TestPath_XDG(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", "/custom/config")
 
-	p := StatePath()
+	p := Path()
 	want := "/custom/config/devops-starter/state.json"
 	if p != want {
 		t.Fatalf("got %s, want %s", p, want)

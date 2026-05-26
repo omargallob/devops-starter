@@ -60,8 +60,8 @@ func DefaultConfig() *Config {
 	}
 }
 
-// ConfigPath returns the default config file path.
-func ConfigPath() string {
+// Path returns the default config file path.
+func Path() string {
 	if xdg := os.Getenv("XDG_CONFIG_HOME"); xdg != "" {
 		return filepath.Join(xdg, "devops-starter", "config.yaml")
 	}

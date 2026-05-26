@@ -137,7 +137,7 @@ func (m Model) renderStatusBar(width int) string {
 }
 
 // viewGroupsContent renders the category picker screen content and help line.
-func (m Model) viewGroupsContent() (string, string) {
+func (m Model) viewGroupsContent() (body, footer string) {
 	var b strings.Builder
 
 	// Title bar
@@ -148,46 +148,7 @@ func (m Model) viewGroupsContent() (string, string) {
 	b.WriteString("  Select a category:\n\n")
 
 	for i, g := range m.groups {
-		isCursor := i == m.groupCursor
-
-		// Count installed vs total
-		var installed, total int
-		for _, t := range g.Tools {
-			if t.Status != state.StatusDisabled {
-				total++
-			}
-			if t.Status == state.StatusCurrent || t.Status == state.StatusOutdated || t.Status == state.StatusUnknown || t.Status == state.StatusDetected {
-				installed++
-			}
-		}
-
-		// Determine group status colour
-		var style lipgloss.Style
-		switch {
-		case installed == total && total > 0:
-			style = currentStyle
-		case installed > 0:
-			style = outdatedStyle
-		default:
-			style = missingStyle
-		}
-
-		// Cursor indicator
-		cursor := "  "
-		if isCursor {
-			cursor = "▸ "
-		}
-
-		summary := fmt.Sprintf("%d/%d installed", installed, total)
-		name := fmt.Sprintf("%-14s", g.Name)
-		line := fmt.Sprintf("  %s%-14s %s", cursor, name, summary)
-
-		rendered := style.Render(line)
-		if isCursor {
-			rendered = cursorStyle.Render(line)
-		}
-
-		b.WriteString(rendered)
+		b.WriteString(m.renderGroupRow(i, g))
 		b.WriteString("\n")
 	}
 
@@ -210,8 +171,48 @@ func (m Model) viewGroupsContent() (string, string) {
 	return b.String(), helpLine
 }
 
+// renderGroupRow renders a single group row for the category picker.
+func (m Model) renderGroupRow(i int, g groupModel) string {
+	isCursor := i == m.groupCursor
+
+	var installed, total int
+	for ti := range g.Tools {
+		t := &g.Tools[ti]
+		if t.Status != state.StatusDisabled {
+			total++
+		}
+		if t.Status == state.StatusCurrent || t.Status == state.StatusOutdated || t.Status == state.StatusUnknown || t.Status == state.StatusDetected {
+			installed++
+		}
+	}
+
+	var style lipgloss.Style
+	switch {
+	case installed == total && total > 0:
+		style = currentStyle
+	case installed > 0:
+		style = outdatedStyle
+	default:
+		style = missingStyle
+	}
+
+	cursor := "  "
+	if isCursor {
+		cursor = "▸ "
+	}
+
+	summary := fmt.Sprintf("%d/%d installed", installed, total)
+	name := fmt.Sprintf("%-14s", g.Name)
+	line := fmt.Sprintf("  %s%-14s %s", cursor, name, summary)
+
+	if isCursor {
+		return cursorStyle.Render(line)
+	}
+	return style.Render(line)
+}
+
 // viewToolsContent renders the tool list within the selected group.
-func (m Model) viewToolsContent() (string, string) {
+func (m Model) viewToolsContent() (body, footer string) {
 	var b strings.Builder
 
 	g := m.groups[m.selectedGroup]
@@ -229,7 +230,8 @@ func (m Model) viewToolsContent() (string, string) {
 
 	// Tool rows
 	currentSubgroup := ""
-	for i, t := range g.Tools {
+	for i := range g.Tools {
+		t := &g.Tools[i]
 		// Insert subgroup header when it changes (non-selectable divider)
 		if t.Subgroup != "" && t.Subgroup != currentSubgroup {
 			currentSubgroup = t.Subgroup
@@ -238,7 +240,7 @@ func (m Model) viewToolsContent() (string, string) {
 		}
 
 		isCursor := i == m.toolCursor
-		line := m.renderToolRow(t)
+		line := m.renderToolRow(*t)
 
 		if isCursor {
 			line = cursorStyle.Render(line)
@@ -273,7 +275,7 @@ func (m Model) viewToolsContent() (string, string) {
 }
 
 // viewProgressContent renders the install progress screen.
-func (m Model) viewProgressContent() (string, string) {
+func (m Model) viewProgressContent() (body, footer string) {
 	var b strings.Builder
 
 	groupName := ""
@@ -296,46 +298,7 @@ func (m Model) viewProgressContent() (string, string) {
 
 	// Progress rows
 	for _, item := range m.progressTools {
-		var icon string
-		var style lipgloss.Style
-
-		switch item.Status {
-		case progressWaiting:
-			icon = "○"
-			style = dimStyle
-		case progressInstalling:
-			if s, ok := m.spinners[item.Name]; ok {
-				icon = s.View()
-			} else {
-				icon = "◐"
-			}
-			style = outdatedStyle
-		case progressDone:
-			icon = "✓"
-			style = currentStyle
-		case progressFailed:
-			icon = "✗"
-			style = disabledStyle
-		}
-
-		statusText := ""
-		switch item.Status {
-		case progressWaiting:
-			statusText = "waiting..."
-		case progressInstalling:
-			statusText = "installing..."
-		case progressDone:
-			statusText = "installed"
-		case progressFailed:
-			if item.Error != nil {
-				statusText = fmt.Sprintf("failed: %v", item.Error)
-			} else {
-				statusText = "failed"
-			}
-		}
-
-		line := fmt.Sprintf("    %s %-18s %s", icon, item.Name, statusText)
-		b.WriteString(style.Render(line))
+		b.WriteString(m.renderProgressRow(item))
 		b.WriteString("\n")
 	}
 
@@ -366,8 +329,54 @@ func (m Model) viewProgressContent() (string, string) {
 	return b.String(), helpLine
 }
 
+// renderProgressRow renders a single tool's progress line.
+func (m Model) renderProgressRow(item progressItem) string {
+	icon, style := m.progressIconStyle(item)
+	statusText := progressStatusText(item)
+	line := fmt.Sprintf("    %s %-18s %s", icon, item.Name, statusText)
+	return style.Render(line)
+}
+
+// progressIconStyle returns the icon and style for a progress item.
+func (m Model) progressIconStyle(item progressItem) (string, lipgloss.Style) {
+	switch item.Status {
+	case progressWaiting:
+		return "○", dimStyle
+	case progressInstalling:
+		if s, ok := m.spinners[item.Name]; ok {
+			return s.View(), outdatedStyle
+		}
+		return "◐", outdatedStyle
+	case progressDone:
+		return "✓", currentStyle
+	case progressFailed:
+		return "✗", disabledStyle
+	default:
+		return "?", dimStyle
+	}
+}
+
+// progressStatusText returns the status label for a progress item.
+func progressStatusText(item progressItem) string {
+	switch item.Status {
+	case progressWaiting:
+		return "waiting..."
+	case progressInstalling:
+		return "installing..."
+	case progressDone:
+		return "installed"
+	case progressFailed:
+		if item.Error != nil {
+			return fmt.Sprintf("failed: %v", item.Error)
+		}
+		return "failed"
+	default:
+		return ""
+	}
+}
+
 // viewConfirmContent renders the confirmation prompt screen.
-func (m Model) viewConfirmContent() (string, string) {
+func (m Model) viewConfirmContent() (body, footer string) {
 	var b strings.Builder
 
 	// Title bar
@@ -378,69 +387,9 @@ func (m Model) viewConfirmContent() (string, string) {
 
 	switch m.confirmType {
 	case confirmInstall:
-		// Determine if this is an adopt (detected tools) or regular install
-		hasDetected := false
-		for _, tool := range m.confirmTools {
-			for _, g := range m.groups {
-				for _, t := range g.Tools {
-					if t.Name == tool.Name && t.Status == state.StatusDetected {
-						hasDetected = true
-					}
-				}
-			}
-		}
-
-		action := "install"
-		if hasDetected {
-			action = "install/adopt"
-		}
-
-		b.WriteString(headerStyle.Render(fmt.Sprintf("  Confirm %s (%d tool(s)):", action, len(m.confirmTools))))
-		b.WriteString("\n\n")
-
-		for _, tool := range m.confirmTools {
-			detail := ""
-			for _, g := range m.groups {
-				for _, t := range g.Tools {
-					if t.Name == tool.Name && t.Status == state.StatusDetected && t.DetectedPath != "" {
-						detail = fmt.Sprintf("  (adopting from system: %s", t.DetectedPath)
-						if t.DetectedVersion != "" {
-							detail += " v" + t.DetectedVersion
-						}
-						detail += ")"
-					}
-				}
-			}
-			line := fmt.Sprintf("    • %s %s%s", tool.Name, tool.Version, detail)
-			b.WriteString(line)
-			b.WriteString("\n")
-		}
-
+		m.renderConfirmInstall(&b)
 	case confirmRemove:
-		b.WriteString(headerStyle.Render(fmt.Sprintf("  Confirm removal (%d tool(s)):", len(m.confirmNames))))
-		b.WriteString("\n\n")
-
-		for _, name := range m.confirmNames {
-			detail := ""
-			for _, g := range m.groups {
-				for _, t := range g.Tools {
-					if t.Name == name {
-						if t.InstalledVersion != "" {
-							detail += fmt.Sprintf(" (managed: v%s)", t.InstalledVersion)
-						}
-						// Check if system version will take over
-						if t.DetectedPath != "" {
-							detail += fmt.Sprintf(" → system: %s", t.DetectedPath)
-						} else {
-							detail += " → no system version"
-						}
-					}
-				}
-			}
-			line := fmt.Sprintf("    • %s%s", name, detail)
-			b.WriteString(line)
-			b.WriteString("\n")
-		}
+		m.renderConfirmRemove(&b)
 	}
 
 	// Prompt
@@ -455,76 +404,154 @@ func (m Model) viewConfirmContent() (string, string) {
 	return b.String(), helpLine
 }
 
-// renderToolRow renders a single tool row with status icon, versions, and description.
-func (m Model) renderToolRow(t toolModel) string {
-	// Status indicator
-	var icon string
-	var style lipgloss.Style
-
-	switch t.Status {
-	case state.StatusCurrent:
-		icon = "✓"
-		style = currentStyle
-	case state.StatusOutdated:
-		icon = "↑"
-		style = outdatedStyle
-	case state.StatusMissing:
-		icon = "○"
-		style = missingStyle
-	case state.StatusDisabled:
-		icon = "✗"
-		style = disabledStyle
-	case state.StatusUnknown:
-		icon = "?"
-		style = unknownStyle
-	case state.StatusDetected:
-		icon = "~"
-		style = detectedStyle
-	case state.StatusUnavailable:
-		icon = "⊘"
-		style = dimStyle
+// renderConfirmInstall writes the install confirmation details to b.
+func (m Model) renderConfirmInstall(b *strings.Builder) {
+	hasDetected := false
+	for _, tool := range m.confirmTools {
+		if m.findToolState(tool.Name) != nil && m.findToolState(tool.Name).Status == state.StatusDetected {
+			hasDetected = true
+			break
+		}
 	}
 
-	// Selection checkbox
+	action := "install"
+	if hasDetected {
+		action = "install/adopt"
+	}
+
+	b.WriteString(headerStyle.Render(fmt.Sprintf("  Confirm %s (%d tool(s)):", action, len(m.confirmTools))))
+	b.WriteString("\n\n")
+
+	for _, tool := range m.confirmTools {
+		detail := ""
+		if ts := m.findToolState(tool.Name); ts != nil && ts.Status == state.StatusDetected && ts.DetectedPath != "" {
+			detail = fmt.Sprintf("  (adopting from system: %s", ts.DetectedPath)
+			if ts.DetectedVersion != "" {
+				detail += " v" + ts.DetectedVersion
+			}
+			detail += ")"
+		}
+		line := fmt.Sprintf("    • %s %s%s", tool.Name, tool.Version, detail)
+		b.WriteString(line)
+		b.WriteString("\n")
+	}
+}
+
+// renderConfirmRemove writes the remove confirmation details to b.
+func (m Model) renderConfirmRemove(b *strings.Builder) {
+	b.WriteString(headerStyle.Render(fmt.Sprintf("  Confirm removal (%d tool(s)):", len(m.confirmNames))))
+	b.WriteString("\n\n")
+
+	for _, name := range m.confirmNames {
+		detail := m.removeToolDetail(name)
+		line := fmt.Sprintf("    • %s%s", name, detail)
+		b.WriteString(line)
+		b.WriteString("\n")
+	}
+}
+
+// findToolState looks up a tool by name across all groups.
+func (m Model) findToolState(name string) *toolModel {
+	for gi := range m.groups {
+		for ti := range m.groups[gi].Tools {
+			if m.groups[gi].Tools[ti].Name == name {
+				return &m.groups[gi].Tools[ti]
+			}
+		}
+	}
+	return nil
+}
+
+// removeToolDetail builds the detail string for a tool being removed.
+func (m Model) removeToolDetail(name string) string {
+	detail := ""
+	if ts := m.findToolState(name); ts != nil {
+		if ts.InstalledVersion != "" {
+			detail += fmt.Sprintf(" (managed: v%s)", ts.InstalledVersion)
+		}
+		if ts.DetectedPath != "" {
+			detail += fmt.Sprintf(" → system: %s", ts.DetectedPath)
+		} else {
+			detail += " → no system version"
+		}
+	}
+	return detail
+}
+
+// renderToolRow renders a single tool row with status icon, versions, and description.
+func (m Model) renderToolRow(t toolModel) string {
+	icon, style := toolStatusIconStyle(t.Status)
+
 	sel := " "
 	if t.Selected {
 		sel = "●"
 	}
 
-	// Version columns
-	var versionInfo string
-	switch t.Status {
-	case state.StatusCurrent:
-		versionInfo = fmt.Sprintf("%-10s ═  %-10s", t.InstalledVersion, t.DesiredVersion)
-	case state.StatusOutdated:
-		versionInfo = fmt.Sprintf("%-10s →  %-10s", t.InstalledVersion, t.DesiredVersion)
-	case state.StatusMissing:
-		versionInfo = fmt.Sprintf("%-10s →  %-10s", "-", t.DesiredVersion)
-	case state.StatusDisabled:
-		versionInfo = fmt.Sprintf("%-10s    %-10s", "-", "disabled")
-	case state.StatusUnknown:
-		versionInfo = fmt.Sprintf("%-10s ?  %-10s", "???", t.DesiredVersion)
-	case state.StatusDetected:
-		versionInfo = fmt.Sprintf("%-10s ~  %-10s", "(system)", t.DesiredVersion)
-	case state.StatusUnavailable:
-		versionInfo = fmt.Sprintf("%-10s    %-10s", "-", "n/a")
-	}
-
-	// Source label
-	var sourceLabel string
-	switch {
-	case t.Status == state.StatusUnavailable:
-		sourceLabel = "[not available on this platform — install manually or use Docker]"
-	case t.Source == state.SourceMise:
-		sourceLabel = "[mise]"
-	case t.Source == state.SourceSystem:
-		sourceLabel = fmt.Sprintf("[system: %s]", t.DetectedPath)
-	case t.Source == state.SourceManaged:
-		sourceLabel = "[managed]"
-	}
+	versionInfo := toolVersionInfo(t)
+	sourceLabel := toolSourceLabel(t)
 
 	line := fmt.Sprintf("    %s %s %-16s %s  %s  %s", sel, icon, t.Name, versionInfo, sourceLabel, t.Description)
 	return style.Render(line)
+}
+
+// toolStatusIconStyle returns the icon and style for a tool status.
+func toolStatusIconStyle(s state.Status) (string, lipgloss.Style) {
+	switch s {
+	case state.StatusCurrent:
+		return "✓", currentStyle
+	case state.StatusOutdated:
+		return "↑", outdatedStyle
+	case state.StatusMissing:
+		return "○", missingStyle
+	case state.StatusDisabled:
+		return "✗", disabledStyle
+	case state.StatusUnknown:
+		return "?", unknownStyle
+	case state.StatusDetected:
+		return "~", detectedStyle
+	case state.StatusUnavailable:
+		return "⊘", dimStyle
+	default:
+		return "?", dimStyle
+	}
+}
+
+// toolVersionInfo formats the version columns for a tool row.
+func toolVersionInfo(t toolModel) string {
+	switch t.Status {
+	case state.StatusCurrent:
+		return fmt.Sprintf("%-10s ═  %-10s", t.InstalledVersion, t.DesiredVersion)
+	case state.StatusOutdated:
+		return fmt.Sprintf("%-10s →  %-10s", t.InstalledVersion, t.DesiredVersion)
+	case state.StatusMissing:
+		return fmt.Sprintf("%-10s →  %-10s", "-", t.DesiredVersion)
+	case state.StatusDisabled:
+		return fmt.Sprintf("%-10s    %-10s", "-", "disabled")
+	case state.StatusUnknown:
+		return fmt.Sprintf("%-10s ?  %-10s", "???", t.DesiredVersion)
+	case state.StatusDetected:
+		return fmt.Sprintf("%-10s ~  %-10s", "(system)", t.DesiredVersion)
+	case state.StatusUnavailable:
+		return fmt.Sprintf("%-10s    %-10s", "-", "n/a")
+	default:
+		return ""
+	}
+}
+
+// toolSourceLabel returns the source annotation for a tool row.
+func toolSourceLabel(t toolModel) string {
+	switch {
+	case t.Status == state.StatusUnavailable:
+		return "[not available on this platform — install manually or use Docker]"
+	case t.Source == state.SourceMise:
+		return "[mise]"
+	case t.Source == state.SourceSystem:
+		return fmt.Sprintf("[system: %s]", t.DetectedPath)
+	case t.Source == state.SourceManaged:
+		return "[managed]"
+	default:
+		return ""
+	}
 }
 
 // clamp restricts a value to the range [lo, hi].

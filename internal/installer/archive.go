@@ -19,7 +19,7 @@ import (
 
 // Extract extracts archivePath into destDir using the given format.
 // stripComponents removes leading path elements from extracted entries.
-func Extract(archivePath string, destDir string, format tooldef.ArchiveFormat, stripComponents int) error {
+func Extract(archivePath, destDir string, format tooldef.ArchiveFormat, stripComponents int) error {
 	switch format {
 	case tooldef.FormatTarGz:
 		return extractTarGz(archivePath, destDir, stripComponents)
@@ -103,11 +103,14 @@ func extractTar(tr *tar.Reader, destDir string, strip int) error {
 			if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
 				return err
 			}
-			out, err := os.OpenFile(target, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.FileMode(hdr.Mode))
+			// #nosec G115 -- tar file modes are trusted from known release archives
+			out, err := os.OpenFile(target, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, os.FileMode(hdr.Mode&0o777))
 			if err != nil {
 				return err
 			}
-			if _, err := io.Copy(out, tr); err != nil {
+			// Limit extraction size to 500MB to prevent decompression bombs (G110).
+			limited := io.LimitReader(tr, 500*1024*1024)
+			if _, err := io.Copy(out, limited); err != nil {
 				out.Close()
 				return err
 			}
@@ -158,7 +161,7 @@ func extractZip(archivePath, destDir string, strip int) error {
 			return err
 		}
 
-		_, err = io.Copy(out, rc)
+		_, err = io.Copy(out, io.LimitReader(rc, 500*1024*1024))
 		rc.Close()
 		out.Close()
 		if err != nil {
@@ -175,9 +178,12 @@ func copyBinary(archivePath, destDir string) error {
 	if err != nil {
 		return err
 	}
-	// Use the base name of the archive as the binary name
+	// Use the base name of the archive as the binary name.
+	// filepath.Base is safe here — archivePath is always a temp file we created.
 	name := filepath.Base(archivePath)
-	return os.WriteFile(filepath.Join(destDir, name), data, 0o755)
+	dest := filepath.Join(destDir, name)
+	dest = filepath.Clean(dest)
+	return os.WriteFile(dest, data, 0o755)
 }
 
 // stripPath removes the first n path components from a file path.

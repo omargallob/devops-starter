@@ -26,7 +26,7 @@ func ComputeChecksum(filePath string) (string, error) {
 }
 
 // VerifyChecksum reads the file and compares its SHA256 hex digest to expected.
-func VerifyChecksum(filePath string, expected string) error {
+func VerifyChecksum(filePath, expected string) error {
 	got, err := ComputeChecksum(filePath)
 	if err != nil {
 		return err

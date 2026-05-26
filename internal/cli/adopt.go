@@ -71,7 +71,7 @@ func runAdopt(cmd *cobra.Command, args []string) error {
 	// Load config
 	cfgPath := cfgFile
 	if cfgPath == "" {
-		cfgPath = config.ConfigPath()
+		cfgPath = config.Path()
 	}
 	cfg, err := config.Load(cfgPath)
 	if err != nil {
@@ -79,7 +79,7 @@ func runAdopt(cmd *cobra.Command, args []string) error {
 	}
 
 	// Load state store
-	store, err := state.LoadStore(state.StatePath())
+	store, err := state.LoadStore(state.Path())
 	if err != nil {
 		return fmt.Errorf("loading state: %w", err)
 	}
@@ -89,10 +89,11 @@ func runAdopt(cmd *cobra.Command, args []string) error {
 
 	// Build a map of detected tools
 	detected := make(map[string]state.ToolState)
-	for _, g := range groups {
-		for _, ts := range g.Tools {
+	for gi := range groups {
+		for ti := range groups[gi].Tools {
+			ts := &groups[gi].Tools[ti]
 			if ts.Status == state.StatusDetected {
-				detected[ts.Name] = ts
+				detected[ts.Name] = *ts
 			}
 		}
 	}
@@ -120,75 +121,51 @@ func runAdopt(cmd *cobra.Command, args []string) error {
 	return doAdopt(deps, args)
 }
 
-// doAdopt contains the testable adopt logic, separated from Cobra wiring.
-func doAdopt(deps adoptDeps, args []string) error {
-	// Determine which tools to adopt
-	var toAdopt []string
-	if deps.adoptAll {
-		for name := range deps.detected {
-			toAdopt = append(toAdopt, name)
+// validateToolForAdopt checks if a single tool is eligible for adoption,
+// returning the tool if valid or a warning string if not.
+func validateToolForAdopt(name string, deps adoptDeps) (tool *tooldef.Tool, warning string) {
+	t, ok := deps.registry.Get(name)
+	if !ok {
+		return nil, fmt.Sprintf("unknown tool: %s", name)
+	}
+
+	if !t.SupportsPlatform(deps.platform) {
+		return nil, fmt.Sprintf("%s: not supported on %s", name, deps.platform)
+	}
+
+	if override, ok := deps.cfg.Overrides[name]; ok {
+		if override.Disabled {
+			return nil, fmt.Sprintf("%s: disabled in config", name)
 		}
-	} else {
-		toAdopt = append(toAdopt, args...)
+		if override.Version != "" {
+			t.Version = override.Version
+		}
 	}
 
-	if len(toAdopt) == 0 {
-		fmt.Fprintln(deps.out, "No detected tools to adopt.")
-		return nil
+	if _, isDetected := deps.detected[name]; !isDetected {
+		if ver := deps.store.GetVersion(name); ver != "" {
+			return nil, fmt.Sprintf("%s: already managed (version %s)", name, ver)
+		}
 	}
 
-	// Validate and resolve tools from registry
-	var toolsToInstall []*tooldef.Tool
-	var warnings []string
+	return t, ""
+}
 
+// resolveAdoptTools validates all requested tool names and returns tools to install and warnings.
+func resolveAdoptTools(toAdopt []string, deps adoptDeps) (tools []*tooldef.Tool, warnings []string) {
 	for _, name := range toAdopt {
-		tool, ok := deps.registry.Get(name)
-		if !ok {
-			warnings = append(warnings, fmt.Sprintf("unknown tool: %s", name))
-			continue
+		tool, warn := validateToolForAdopt(name, deps)
+		if warn != "" {
+			warnings = append(warnings, warn)
+		} else {
+			tools = append(tools, tool)
 		}
-
-		// Check platform support
-		if !tool.SupportsPlatform(deps.platform) {
-			warnings = append(warnings, fmt.Sprintf("%s: not supported on %s", name, deps.platform))
-			continue
-		}
-
-		// Apply version override from config
-		if override, ok := deps.cfg.Overrides[name]; ok {
-			if override.Disabled {
-				warnings = append(warnings, fmt.Sprintf("%s: disabled in config", name))
-				continue
-			}
-			if override.Version != "" {
-				tool.Version = override.Version
-			}
-		}
-
-		// Check if already managed (current or outdated means we already manage it)
-		if _, isDetected := deps.detected[name]; !isDetected {
-			// Check if it's already managed
-			if ver := deps.store.GetVersion(name); ver != "" {
-				warnings = append(warnings, fmt.Sprintf("%s: already managed (version %s)", name, ver))
-				continue
-			}
-		}
-
-		toolsToInstall = append(toolsToInstall, tool)
 	}
+	return tools, warnings
+}
 
-	// Print warnings
-	warnStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("3"))
-	for _, w := range warnings {
-		fmt.Fprintln(deps.out, warnStyle.Render("  ⚠ "+w))
-	}
-
-	if len(toolsToInstall) == 0 {
-		fmt.Fprintln(deps.out, "No tools to adopt.")
-		return nil
-	}
-
-	// Show what we're about to do
+// printAdoptPlan shows which tools will be adopted and their details.
+func printAdoptPlan(deps adoptDeps, toolsToInstall []*tooldef.Tool) {
 	infoStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("6"))
 	fmt.Fprintln(deps.out, infoStyle.Render(fmt.Sprintf("\nAdopting %d tool(s) into %s:\n", len(toolsToInstall), deps.cfg.InstallDir)))
 
@@ -204,6 +181,38 @@ func doAdopt(deps adoptDeps, args []string) error {
 		fmt.Fprintf(deps.out, "  • %s %s%s\n", t.Name, t.Version, detail)
 	}
 	fmt.Fprintln(deps.out)
+}
+
+// doAdopt contains the testable adopt logic, separated from Cobra wiring.
+func doAdopt(deps adoptDeps, args []string) error {
+	var toAdopt []string
+	if deps.adoptAll {
+		for name := range deps.detected {
+			toAdopt = append(toAdopt, name)
+		}
+	} else {
+		toAdopt = append(toAdopt, args...)
+	}
+
+	if len(toAdopt) == 0 {
+		fmt.Fprintln(deps.out, "No detected tools to adopt.")
+		return nil
+	}
+
+	toolsToInstall, warnings := resolveAdoptTools(toAdopt, deps)
+
+	// Print warnings
+	warnStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("3"))
+	for _, w := range warnings {
+		fmt.Fprintln(deps.out, warnStyle.Render("  ⚠ "+w))
+	}
+
+	if len(toolsToInstall) == 0 {
+		fmt.Fprintln(deps.out, "No tools to adopt.")
+		return nil
+	}
+
+	printAdoptPlan(deps, toolsToInstall)
 
 	if deps.dryRun {
 		fmt.Fprintln(deps.out, "[dry-run] No changes made.")
@@ -217,16 +226,13 @@ func doAdopt(deps adoptDeps, args []string) error {
 		}
 	}
 
-	// Install tools
 	ctx := context.Background()
 	errs := deps.installer.InstallAll(ctx, toolsToInstall)
 
-	// Save state
 	if err := deps.store.Save(); err != nil {
 		fmt.Fprintf(os.Stderr, "warning: failed to save state: %v\n", err)
 	}
 
-	// Print summary
 	successStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("2"))
 	errorStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("1"))
 

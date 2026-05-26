@@ -9,6 +9,86 @@ import (
 	"github.com/omargallob/devops-starter/internal/state"
 )
 
+// statusCounters tracks the number of tools in each status for the summary line.
+type statusCounters struct {
+	current, outdated, missing, disabled, unknown, detected, unavailable int
+}
+
+// increment adds one to the counter matching the given status.
+func (c *statusCounters) increment(s state.Status) {
+	switch s {
+	case state.StatusCurrent:
+		c.current++
+	case state.StatusOutdated:
+		c.outdated++
+	case state.StatusMissing:
+		c.missing++
+	case state.StatusDisabled:
+		c.disabled++
+	case state.StatusUnknown:
+		c.unknown++
+	case state.StatusDetected:
+		c.detected++
+	case state.StatusUnavailable:
+		c.unavailable++
+	}
+}
+
+// summaryParts returns a formatted summary string from the counters.
+func (c *statusCounters) summaryParts() string {
+	var parts []string
+	if c.current > 0 {
+		parts = append(parts, fmt.Sprintf("%d current", c.current))
+	}
+	if c.detected > 0 {
+		parts = append(parts, fmt.Sprintf("%d detected", c.detected))
+	}
+	if c.outdated > 0 {
+		parts = append(parts, fmt.Sprintf("%d outdated", c.outdated))
+	}
+	if c.missing > 0 {
+		parts = append(parts, fmt.Sprintf("%d missing", c.missing))
+	}
+	if c.disabled > 0 {
+		parts = append(parts, fmt.Sprintf("%d disabled", c.disabled))
+	}
+	if c.unknown > 0 {
+		parts = append(parts, fmt.Sprintf("%d unknown", c.unknown))
+	}
+	if c.unavailable > 0 {
+		parts = append(parts, fmt.Sprintf("%d unavailable", c.unavailable))
+	}
+	return strings.Join(parts, ", ")
+}
+
+// formatToolRow formats a single tool's columns for table output.
+func formatToolRow(t *state.ToolState) (installed, desired, source string) {
+	installed = t.InstalledVersion
+	if installed == "" {
+		installed = "-"
+	}
+	if t.Status == state.StatusDetected {
+		installed = "(system)"
+	}
+
+	desired = t.DesiredVersion
+	if t.Status == state.StatusDisabled {
+		desired = "-"
+	}
+	if t.Status == state.StatusUnavailable {
+		desired = "n/a"
+	}
+
+	source = string(t.Source)
+	if source == "" {
+		source = "-"
+	}
+	if t.Source == state.SourceSystem && t.DetectedPath != "" {
+		source = fmt.Sprintf("system (%s)", t.DetectedPath)
+	}
+	return
+}
+
 // PrintTable writes a non-interactive plain-text status table to the given writer.
 // Suitable for CI, scripting, or piping to other tools.
 func PrintTable(w io.Writer, groups []state.GroupState) {
@@ -17,87 +97,26 @@ func PrintTable(w io.Writer, groups []state.GroupState) {
 		"GROUP", "TOOL", "INSTALLED", "DESIRED", "SOURCE", "STATUS")
 	fmt.Fprintf(w, "%s\n", strings.Repeat("─", 86))
 
-	// Counters for summary
-	var current, outdated, missing, disabled, unknown, detected, unavailable int
+	var counters statusCounters
 
-	for _, g := range groups {
+	for gi := range groups {
+		g := &groups[gi]
 		currentSubgroup := ""
-		for _, t := range g.Tools {
-			// Insert subgroup separator row when it changes
+		for ti := range g.Tools {
+			t := &g.Tools[ti]
 			if t.Subgroup != "" && t.Subgroup != currentSubgroup {
 				currentSubgroup = t.Subgroup
 				fmt.Fprintf(w, "%-14s ── %s ──\n", g.Name, currentSubgroup)
 			}
 
-			installed := t.InstalledVersion
-			if installed == "" {
-				installed = "-"
-			}
-			if t.Status == state.StatusDetected {
-				installed = "(system)"
-			}
-
-			desired := t.DesiredVersion
-			if t.Status == state.StatusDisabled {
-				desired = "-"
-			}
-			if t.Status == state.StatusUnavailable {
-				desired = "n/a"
-			}
-
-			source := string(t.Source)
-			if source == "" {
-				source = "-"
-			}
-			if t.Source == state.SourceSystem && t.DetectedPath != "" {
-				source = fmt.Sprintf("system (%s)", t.DetectedPath)
-			}
-
+			installed, desired, source := formatToolRow(t)
 			fmt.Fprintf(w, "%-14s %-18s %-12s %-12s %-10s %s\n",
 				g.Name, t.Name, installed, desired, source, t.Status.String())
-
-			switch t.Status {
-			case state.StatusCurrent:
-				current++
-			case state.StatusOutdated:
-				outdated++
-			case state.StatusMissing:
-				missing++
-			case state.StatusDisabled:
-				disabled++
-			case state.StatusUnknown:
-				unknown++
-			case state.StatusDetected:
-				detected++
-			case state.StatusUnavailable:
-				unavailable++
-			}
+			counters.increment(t.Status)
 		}
 	}
 
 	// Summary
 	fmt.Fprintf(w, "%s\n", strings.Repeat("─", 86))
-	parts := []string{}
-	if current > 0 {
-		parts = append(parts, fmt.Sprintf("%d current", current))
-	}
-	if detected > 0 {
-		parts = append(parts, fmt.Sprintf("%d detected", detected))
-	}
-	if outdated > 0 {
-		parts = append(parts, fmt.Sprintf("%d outdated", outdated))
-	}
-	if missing > 0 {
-		parts = append(parts, fmt.Sprintf("%d missing", missing))
-	}
-	if disabled > 0 {
-		parts = append(parts, fmt.Sprintf("%d disabled", disabled))
-	}
-	if unknown > 0 {
-		parts = append(parts, fmt.Sprintf("%d unknown", unknown))
-	}
-	if unavailable > 0 {
-		parts = append(parts, fmt.Sprintf("%d unavailable", unavailable))
-	}
-	fmt.Fprintf(w, "Summary: %s\n", strings.Join(parts, ", "))
+	fmt.Fprintf(w, "Summary: %s\n", counters.summaryParts())
 }

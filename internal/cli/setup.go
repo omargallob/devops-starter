@@ -47,7 +47,7 @@ func runSetup(cmd *cobra.Command, args []string) error {
 	// Resolve config path
 	cfgPath := cfgFile
 	if cfgPath == "" {
-		cfgPath = config.ConfigPath()
+		cfgPath = config.Path()
 	}
 
 	// Load existing config (returns defaults if file doesn't exist)

@@ -120,8 +120,8 @@ func NewModel(
 	gm := make([]groupModel, 0, len(groups))
 	for _, g := range groups {
 		tools := make([]toolModel, 0, len(g.Tools))
-		for _, t := range g.Tools {
-			tools = append(tools, toolModel{ToolState: t})
+		for ti := range g.Tools {
+			tools = append(tools, toolModel{ToolState: g.Tools[ti]})
 		}
 		gm = append(gm, groupModel{
 			Name:  g.Name,
@@ -172,7 +172,8 @@ func (m Model) installableToolsInGroup(gi int, onlySelected bool) []*tooldef.Too
 		return nil
 	}
 	var tools []*tooldef.Tool
-	for _, t := range m.groups[gi].Tools {
+	for ti := range m.groups[gi].Tools {
+		t := &m.groups[gi].Tools[ti]
 		if t.Status == state.StatusDisabled || t.Status == state.StatusCurrent {
 			continue
 		}

@@ -7,7 +7,7 @@ import (
 
 // executeCommand constructs a root command, sets the given args, captures
 // stdout/stderr, and returns them along with any error from Execute.
-func executeCommand(t *testing.T, args ...string) (stdout string, stderr string, err error) {
+func executeCommand(t *testing.T, args ...string) (stdout, stderr string, err error) {
 	t.Helper()
 
 	root := NewRootCmd()

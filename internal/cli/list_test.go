@@ -36,7 +36,7 @@ func TestListCmd_RunsWithConfig(t *testing.T) {
 		t.Fatalf("failed to save config: %v", err)
 	}
 
-	// Set XDG_CONFIG_HOME so state.StatePath() points to our temp dir
+	// Set XDG_CONFIG_HOME so state.Path() points to our temp dir
 	xdgDir := filepath.Join(dir, "xdg")
 	if err := os.MkdirAll(filepath.Join(xdgDir, "devops-starter"), 0o755); err != nil {
 		t.Fatalf("failed to create xdg dir: %v", err)
@@ -76,7 +76,7 @@ func TestListCmd_NoToolsForDisabledGroups(t *testing.T) {
 		t.Fatalf("failed to save config: %v", err)
 	}
 
-	// Set XDG_CONFIG_HOME so state.StatePath() points to our temp dir
+	// Set XDG_CONFIG_HOME so state.Path() points to our temp dir
 	xdgDir := filepath.Join(dir, "xdg")
 	if err := os.MkdirAll(filepath.Join(xdgDir, "devops-starter"), 0o755); err != nil {
 		t.Fatalf("failed to create xdg dir: %v", err)
@@ -108,7 +108,7 @@ func TestListCmd_OutputContainsToolNames(t *testing.T) {
 		t.Fatalf("failed to save config: %v", err)
 	}
 
-	// Set XDG_CONFIG_HOME so state.StatePath() points to our temp dir
+	// Set XDG_CONFIG_HOME so state.Path() points to our temp dir
 	xdgDir := filepath.Join(dir, "xdg")
 	if err := os.MkdirAll(filepath.Join(xdgDir, "devops-starter"), 0o755); err != nil {
 		t.Fatalf("failed to create xdg dir: %v", err)

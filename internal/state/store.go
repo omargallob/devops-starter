@@ -23,8 +23,8 @@ type InstalledTool struct {
 	InstalledAt time.Time `json:"installed_at"`
 }
 
-// StatePath returns the default state file path, respecting XDG_CONFIG_HOME.
-func StatePath() string {
+// Path returns the default state file path, respecting XDG_CONFIG_HOME.
+func Path() string {
 	if xdg := os.Getenv("XDG_CONFIG_HOME"); xdg != "" {
 		return filepath.Join(xdg, "devops-starter", "state.json")
 	}

@@ -14,6 +14,7 @@ import (
 // Distro represents a Linux distribution.
 type Distro string
 
+// Distro identifies a Linux distribution.
 const (
 	DistroUbuntu  Distro = "ubuntu"
 	DistroArch    Distro = "arch"
@@ -31,10 +32,10 @@ type Info struct {
 
 // Detect returns the current platform information.
 func Detect() (*Info, error) {
-	os := normalizeOS(runtime.GOOS)
+	detectedOS := normalizeOS(runtime.GOOS)
 	arch := normalizeArch(runtime.GOARCH)
 
-	if os != "linux" && os != "darwin" {
+	if detectedOS != "linux" && detectedOS != "darwin" {
 		return nil, fmt.Errorf("unsupported operating system: %s", runtime.GOOS)
 	}
 	if arch != "amd64" && arch != "arm64" {
@@ -42,15 +43,15 @@ func Detect() (*Info, error) {
 	}
 
 	info := &Info{
-		OS:   os,
+		OS:   detectedOS,
 		Arch: arch,
 		Platform: tooldef.Platform{
-			OS:   os,
+			OS:   detectedOS,
 			Arch: arch,
 		},
 	}
 
-	if os == "linux" {
+	if detectedOS == "linux" {
 		distro, err := detectDistro()
 		if err != nil {
 			return nil, fmt.Errorf("detecting distro: %w", err)

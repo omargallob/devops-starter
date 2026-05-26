@@ -12,8 +12,8 @@ import (
 )
 
 // Download fetches the given URL and writes it to destPath, showing a progress bar.
-func Download(ctx context.Context, url string, destPath string) error {
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+func Download(ctx context.Context, url, destPath string) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 	if err != nil {
 		return fmt.Errorf("creating request: %w", err)
 	}
