@@ -1,4 +1,4 @@
-load("@rules_go//go:def.bzl", "go_binary", "go_library")
+load("@rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
 
 go_library(
     name = "check-versions_lib",
@@ -15,4 +15,10 @@ go_binary(
     name = "check-versions",
     embed = [":check-versions_lib"],
     visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "check-versions_test",
+    srcs = ["main_test.go"],
+    embed = [":check-versions_lib"],
 )
