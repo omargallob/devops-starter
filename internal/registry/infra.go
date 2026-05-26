@@ -11,6 +11,7 @@ func registerInfra(r *Registry) {
 		Version:     "1.10.4",
 		Description: "Infrastructure as Code",
 		Group:       tooldef.GroupInfra,
+		InstallMode: tooldef.InstallModeEgetURL,
 		Format:      tooldef.FormatZip,
 		URLTemplate: "https://releases.hashicorp.com/terraform/{{.Version}}/terraform_{{.Version}}_{{.OS}}_{{.Arch}}.zip",
 	})
@@ -20,9 +21,10 @@ func registerInfra(r *Registry) {
 		Version:     "1.9.0",
 		Description: "Open-source Terraform alternative",
 		Group:       tooldef.GroupInfra,
-		Format:      tooldef.FormatZip,
+		InstallMode: tooldef.InstallModeEget,
+		Repo:        "opentofu/opentofu",
 		InstallName: "tofu",
-		URLTemplate: "https://github.com/opentofu/opentofu/releases/download/v{{.Version}}/tofu_{{.Version}}_{{.OS}}_{{.Arch}}.zip",
+		Asset:       "tofu_*_{{.OS}}_{{.Arch}}*",
 	})
 
 	r.register(&tooldef.Tool{
@@ -30,6 +32,7 @@ func registerInfra(r *Registry) {
 		Version:     "3.144.1",
 		Description: "Infrastructure as Code SDK",
 		Group:       tooldef.GroupInfra,
+		InstallMode: tooldef.InstallModeCustom,
 		Format:      tooldef.FormatTarGz,
 		BinaryName:  "pulumi/pulumi",
 		URLs: map[string]string{
@@ -45,6 +48,7 @@ func registerInfra(r *Registry) {
 		Version:     "1.11.2",
 		Description: "Machine image builder",
 		Group:       tooldef.GroupInfra,
+		InstallMode: tooldef.InstallModeEgetURL,
 		Format:      tooldef.FormatZip,
 		URLTemplate: "https://releases.hashicorp.com/packer/{{.Version}}/packer_{{.Version}}_{{.OS}}_{{.Arch}}.zip",
 	})
@@ -54,6 +58,7 @@ func registerInfra(r *Registry) {
 		Version:     "1.18.4",
 		Description: "Secrets management",
 		Group:       tooldef.GroupInfra,
+		InstallMode: tooldef.InstallModeEgetURL,
 		Format:      tooldef.FormatZip,
 		URLTemplate: "https://releases.hashicorp.com/vault/{{.Version}}/vault_{{.Version}}_{{.OS}}_{{.Arch}}.zip",
 	})
@@ -63,6 +68,7 @@ func registerInfra(r *Registry) {
 		Version:     "1.20.2",
 		Description: "Service mesh and KV store",
 		Group:       tooldef.GroupInfra,
+		InstallMode: tooldef.InstallModeEgetURL,
 		Format:      tooldef.FormatZip,
 		URLTemplate: "https://releases.hashicorp.com/consul/{{.Version}}/consul_{{.Version}}_{{.OS}}_{{.Arch}}.zip",
 	})

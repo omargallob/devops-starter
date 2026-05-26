@@ -18,26 +18,19 @@ const (
 // RegisterMiseTools after .mise.toml discovery.
 func registerLanguages(r *Registry) {
 	r.register(&tooldef.Tool{
-		Name:            "mise",
-		Version:         "2025.1.6",
-		Description:     "Polyglot runtime manager (formerly rtx)",
-		Group:           tooldef.GroupLanguages,
-		Subgroup:        SubgroupPlatforms,
-		Format:          tooldef.FormatTarGz,
-		BinaryName:      "mise",
-		StripComponents: 2,
-		URLs: map[string]string{
-			"linux/amd64":  "https://github.com/jdx/mise/releases/download/v2025.1.6/mise-v2025.1.6-linux-x64.tar.gz",
-			"linux/arm64":  "https://github.com/jdx/mise/releases/download/v2025.1.6/mise-v2025.1.6-linux-arm64.tar.gz",
-			"darwin/amd64": "https://github.com/jdx/mise/releases/download/v2025.1.6/mise-v2025.1.6-macos-x64.tar.gz",
-			"darwin/arm64": "https://github.com/jdx/mise/releases/download/v2025.1.6/mise-v2025.1.6-macos-arm64.tar.gz",
-		},
+		Name:        "mise",
+		Version:     "2025.1.6",
+		Description: "Polyglot runtime manager (formerly rtx)",
+		Group:       tooldef.GroupLanguages,
+		Subgroup:    SubgroupPlatforms,
+		InstallMode: tooldef.InstallModeEget,
+		Repo:        "jdx/mise",
 	})
 }
 
 // RegisterMiseTools dynamically registers all tools found in a mise.ToolVersions
 // map (parsed from .mise.toml) into the languages group. Each tool is marked
-// as ManagedBy "mise" with a dependency on the mise binary.
+// with InstallModeMise and a dependency on the mise binary.
 func (r *Registry) RegisterMiseTools(versions mise.ToolVersions) {
 	for name, version := range versions {
 		// Skip if a tool with this name is already registered (e.g., "mise" itself,
@@ -52,7 +45,8 @@ func (r *Registry) RegisterMiseTools(versions mise.ToolVersions) {
 			Description:  mise.DescriptionFor(name),
 			Group:        tooldef.GroupLanguages,
 			Subgroup:     SubgroupLanguages,
-			ManagedBy:    "mise",
+			InstallMode:  tooldef.InstallModeMise,
+			ManagedBy:    "mise", // kept for backward compat during migration
 			Dependencies: []string{"mise"},
 		})
 	}

@@ -11,6 +11,7 @@ func registerContainers(r *Registry) {
 		Version:     "27.5.1",
 		Description: "Container runtime CLI",
 		Group:       tooldef.GroupContainers,
+		InstallMode: tooldef.InstallModeCustom,
 		Format:      tooldef.FormatTarGz,
 		BinaryName:  "docker/docker",
 		URLs: map[string]string{
@@ -26,13 +27,8 @@ func registerContainers(r *Registry) {
 		Version:     "2.32.4",
 		Description: "Docker Compose plugin",
 		Group:       tooldef.GroupContainers,
-		Format:      tooldef.FormatBinary,
-		URLs: map[string]string{
-			"linux/amd64":  "https://github.com/docker/compose/releases/download/v2.32.4/docker-compose-linux-x86_64",
-			"linux/arm64":  "https://github.com/docker/compose/releases/download/v2.32.4/docker-compose-linux-aarch64",
-			"darwin/amd64": "https://github.com/docker/compose/releases/download/v2.32.4/docker-compose-darwin-x86_64",
-			"darwin/arm64": "https://github.com/docker/compose/releases/download/v2.32.4/docker-compose-darwin-aarch64",
-		},
+		InstallMode: tooldef.InstallModeEget,
+		Repo:        "docker/compose",
 	})
 
 	r.register(&tooldef.Tool{
@@ -40,8 +36,9 @@ func registerContainers(r *Registry) {
 		Version:     "2.0.3",
 		Description: "containerd CLI",
 		Group:       tooldef.GroupContainers,
-		Format:      tooldef.FormatTarGz,
-		URLTemplate: "https://github.com/containerd/nerdctl/releases/download/v{{.Version}}/nerdctl-{{.Version}}-{{.OS}}-{{.Arch}}.tar.gz",
+		InstallMode: tooldef.InstallModeEget,
+		Repo:        "containerd/nerdctl",
+		Asset:       "nerdctl-*-{{.OS}}-{{.Arch}}*",
 		Platforms: []tooldef.Platform{
 			{OS: "linux", Arch: "amd64"},
 			{OS: "linux", Arch: "arm64"},
