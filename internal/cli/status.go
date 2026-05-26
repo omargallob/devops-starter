@@ -48,7 +48,7 @@ func runStatus(cmd *cobra.Command, args []string) error {
 	// Load config
 	cfgPath := cfgFile
 	if cfgPath == "" {
-		cfgPath = config.ConfigPath()
+		cfgPath = config.Path()
 	}
 	cfg, err := config.Load(cfgPath)
 	if err != nil {
@@ -56,7 +56,7 @@ func runStatus(cmd *cobra.Command, args []string) error {
 	}
 
 	// Load state store
-	store, err := state.LoadStore(state.StatePath())
+	store, err := state.LoadStore(state.Path())
 	if err != nil {
 		return fmt.Errorf("loading state: %w", err)
 	}

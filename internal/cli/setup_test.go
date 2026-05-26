@@ -16,19 +16,20 @@ func TestSetupCmd_Exists(t *testing.T) {
 	// Find setup in subcommands
 	var found bool
 	for _, cmd := range root.Commands() {
-		if cmd.Use == "setup" {
-			found = true
-			if cmd.Short == "" {
-				t.Error("setup command should have a Short description")
-			}
-			if cmd.Long == "" {
-				t.Error("setup command should have a Long description")
-			}
-			if cmd.Example == "" {
-				t.Error("setup command should have an Example")
-			}
-			break
+		if cmd.Use != "setup" {
+			continue
 		}
+		found = true
+		if cmd.Short == "" {
+			t.Error("setup command should have a Short description")
+		}
+		if cmd.Long == "" {
+			t.Error("setup command should have a Long description")
+		}
+		if cmd.Example == "" {
+			t.Error("setup command should have an Example")
+		}
+		break
 	}
 	if !found {
 		t.Fatal("setup command not registered on root")

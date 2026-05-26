@@ -1,6 +1,7 @@
 package installer
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -36,7 +37,7 @@ func TestDownload_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to read downloaded file: %v", err)
 	}
-	if string(got) != string(payload) {
+	if !bytes.Equal(got, payload) {
 		t.Errorf("content mismatch: got %q, want %q", got, payload)
 	}
 }

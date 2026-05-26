@@ -11,6 +11,13 @@ linters:
     - staticcheck
     - unused
     - ineffassign
+    # Code smell detectors
+    - gocritic
+    - revive
+    - cyclop
+    - gocognit
+    - dupl
+    - gosec
   settings:
     errcheck:
       exclude-functions:
@@ -24,6 +31,40 @@ linters:
         - fmt.Fprint
         - fmt.Fprintf
         - fmt.Fprintln
+    cyclop:
+      max-complexity: 15
+    gocritic:
+      enabled-tags:
+        - diagnostic
+        - style
+        - performance
+      disabled-checks:
+        # Bubble Tea models are value receivers by design (tea.Model interface)
+        - hugeParam
+        # Tool registry uses path separators in mapping keys intentionally
+        - filepathJoin
+        # Bubble Tea spinner maps require value copy on iteration (can't address map values)
+        - rangeValCopy
+    gocognit:
+      min-complexity: 40
+    revive:
+      rules:
+        - name: blank-imports
+        - name: exported
+        - name: unreachable-code
+        - name: unused-parameter
+    dupl:
+      threshold: 150
+    gosec:
+      excludes:
+        - G104  # unhandled errors (already covered by errcheck with exclusions)
+        - G204  # subprocess with variable (CLI tool intentionally runs binaries)
+        - G301  # directory permissions (0755 is standard for CLI tools)
+        - G302  # file permissions (0644 is fine for config/dotfiles)
+        - G304  # file inclusion via variable (unavoidable in file-management tool)
+        - G306  # WriteFile permissions (0644 is appropriate for configs/badges)
+        - G703  # path traversal via taint (paths come from config/registry, not user input)
+
   exclusions:
     presets:
       - std-error-handling
@@ -34,6 +75,22 @@ linters:
       - path: _test\.go
         linters:
           - errcheck
+          - gosec
+          - dupl
+      # Registry files are intentionally repetitive (tool definitions)
+      - path: internal/registry/
+        linters:
+          - dupl
+      # Cobra commands have unused cmd/args params by convention
+      - path: internal/cli/
+        linters:
+          - revive
+        text: "unused-parameter: parameter '(cmd|args)'"
+      # HTTP handler test functions conventionally have unused *http.Request param
+      - path: _test\.go
+        linters:
+          - revive
+        text: "unused-parameter"
 
 issues:
   max-issues-per-linter: 0

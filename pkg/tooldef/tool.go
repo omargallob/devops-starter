@@ -12,6 +12,7 @@ package tooldef
 // ArchiveFormat represents the format of a downloaded archive.
 type ArchiveFormat string
 
+// ArchiveFormat identifies the packaging format of a tool download.
 const (
 	FormatTarGz  ArchiveFormat = "tar.gz"
 	FormatTarXz  ArchiveFormat = "tar.xz"
@@ -32,6 +33,7 @@ func (p Platform) String() string {
 // Group categorizes tools by their function.
 type Group string
 
+// Group values enumerate tool categories.
 const (
 	GroupLanguages  Group = "languages"
 	GroupContainers Group = "containers"

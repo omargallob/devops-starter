@@ -61,97 +61,132 @@ func runDoctor(cmd *cobra.Command, args []string) error {
 	return doDoctor(os.Stdout, realDoctorEnv(), doctorFix)
 }
 
-// doDoctor performs a series of health checks. It is extracted for testability.
-func doDoctor(out io.Writer, env doctorEnv, fix bool) error {
+// doctorPrinter holds styled output functions for doctor checks.
+type doctorPrinter struct {
+	out  io.Writer
+	pass func(string)
+	fail func(string)
+	warn func(string)
+	info func(string)
+}
+
+func newDoctorPrinter(out io.Writer) doctorPrinter {
 	passStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("2"))
 	failStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("1"))
 	warnStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("3"))
 	infoStyle := lipgloss.NewStyle().Faint(true)
 
-	pass := func(msg string) {
-		fmt.Fprintln(out, passStyle.Render(fmt.Sprintf("  ✓ %s", msg)))
+	return doctorPrinter{
+		out: out,
+		pass: func(msg string) {
+			fmt.Fprintln(out, passStyle.Render(fmt.Sprintf("  ✓ %s", msg)))
+		},
+		fail: func(msg string) {
+			fmt.Fprintln(out, failStyle.Render(fmt.Sprintf("  ✗ %s", msg)))
+		},
+		warn: func(msg string) {
+			fmt.Fprintln(out, warnStyle.Render(fmt.Sprintf("    ℹ %s", msg)))
+		},
+		info: func(msg string) {
+			fmt.Fprintln(out, infoStyle.Render(fmt.Sprintf("    %s", msg)))
+		},
 	}
-	fail := func(msg string) {
-		fmt.Fprintln(out, failStyle.Render(fmt.Sprintf("  ✗ %s", msg)))
+}
+
+// checkLocalBinExists checks if ~/.local/bin exists, optionally creating it.
+func checkLocalBinExists(env doctorEnv, p doctorPrinter, localBin string, fix bool) (exists, passed bool) {
+	if fi, err := env.stat(localBin); err == nil && fi.IsDir() {
+		p.pass(fmt.Sprintf("%s exists", localBin))
+		return true, true
 	}
-	warn := func(msg string) {
-		fmt.Fprintln(out, warnStyle.Render(fmt.Sprintf("    ℹ %s", msg)))
+
+	p.fail(fmt.Sprintf("%s does not exist", localBin))
+	if fix {
+		if err := env.mkdirAll(localBin, 0o755); err != nil {
+			p.fail(fmt.Sprintf("failed to create %s: %v", localBin, err))
+		} else {
+			p.pass(fmt.Sprintf("created %s", localBin))
+			return true, false
+		}
 	}
-	info := func(msg string) {
-		fmt.Fprintln(out, infoStyle.Render(fmt.Sprintf("    %s", msg)))
+	return false, false
+}
+
+// checkLocalBinInPath checks if ~/.local/bin is in the PATH and handles RC file fixes.
+func checkLocalBinInPath(env doctorEnv, p doctorPrinter, home, localBin string, fix bool) bool {
+	pathEnv := env.getenv("PATH")
+	if strings.Contains(pathEnv, localBin) {
+		p.pass(fmt.Sprintf("%s is in PATH", localBin))
+		return true
 	}
+
+	p.fail(fmt.Sprintf("%s is NOT in PATH", localBin))
+
+	zshrcPath := filepath.Join(home, ".zshrc")
+	rcStatus := evaluateShellRCWith(env.readFile, env.getenv, zshrcPath, localBin)
+
+	switch rcStatus.state {
+	case rcActive:
+		p.warn(fmt.Sprintf("%s is configured in %s (line %d) but not active in current shell",
+			localBin, zshrcPath, rcStatus.line))
+		p.info("Run 'source ~/.zshrc' or open a new terminal to activate")
+	case rcCommented, rcAbsent:
+		if rcStatus.state == rcCommented {
+			p.warn(fmt.Sprintf("Found commented entry in %s (line %d)", zshrcPath, rcStatus.line))
+		} else {
+			p.warn(fmt.Sprintf("%s has no PATH entry for %s", zshrcPath, localBin))
+		}
+		fixOrAdvisePathRC(p, fix, zshrcPath)
+	}
+
+	return false
+}
+
+// fixOrAdvisePathRC either fixes the RC file or prints instructions.
+func fixOrAdvisePathRC(p doctorPrinter, fix bool, zshrcPath string) {
+	if fix {
+		if err := appendPathToRC(zshrcPath); err != nil {
+			p.fail(fmt.Sprintf("failed to update %s: %v", zshrcPath, err))
+		} else {
+			p.pass(fmt.Sprintf("Added 'export PATH=\"$HOME/.local/bin:$PATH\"' to %s", zshrcPath))
+			p.info("Run 'source ~/.zshrc' or open a new terminal to activate")
+		}
+	} else {
+		p.info("Run 'devops-starter doctor --fix' to add it, or manually add:")
+		p.info("  export PATH=\"$HOME/.local/bin:$PATH\"")
+	}
+}
+
+// checkCommandAvailable checks if a command is available in PATH.
+func checkCommandAvailable(env doctorEnv, p doctorPrinter, cmd string) bool {
+	if _, err := env.lookPath(cmd); err == nil {
+		p.pass(fmt.Sprintf("%s is available", cmd))
+		return true
+	}
+	p.fail(fmt.Sprintf("%s is NOT available", cmd))
+	return false
+}
+
+// doDoctor performs a series of health checks. It is extracted for testability.
+func doDoctor(out io.Writer, env doctorEnv, fix bool) error {
+	p := newDoctorPrinter(out)
+	passStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("2"))
+	failStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("1"))
 
 	fmt.Fprintln(out, "System Health Check")
 	fmt.Fprintln(out, "───────────────────")
 
 	allPassed := true
-
-	// Check ~/.local/bin exists
 	home := env.getenv("HOME")
 	localBin := filepath.Join(home, ".local", "bin")
-	localBinExists := false
-	if fi, err := env.stat(localBin); err == nil && fi.IsDir() {
-		pass(fmt.Sprintf("%s exists", localBin))
-		localBinExists = true
-	} else {
-		fail(fmt.Sprintf("%s does not exist", localBin))
-		allPassed = false
 
-		if fix {
-			if err := env.mkdirAll(localBin, 0o755); err != nil {
-				fail(fmt.Sprintf("failed to create %s: %v", localBin, err))
-			} else {
-				pass(fmt.Sprintf("created %s", localBin))
-				localBinExists = true
-			}
-		}
+	localBinExists, passed := checkLocalBinExists(env, p, localBin, fix)
+	if !passed {
+		allPassed = false
 	}
 
-	// Check ~/.local/bin is in PATH
-	pathEnv := env.getenv("PATH")
-	pathOK := strings.Contains(pathEnv, localBin)
-	if pathOK {
-		pass(fmt.Sprintf("%s is in PATH", localBin))
-	} else {
-		fail(fmt.Sprintf("%s is NOT in PATH", localBin))
+	if !checkLocalBinInPath(env, p, home, localBin, fix) {
 		allPassed = false
-
-		// Evaluate shell RC file
-		zshrcPath := filepath.Join(home, ".zshrc")
-		rcStatus := evaluateShellRCWith(env.readFile, env.getenv, zshrcPath, localBin)
-
-		switch rcStatus.state {
-		case rcActive:
-			warn(fmt.Sprintf("%s is configured in %s (line %d) but not active in current shell",
-				localBin, zshrcPath, rcStatus.line))
-			info("Run 'source ~/.zshrc' or open a new terminal to activate")
-		case rcCommented:
-			warn(fmt.Sprintf("Found commented entry in %s (line %d)", zshrcPath, rcStatus.line))
-			if fix {
-				if err := appendPathToRC(zshrcPath); err != nil {
-					fail(fmt.Sprintf("failed to update %s: %v", zshrcPath, err))
-				} else {
-					pass(fmt.Sprintf("Added 'export PATH=\"$HOME/.local/bin:$PATH\"' to %s", zshrcPath))
-					info("Run 'source ~/.zshrc' or open a new terminal to activate")
-				}
-			} else {
-				info("Run 'devops-starter doctor --fix' to add it, or manually add:")
-				info("  export PATH=\"$HOME/.local/bin:$PATH\"")
-			}
-		case rcAbsent:
-			warn(fmt.Sprintf("%s has no PATH entry for %s", zshrcPath, localBin))
-			if fix {
-				if err := appendPathToRC(zshrcPath); err != nil {
-					fail(fmt.Sprintf("failed to update %s: %v", zshrcPath, err))
-				} else {
-					pass(fmt.Sprintf("Added 'export PATH=\"$HOME/.local/bin:$PATH\"' to %s", zshrcPath))
-					info("Run 'source ~/.zshrc' or open a new terminal to activate")
-				}
-			} else {
-				info("Run 'devops-starter doctor --fix' to add it, or manually add:")
-				info("  export PATH=\"$HOME/.local/bin:$PATH\"")
-			}
-		}
 	}
 
 	// Ensure directory exists if --fix and PATH was just added
@@ -160,27 +195,17 @@ func doDoctor(out io.Writer, env doctorEnv, fix bool) error {
 	}
 
 	// Check platform detection works
-	pinfo, err := env.detectPlat()
-	if err == nil {
-		pass(fmt.Sprintf("Platform detected: %s/%s", pinfo.OS, pinfo.Arch))
+	if pinfo, err := env.detectPlat(); err == nil {
+		p.pass(fmt.Sprintf("Platform detected: %s/%s", pinfo.OS, pinfo.Arch))
 	} else {
-		fail(fmt.Sprintf("Platform detection failed: %v", err))
+		p.fail(fmt.Sprintf("Platform detection failed: %v", err))
 		allPassed = false
 	}
 
-	// Check git is available (needed for dotfiles operations)
-	if _, err := env.lookPath("git"); err == nil {
-		pass("git is available")
-	} else {
-		fail("git is NOT available")
+	if !checkCommandAvailable(env, p, "git") {
 		allPassed = false
 	}
-
-	// Check curl is available (needed for bootstrap install script)
-	if _, err := env.lookPath("curl"); err == nil {
-		pass("curl is available")
-	} else {
-		fail("curl is NOT available")
+	if !checkCommandAvailable(env, p, "curl") {
 		allPassed = false
 	}
 
@@ -225,8 +250,7 @@ func evaluateShellRCWith(readFile func(string) ([]byte, error), getenv func(stri
 		targetDir,
 	}
 	if home != "" {
-		patterns = append(patterns, strings.Replace(targetDir, home, "$HOME", 1))
-		patterns = append(patterns, strings.Replace(targetDir, home, "~", 1))
+		patterns = append(patterns, strings.Replace(targetDir, home, "$HOME", 1), strings.Replace(targetDir, home, "~", 1))
 	}
 
 	lines := strings.Split(string(data), "\n")

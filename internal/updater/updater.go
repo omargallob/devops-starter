@@ -92,10 +92,8 @@ func compareVersions(a, b string) int {
 func splitVersion(v string) [3]int {
 	var parts [3]int
 	segments := strings.SplitN(v, ".", 3)
-	for i, s := range segments {
-		if i >= 3 {
-			break
-		}
+	for i := 0; i < len(segments) && i < 3; i++ {
+		s := segments[i]
 		// Parse digits only (stop at first non-digit, e.g. "3-rc1" -> 3)
 		var n int
 		for _, ch := range s {

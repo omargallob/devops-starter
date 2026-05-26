@@ -11,6 +11,7 @@ import (
 // LinkStatus represents the state of a dotfile symlink.
 type LinkStatus int
 
+// LinkStatus represents the state of a dotfile symlink.
 const (
 	StatusLinked   LinkStatus = iota // Symlink exists and points to our file
 	StatusConflict                   // File exists but is not our symlink

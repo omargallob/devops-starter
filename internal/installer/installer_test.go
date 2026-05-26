@@ -3,6 +3,7 @@ package installer
 import (
 	"archive/tar"
 	"archive/zip"
+	"bytes"
 	"compress/gzip"
 	"crypto/sha256"
 	"encoding/hex"
@@ -141,7 +142,7 @@ func TestExtractTarGz(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if string(got) != string(content) {
+	if !bytes.Equal(got, content) {
 		t.Errorf("content mismatch")
 	}
 }
@@ -532,7 +533,7 @@ func TestCopyBinary(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if string(got) != string(content) {
+	if !bytes.Equal(got, content) {
 		t.Errorf("content mismatch")
 	}
 
@@ -688,7 +689,7 @@ func TestExtractTarXz_SkipIfNoXz(t *testing.T) {
 	if err != nil {
 		t.Fatalf("extracted file not found: %v", err)
 	}
-	if string(got) != string(content) {
+	if !bytes.Equal(got, content) {
 		t.Errorf("content mismatch: got %q, want %q", got, content)
 	}
 }

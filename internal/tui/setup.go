@@ -354,15 +354,14 @@ func (m SetupModel) updateProgress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.screen = setupScreenDone
 		return m, nil
 	}
-	switch msg.String() {
-	case "q":
+	if msg.String() == "q" {
 		m.quitting = true
 		return m, tea.Quit
 	}
 	return m, nil
 }
 
-func (m SetupModel) updateDone(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+func (m SetupModel) updateDone(_ tea.KeyMsg) (tea.Model, tea.Cmd) {
 	m.quitting = true
 	return m, tea.Quit
 }
@@ -424,11 +423,12 @@ func (m SetupModel) viewGroups() string {
 		}
 
 		line := fmt.Sprintf("  %s%s %s", cursor, check, g.Name)
-		if i == m.groupCursor {
+		switch {
+		case i == m.groupCursor:
 			b.WriteString(cursorStyle.Render(line))
-		} else if g.Enabled {
+		case g.Enabled:
 			b.WriteString(currentStyle.Render(line))
-		} else {
+		default:
 			b.WriteString(missingStyle.Render(line))
 		}
 		b.WriteString("\n")
@@ -506,11 +506,12 @@ func (m SetupModel) viewDotfiles() string {
 		}
 
 		line := fmt.Sprintf("  %s%s %s", cursor, check, d.Name)
-		if i == m.dotfileCursor {
+		switch {
+		case i == m.dotfileCursor:
 			b.WriteString(cursorStyle.Render(line))
-		} else if d.Enabled {
+		case d.Enabled:
 			b.WriteString(currentStyle.Render(line))
-		} else {
+		default:
 			b.WriteString(missingStyle.Render(line))
 		}
 		b.WriteString("\n")
@@ -644,15 +645,16 @@ func (m SetupModel) viewDone() string {
 	b.WriteString(strings.Repeat("━", w))
 	b.WriteString("\n\n")
 
-	if m.err != nil {
+	switch {
+	case m.err != nil:
 		b.WriteString(errStyle.Render(fmt.Sprintf("  Error: %v", m.err)))
 		b.WriteString("\n\n")
-	} else if m.dryRun {
+	case m.dryRun:
 		b.WriteString(messageStyle.Render("  [dry-run] Setup complete (no changes made)"))
 		b.WriteString("\n\n")
 		b.WriteString("  To apply, run without --dry-run:\n")
 		b.WriteString("    devops-starter setup\n\n")
-	} else {
+	default:
 		b.WriteString(messageStyle.Render("  ✓ Configuration saved!"))
 		b.WriteString("\n\n")
 		b.WriteString("  Next steps:\n")
@@ -715,9 +717,8 @@ func (m SetupModel) handleSetupInstallComplete(msg setupInstallCompleteMsg) (tea
 func (m SetupModel) handleSetupSpinnerTick(msg spinner.TickMsg) (tea.Model, tea.Cmd) {
 	var cmds []tea.Cmd
 	for name, s := range m.spinners {
-		var cmd tea.Cmd
-		s, cmd = s.Update(msg)
-		m.spinners[name] = s
+		updated, cmd := s.Update(msg)
+		m.spinners[name] = updated
 		if cmd != nil {
 			cmds = append(cmds, cmd)
 		}
@@ -731,7 +732,7 @@ func (m SetupModel) handleSetupSpinnerTick(msg spinner.TickMsg) (tea.Model, tea.
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 // checkInstallDirInPath checks if the given directory is present in $PATH.
-func checkInstallDirInPath(dir string) (bool, string) {
+func checkInstallDirInPath(dir string) (found bool, absPath string) {
 	pathEnv := os.Getenv("PATH")
 	paths := filepath.SplitList(pathEnv)
 
