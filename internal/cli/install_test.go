@@ -58,11 +58,13 @@ func (r *fakeRegistry) Names() []string {
 // fakeInstaller implements ToolInstaller for testing.
 type fakeInstaller struct {
 	installed []*tooldef.Tool
-	failTools map[string]error // tool names that should fail
+	linked    map[string]string // toolName -> systemPath
+	failTools map[string]error  // tool names that should fail
 }
 
 func newFakeInstaller() *fakeInstaller {
 	return &fakeInstaller{
+		linked:    make(map[string]string),
 		failTools: make(map[string]error),
 	}
 }
@@ -95,6 +97,11 @@ func (fi *fakeInstaller) IsInstalled(tool *tooldef.Tool) bool {
 }
 
 func (fi *fakeInstaller) EnsureDir() error {
+	return nil
+}
+
+func (fi *fakeInstaller) Link(tool *tooldef.Tool, systemPath string) error {
+	fi.linked[tool.Name] = systemPath
 	return nil
 }
 

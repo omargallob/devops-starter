@@ -19,6 +19,7 @@ var (
 	disabledStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("1"))
 	unknownStyle  = lipgloss.NewStyle().Faint(true)
 	detectedStyle = lipgloss.NewStyle().Foreground(lipgloss.Color("5")) // magenta/purple for system-installed
+	linkedStyle   = lipgloss.NewStyle().Foreground(lipgloss.Color("6")) // cyan for symlinked tools
 	cursorStyle   = lipgloss.NewStyle().Background(lipgloss.Color("236"))
 	helpStyle     = lipgloss.NewStyle().Faint(true)
 	helpKeyStyle  = lipgloss.NewStyle().Foreground(lipgloss.Color("6")).Bold(true) // cyan+bold for keybinds
@@ -181,7 +182,7 @@ func (m Model) renderGroupRow(i int, g groupModel) string {
 		if t.Status != state.StatusDisabled {
 			total++
 		}
-		if t.Status == state.StatusCurrent || t.Status == state.StatusOutdated || t.Status == state.StatusUnknown || t.Status == state.StatusDetected {
+		if t.Status == state.StatusCurrent || t.Status == state.StatusOutdated || t.Status == state.StatusUnknown || t.Status == state.StatusDetected || t.Status == state.StatusLinked {
 			installed++
 		}
 	}
@@ -509,6 +510,8 @@ func toolStatusIconStyle(s state.Status) (string, lipgloss.Style) {
 		return "?", unknownStyle
 	case state.StatusDetected:
 		return "~", detectedStyle
+	case state.StatusLinked:
+		return "⇢", linkedStyle
 	case state.StatusUnavailable:
 		return "⊘", dimStyle
 	default:
@@ -531,6 +534,12 @@ func toolVersionInfo(t toolModel) string {
 		return fmt.Sprintf("%-10s ?  %-10s", "???", t.DesiredVersion)
 	case state.StatusDetected:
 		return fmt.Sprintf("%-10s ~  %-10s", "(system)", t.DesiredVersion)
+	case state.StatusLinked:
+		ver := t.DetectedVersion
+		if ver == "" {
+			ver = "(system)"
+		}
+		return fmt.Sprintf("%-10s ⇢  %-10s", ver, t.DesiredVersion)
 	case state.StatusUnavailable:
 		return fmt.Sprintf("%-10s    %-10s", "-", "n/a")
 	default:
@@ -543,10 +552,16 @@ func toolSourceLabel(t toolModel) string {
 	switch {
 	case t.Status == state.StatusUnavailable:
 		return "[not available on this platform — install manually or use Docker]"
+	case t.Status == state.StatusLinked:
+		return fmt.Sprintf("[linked: %s]", t.DetectedPath)
 	case t.Source == state.SourceMise:
 		return "[mise]"
 	case t.Source == state.SourceSystem:
-		return fmt.Sprintf("[system: %s]", t.DetectedPath)
+		label := fmt.Sprintf("[system: %s]", t.DetectedPath)
+		if t.ConflictPolicy != "" {
+			label = fmt.Sprintf("[system: %s → %s]", t.DetectedPath, t.ConflictPolicy)
+		}
+		return label
 	case t.Source == state.SourceManaged:
 		return "[managed]"
 	default:

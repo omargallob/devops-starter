@@ -18,6 +18,7 @@ func TestStatus_String(t *testing.T) {
 		{StatusDisabled, "disabled"},
 		{StatusUnknown, "unknown"},
 		{StatusDetected, "detected"},
+		{StatusLinked, "linked"},
 		{StatusUnavailable, "unavailable"},
 		{Status(99), "unknown"},
 	}
@@ -335,6 +336,77 @@ func TestResolveAll_DetectedStatus(t *testing.T) {
 	}
 	// This test is environment-dependent; if we have any of the tools in PATH, we should find them
 	_ = foundDetected // just verifying no panics; actual detection depends on environment
+}
+
+func TestResolveAll_LinkedStatus(t *testing.T) {
+	cfg := config.DefaultConfig()
+	plat := tooldef.Platform{OS: "linux", Arch: "amd64"}
+	store := &Store{Tools: map[string]InstalledTool{}}
+
+	// First, find a tool that is detected (binary exists in PATH)
+	groups := ResolveAll(cfg, store, plat)
+	var detectedTool string
+	for _, g := range groups {
+		for _, ts := range g.Tools {
+			if ts.Status == StatusDetected && ts.Tool != nil && ts.Tool.ManagedBy == "" {
+				detectedTool = ts.Name
+				break
+			}
+		}
+		if detectedTool != "" {
+			break
+		}
+	}
+	if detectedTool == "" {
+		t.Skip("no tools detected in PATH on this system; cannot test linked status")
+	}
+
+	// Now set conflict=link override for that tool and re-resolve
+	cfg.Overrides = map[string]config.ToolOverride{
+		detectedTool: {Conflict: "link"},
+	}
+
+	groups = ResolveAll(cfg, store, plat)
+	for _, g := range groups {
+		for _, ts := range g.Tools {
+			if ts.Name == detectedTool {
+				if ts.Status != StatusLinked {
+					t.Errorf("tool %s: expected StatusLinked, got %s", ts.Name, ts.Status.String())
+				}
+				if ts.Source != SourceSystem {
+					t.Errorf("tool %s: expected Source=system, got %q", ts.Name, ts.Source)
+				}
+				if ts.ConflictPolicy != "link" {
+					t.Errorf("tool %s: expected ConflictPolicy=link, got %q", ts.Name, ts.ConflictPolicy)
+				}
+				return
+			}
+		}
+	}
+	t.Fatalf("tool %s not found in resolved groups", detectedTool)
+}
+
+func TestResolveTool_ConflictPolicyPropagated(t *testing.T) {
+	cfg := config.DefaultConfig()
+	cfg.Overrides = map[string]config.ToolOverride{
+		"kubectl": {Conflict: "skip"},
+	}
+	store := &Store{Tools: map[string]InstalledTool{}}
+	plat := tooldef.Platform{OS: "linux", Arch: "amd64"}
+
+	tool := &tooldef.Tool{
+		Name:    "kubectl",
+		Version: "1.30.0",
+		Group:   "kubernetes",
+		Platforms: []tooldef.Platform{
+			{OS: "linux", Arch: "amd64"},
+		},
+	}
+
+	ts := resolveTool(tool, cfg, store, plat)
+	if ts.ConflictPolicy != "skip" {
+		t.Errorf("expected ConflictPolicy=skip, got %q", ts.ConflictPolicy)
+	}
 }
 
 func TestResolveAll_SourceManaged(t *testing.T) {

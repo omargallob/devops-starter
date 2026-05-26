@@ -6,8 +6,10 @@ go_library(
         "archive.go",
         "bootstrap.go",
         "checksum.go",
+        "conflict.go",
         "eget.go",
         "installer.go",
+        "link.go",
         "progress.go",
         "url.go",
     ],
@@ -17,6 +19,7 @@ go_library(
         "//internal:__subpackages__",
     ],
     deps = [
+        "//internal/config",
         "//internal/state",
         "//pkg/tooldef",
         "@com_github_schollz_progressbar_v3//:progressbar",
@@ -26,12 +29,15 @@ go_library(
 go_test(
     name = "installer_test",
     srcs = [
+        "conflict_test.go",
         "installer_e2e_test.go",
         "installer_test.go",
+        "link_test.go",
         "progress_test.go",
     ],
     embed = [":installer"],
     deps = [
+        "//internal/config",
         "//internal/state",
         "//pkg/tooldef",
     ],

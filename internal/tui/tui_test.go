@@ -684,6 +684,106 @@ func TestPrintTable_SourceColumn(t *testing.T) {
 	}
 }
 
+func TestPrintTable_LinkedAndConflict(t *testing.T) {
+	groups := []state.GroupState{
+		{
+			Name: "infra",
+			Tools: []state.ToolState{
+				{
+					Name:            "terraform",
+					DesiredVersion:  "1.9.0",
+					DetectedVersion: "1.8.5",
+					Status:          state.StatusLinked,
+					Source:          state.SourceSystem,
+					DetectedPath:    "/usr/local/bin/terraform",
+					ConflictPolicy:  "link",
+				},
+				{
+					Name:            "vault",
+					DesiredVersion:  "1.17.0",
+					DetectedVersion: "1.16.0",
+					Status:          state.StatusDetected,
+					Source:          state.SourceSystem,
+					DetectedPath:    "/usr/local/bin/vault",
+					ConflictPolicy:  "skip",
+				},
+				{
+					Name:           "consul",
+					DesiredVersion: "1.19.0",
+					Status:         state.StatusDetected,
+					Source:         state.SourceSystem,
+					DetectedPath:   "/usr/local/bin/consul",
+					ConflictPolicy: "overwrite",
+				},
+			},
+		},
+	}
+
+	var buf bytes.Buffer
+	PrintTable(&buf, groups)
+	output := buf.String()
+
+	// Linked tool should show "linked" source
+	if !strings.Contains(output, "linked") {
+		t.Error("output should contain 'linked' for a StatusLinked tool")
+	}
+	if !strings.Contains(output, "/usr/local/bin/terraform") {
+		t.Error("output should show detected path for linked tool")
+	}
+
+	// Conflict policy should appear for system-detected tools with policy set
+	if !strings.Contains(output, "[skip]") {
+		t.Error("output should show [skip] conflict policy for vault")
+	}
+	if !strings.Contains(output, "[overwrite]") {
+		t.Error("output should show [overwrite] conflict policy for consul")
+	}
+
+	// Summary should count linked tools
+	if !strings.Contains(output, "1 linked") {
+		t.Error("summary should show 1 linked")
+	}
+	if !strings.Contains(output, "2 detected") {
+		t.Error("summary should show 2 detected")
+	}
+}
+
+func TestModel_ViewToolsLinkedLabel(t *testing.T) {
+	groups := []state.GroupState{
+		{
+			Name: "infra",
+			Tools: []state.ToolState{
+				{
+					Name:            "terraform",
+					Group:           "infra",
+					Description:     "Infrastructure as code",
+					DesiredVersion:  "1.9.0",
+					DetectedVersion: "1.8.5",
+					Status:          state.StatusLinked,
+					Source:          state.SourceSystem,
+					DetectedPath:    "/usr/local/bin/terraform",
+					ConflictPolicy:  "link",
+					Tool:            &tooldef.Tool{Name: "terraform", Version: "1.9.0"},
+				},
+			},
+		},
+	}
+
+	cfg := config.DefaultConfig()
+	store := &state.Store{Tools: map[string]state.InstalledTool{}}
+	plat := tooldef.Platform{OS: "linux", Arch: "amd64"}
+	m := NewModel(groups, cfg, nil, store, plat, "/usr/local/bin", "0.1.4")
+	m.width = 120
+	m.screen = screenTools
+	m.selectedGroup = 0
+
+	view := m.View()
+
+	if !strings.Contains(view, "[linked: /usr/local/bin/terraform]") {
+		t.Error("tool view should show [linked: /path] label for linked tools")
+	}
+}
+
 // ─── Tests for dev_version.go ────────────────────────────────────────────────
 
 func TestDevVersionLabel(t *testing.T) {

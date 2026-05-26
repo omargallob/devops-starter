@@ -15,6 +15,7 @@ type ToolInstaller interface {
 	InstallAll(ctx context.Context, tools []*tooldef.Tool) []error
 	IsInstalled(tool *tooldef.Tool) bool
 	EnsureDir() error
+	Link(tool *tooldef.Tool, systemPath string) error
 }
 
 // ToolRegistry defines the interface for looking up tools.
