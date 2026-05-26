@@ -69,8 +69,25 @@ func TestAllToolsHaveRequiredFields(t *testing.T) {
 		if tool.Group == "" {
 			t.Fatalf("tool %s has empty group", tool.Name)
 		}
-		if tool.URLTemplate == "" && len(tool.URLs) == 0 && tool.ManagedBy == "" {
-			t.Fatalf("tool %s has neither URLTemplate nor URLs (and is not externally managed)", tool.Name)
+
+		mode := tool.EffectiveInstallMode()
+		switch mode {
+		case tooldef.InstallModeEget:
+			if tool.Repo == "" {
+				t.Fatalf("tool %s has InstallMode=eget but no Repo", tool.Name)
+			}
+		case tooldef.InstallModeEgetURL:
+			if tool.URLTemplate == "" && len(tool.URLs) == 0 {
+				t.Fatalf("tool %s has InstallMode=eget-url but no URLTemplate or URLs", tool.Name)
+			}
+		case tooldef.InstallModeCustom:
+			if tool.URLTemplate == "" && len(tool.URLs) == 0 {
+				t.Fatalf("tool %s has InstallMode=custom but no URLTemplate or URLs", tool.Name)
+			}
+		case tooldef.InstallModeMise:
+			// No URL needed for mise-managed tools.
+		default:
+			t.Fatalf("tool %s has unknown InstallMode %q", tool.Name, mode)
 		}
 	}
 }
@@ -105,8 +122,11 @@ func TestAllToolsHaveValidFormat(t *testing.T) {
 
 	reg := New()
 	for _, tool := range reg.All() {
-		if tool.ManagedBy != "" {
-			continue // managed tools don't have a download format
+		mode := tool.EffectiveInstallMode()
+		// eget-mode and mise-managed tools don't require a format —
+		// eget auto-detects the archive type from the release asset.
+		if mode == tooldef.InstallModeEget || mode == tooldef.InstallModeMise {
+			continue
 		}
 		if !validFormats[tool.Format] {
 			t.Errorf("tool %s has invalid format %q", tool.Name, tool.Format)

@@ -10,6 +10,8 @@ An opinionated, cross-platform DevOps tool installer and dotfile manager.
 Downloads and installs 61 pre-built CLI binaries (no package manager required) and manages shell/editor configuration via symlinks.
 One command to bootstrap a fully-configured development workstation.
 
+Powered by [eget](https://github.com/zyedidia/eget) for reliable binary downloads from GitHub releases.
+
 ---
 
 ## Table of Contents
@@ -19,6 +21,7 @@ One command to bootstrap a fully-configured development workstation.
 - [Build from Source](#build-from-source)
 - [Usage](#usage)
 - [Configuration](#configuration)
+- [How Installation Works](#how-installation-works)
 - [Tool Catalog](#tool-catalog)
 - [Dotfiles](#dotfiles)
 - [Project Structure](#project-structure)
@@ -33,8 +36,8 @@ different package managers, outdated repos, manual binary downloads, and scatter
 
 **devops-starter** solves this by:
 
-1. Downloading tools **directly from upstream releases** -- no Homebrew, apt, or pacman needed.
-2. Verifying every download with **SHA256 checksums**.
+1. Using [**eget**](https://github.com/zyedidia/eget) to download tools **directly from upstream releases** -- no Homebrew, apt, or pacman needed.
+2. Verifying downloads with **SHA256 checksums** (via eget or built-in verification).
 3. Running downloads **concurrently** with progress bars.
 4. Managing **dotfiles** (shell, git, tmux, starship, Neovim) via symlinks with automatic backup.
 5. Providing a single **YAML config** to control everything.
@@ -216,6 +219,73 @@ overrides:
 
 Run `devops-starter config init` to generate the default config.
 
+## How Installation Works
+
+devops-starter uses [eget](https://github.com/zyedidia/eget) under the hood to handle binary downloads, archive extraction, and platform detection. eget is automatically bootstrapped on first run if not already present.
+
+Every tool in the catalog has an **InstallMode** that determines how it is installed:
+
+### Install Modes
+
+| Mode | Description | Used by |
+|------|-------------|---------|
+| `eget` | Downloads from a GitHub release using `eget <owner/repo>`. eget automatically detects the correct asset for your OS/architecture and extracts the binary. | 53 tools (k9s, fzf, ripgrep, lazygit, gh, etc.) |
+| `eget-url` | Downloads from a direct URL using `eget <url>`. Used for tools hosted outside GitHub releases but still downloadable as a single archive or binary. | 8 tools (kubectl, helm, terraform, vault, consul, packer, age, firebase-cli) |
+| `custom` | Uses a legacy download/extract pipeline for tools that require post-install scripts or produce multiple binaries. | 5 tools (aws-cli, azure-cli, gcloud-cli, docker, pulumi) |
+| `mise` | Delegates entirely to [mise](https://mise.jdx.dev/) for language runtime management. | Dynamic (from `.mise.toml`: go, python, node, etc.) |
+
+### How eget mode works
+
+For tools using `eget` mode, the installer runs:
+
+```
+eget <owner/repo> --tag v<version> --to <install-dir> [--asset <pattern>] [--file <binary>] [-q]
+```
+
+eget handles:
+- Matching the correct release asset for your OS and architecture
+- Downloading with HTTPS
+- Extracting tar.gz, tar.xz, zip archives (or placing raw binaries)
+- Finding the correct binary inside nested archive directories
+
+### How eget-url mode works
+
+For tools not on GitHub (HashiCorp CDN, dl.k8s.io, etc.), the URL is resolved via a Go template and passed to eget:
+
+```
+eget <resolved-url> --to <install-dir> [--file <binary>] [-q]
+```
+
+### How custom mode works
+
+For the 5 tools requiring special handling (post-install scripts, multi-binary archives), devops-starter falls back to its built-in pipeline: download, verify checksum, extract archive, run post-install command.
+
+### Adding a new tool
+
+When adding a tool to the registry, set the appropriate `InstallMode`:
+
+```go
+// GitHub release (most common)
+&tooldef.Tool{
+    Name:        "mytool",
+    Version:     "1.2.3",
+    InstallMode: tooldef.InstallModeEget,
+    Repo:        "owner/mytool",
+    Asset:       "*linux*",  // optional: narrow asset selection
+}
+
+// Direct URL (non-GitHub CDN)
+&tooldef.Tool{
+    Name:        "mytool",
+    Version:     "1.2.3",
+    InstallMode: tooldef.InstallModeEgetURL,
+    Format:      tooldef.FormatZip,
+    URLTemplate: "https://releases.example.com/mytool/{{.Version}}/mytool_{{.OS}}_{{.Arch}}.zip",
+}
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md#adding-a-new-tool) for the full guide.
+
 ## Tool Catalog
 
 61 tools across 7 groups:
@@ -273,13 +343,13 @@ internal/
   cli/                    Cobra commands: setup, install, list, adopt, remove, status, dotfiles, doctor, config
   config/                 YAML configuration loading/saving
   dotfiles/               Symlink manager with backup/restore
-  installer/              Download, checksum, archive extraction, install orchestration
+  installer/              Install orchestration: eget backend, bootstrap, and legacy custom pipeline
   platform/               OS/arch/distro detection
-  registry/               Tool definitions organised by group
+  registry/               Tool definitions organised by group (with InstallMode annotations)
   state/                  Persistent state store for managed tools
   tui/                    Bubbletea interactive UI (full-screen, status bar, update check)
   updater/                Async update checker (GitHub Releases API)
-pkg/tooldef/              Public types: Tool, Platform, Group, ArchiveFormat
+pkg/tooldef/              Public types: Tool, Platform, Group, ArchiveFormat, InstallMode
 configs/                  Default config template
 docs/                     Documentation (setup wizard walkthrough, etc.)
 dotfiles/                 Managed dotfiles (shell, git, tmux, starship, nvim)

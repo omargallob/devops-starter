@@ -1,5 +1,8 @@
 // url.go resolves download URLs for tools using platform-specific overrides
 // or Go text/template rendering against the tool's URLTemplate field.
+//
+// NOTE: This file is now only used by InstallModeCustom and InstallModeEgetURL
+// tools. The majority of tools use eget's built-in release asset resolution.
 package installer
 
 import (

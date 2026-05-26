@@ -11,6 +11,7 @@ func registerCloud(r *Registry) {
 		Version:     "2.22.35",
 		Description: "AWS Command Line Interface",
 		Group:       tooldef.GroupCloud,
+		InstallMode: tooldef.InstallModeCustom,
 		Format:      tooldef.FormatZip,
 		InstallName: "aws",
 		PostInstall: "./aws/install --install-dir ~/.local/aws-cli --bin-dir ~/.local/bin",
@@ -27,6 +28,7 @@ func registerCloud(r *Registry) {
 		Version:     "2.67.0",
 		Description: "Microsoft Azure Command Line Interface",
 		Group:       tooldef.GroupCloud,
+		InstallMode: tooldef.InstallModeCustom,
 		Format:      tooldef.FormatZip,
 		InstallName: "az",
 		PostInstall: "python3 -m pip install --quiet --prefix ~/.local azure-cli==${VERSION}",
@@ -43,6 +45,7 @@ func registerCloud(r *Registry) {
 		Version:     "503.0.0",
 		Description: "Google Cloud SDK CLI",
 		Group:       tooldef.GroupCloud,
+		InstallMode: tooldef.InstallModeCustom,
 		Format:      tooldef.FormatTarGz,
 		InstallName: "gcloud",
 		PostInstall: "./google-cloud-sdk/install.sh --quiet --usage-reporting false --path-update false --command-completion false && ln -sf $(pwd)/google-cloud-sdk/bin/gcloud ~/.local/bin/gcloud && ln -sf $(pwd)/google-cloud-sdk/bin/gsutil ~/.local/bin/gsutil",
@@ -59,6 +62,7 @@ func registerCloud(r *Registry) {
 		Version:     "13.29.1",
 		Description: "Firebase Command Line Interface",
 		Group:       tooldef.GroupCloud,
+		InstallMode: tooldef.InstallModeEgetURL,
 		Format:      tooldef.FormatBinary,
 		InstallName: "firebase",
 		URLs: map[string]string{
@@ -74,12 +78,7 @@ func registerCloud(r *Registry) {
 		Version:     "0.198.0",
 		Description: "Amazon EKS CLI",
 		Group:       tooldef.GroupCloud,
-		Format:      tooldef.FormatTarGz,
-		URLs: map[string]string{
-			"linux/amd64":  "https://github.com/eksctl-io/eksctl/releases/download/v0.198.0/eksctl_Linux_amd64.tar.gz",
-			"linux/arm64":  "https://github.com/eksctl-io/eksctl/releases/download/v0.198.0/eksctl_Linux_arm64.tar.gz",
-			"darwin/amd64": "https://github.com/eksctl-io/eksctl/releases/download/v0.198.0/eksctl_Darwin_amd64.tar.gz",
-			"darwin/arm64": "https://github.com/eksctl-io/eksctl/releases/download/v0.198.0/eksctl_Darwin_arm64.tar.gz",
-		},
+		InstallMode: tooldef.InstallModeEget,
+		Repo:        "eksctl-io/eksctl",
 	})
 }

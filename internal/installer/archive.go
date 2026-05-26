@@ -1,6 +1,10 @@
 // archive.go implements extraction of downloaded tool archives.
 // Supported formats: tar.gz, tar.xz, zip, and raw binary (no archive).
 // All extractors include path traversal protection (zip-slip prevention).
+//
+// NOTE: This file is now only used by InstallModeCustom tools (aws-cli,
+// azure-cli, gcloud-cli, docker, pulumi) and the eget bootstrap. The majority
+// of tools delegate extraction to eget.
 package installer
 
 import (
