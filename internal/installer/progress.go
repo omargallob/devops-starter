@@ -1,4 +1,7 @@
 // progress.go provides HTTP download with a terminal progress bar.
+//
+// NOTE: This file is now only used by InstallModeCustom tools.
+// eget-mode tools use eget's built-in download handling.
 package installer
 
 import (

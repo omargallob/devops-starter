@@ -1,4 +1,7 @@
 // checksum.go provides SHA256 integrity verification for downloaded archives.
+//
+// NOTE: This file is now only used by InstallModeCustom tools.
+// eget-mode tools pass checksums via the --sha256 flag to eget directly.
 package installer
 
 import (
