@@ -2,13 +2,29 @@ load("@rules_go//go:def.bzl", "go_library", "go_test")
 
 go_library(
     name = "updater",
-    srcs = ["updater.go"],
+    srcs = [
+        "rewrite.go",
+        "selfupdate.go",
+        "updater.go",
+    ],
     importpath = "github.com/omargallob/devops-starter/internal/updater",
-    visibility = ["//:__subpackages__"],
+    visibility = [
+        "//cmd:__subpackages__",
+        "//internal:__subpackages__",
+    ],
+    deps = [
+        "//pkg/tooldef",
+    ],
 )
 
 go_test(
     name = "updater_test",
-    srcs = ["updater_test.go"],
+    srcs = [
+        "selfupdate_test.go",
+        "updater_test.go",
+    ],
     embed = [":updater"],
+    deps = [
+        "//pkg/tooldef",
+    ],
 )
