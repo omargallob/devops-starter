@@ -36,10 +36,39 @@ type GroupConfig struct {
 	Utilities  bool `yaml:"utilities"`
 }
 
-// ToolOverride allows overriding version or disabling a specific tool.
+// ConflictAction defines how to handle a tool already present on the system.
+type ConflictAction string
+
+const (
+	// ConflictSkip keeps the existing system binary and does not install.
+	ConflictSkip ConflictAction = "skip"
+	// ConflictOverwrite installs the managed version, shadowing the system binary.
+	ConflictOverwrite ConflictAction = "overwrite"
+	// ConflictLink creates a symlink in install_dir pointing to the system binary.
+	ConflictLink ConflictAction = "link"
+)
+
+// ValidConflictActions returns all valid conflict action values.
+func ValidConflictActions() []ConflictAction {
+	return []ConflictAction{ConflictSkip, ConflictOverwrite, ConflictLink}
+}
+
+// IsValidConflictAction checks whether a string is a valid conflict action.
+func IsValidConflictAction(s string) bool {
+	switch ConflictAction(s) {
+	case ConflictSkip, ConflictOverwrite, ConflictLink:
+		return true
+	default:
+		return s == "" // empty is valid (means "unset / prompt")
+	}
+}
+
+// ToolOverride allows overriding version, disabling, or setting conflict
+// resolution policy for a specific tool.
 type ToolOverride struct {
 	Version  string `yaml:"version,omitempty"`
 	Disabled bool   `yaml:"disabled,omitempty"`
+	Conflict string `yaml:"conflict,omitempty"` // "skip", "overwrite", or "link"
 }
 
 // DefaultConfig returns the default configuration with all groups enabled.

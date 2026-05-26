@@ -245,3 +245,56 @@ func TestSetGroup(t *testing.T) {
 	// Unknown group should not panic
 	cfg.SetGroup("nonexistent", true)
 }
+
+func TestSaveAndLoad_ConflictField(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "config.yaml")
+
+	cfg := DefaultConfig()
+	cfg.Overrides["terraform"] = ToolOverride{Version: "1.10.4", Conflict: "skip"}
+	cfg.Overrides["kubectl"] = ToolOverride{Conflict: "overwrite"}
+	cfg.Overrides["helm"] = ToolOverride{Conflict: "link"}
+
+	if err := Save(cfg, path); err != nil {
+		t.Fatalf("Save() error: %v", err)
+	}
+
+	loaded, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load() error: %v", err)
+	}
+
+	if loaded.Overrides["terraform"].Conflict != "skip" {
+		t.Errorf("terraform conflict: got %q, want 'skip'", loaded.Overrides["terraform"].Conflict)
+	}
+	if loaded.Overrides["terraform"].Version != "1.10.4" {
+		t.Errorf("terraform version: got %q, want '1.10.4'", loaded.Overrides["terraform"].Version)
+	}
+	if loaded.Overrides["kubectl"].Conflict != "overwrite" {
+		t.Errorf("kubectl conflict: got %q, want 'overwrite'", loaded.Overrides["kubectl"].Conflict)
+	}
+	if loaded.Overrides["helm"].Conflict != "link" {
+		t.Errorf("helm conflict: got %q, want 'link'", loaded.Overrides["helm"].Conflict)
+	}
+}
+
+func TestIsValidConflictAction(t *testing.T) {
+	tests := []struct {
+		input string
+		want  bool
+	}{
+		{"skip", true},
+		{"overwrite", true},
+		{"link", true},
+		{"", true},
+		{"invalid", false},
+		{"SKIP", false},
+	}
+
+	for _, tt := range tests {
+		got := IsValidConflictAction(tt.input)
+		if got != tt.want {
+			t.Errorf("IsValidConflictAction(%q) = %v, want %v", tt.input, got, tt.want)
+		}
+	}
+}
