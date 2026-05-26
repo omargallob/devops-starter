@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.1.5](https://github.com/omargallob/devops-starter/compare/v0.1.4...v0.1.5) (2026-05-26)
+
+
+### Features
+
+* **lint:** add code smell linters and fix all findings ([#45](https://github.com/omargallob/devops-starter/issues/45)) ([11bea1d](https://github.com/omargallob/devops-starter/commit/11bea1dfd2fc4de301a99e603e79cda394e408a2))
+* **registry:** add azure-cli, gcloud-cli, firebase-cli and fix aws-cli darwin support ([#41](https://github.com/omargallob/devops-starter/issues/41)) ([e970809](https://github.com/omargallob/devops-starter/commit/e970809e5c719e6ebe33518c4a5cfbd5b8c7ac23))
+* **tui:** full-screen layout with version status bar and update check ([#40](https://github.com/omargallob/devops-starter/issues/40)) ([823d88e](https://github.com/omargallob/devops-starter/commit/823d88e56af0aa6c9b38337565641205d57acaa0))
+* **tui:** show source labels for tool management origin ([#39](https://github.com/omargallob/devops-starter/issues/39)) ([d8b9d8a](https://github.com/omargallob/devops-starter/commit/d8b9d8aeac5765a99ca87d5c110e3ef0cd4f2856))
+* **tui:** show unavailable tools with platform hint instead of hiding them ([#42](https://github.com/omargallob/devops-starter/issues/42)) ([5eb45f1](https://github.com/omargallob/devops-starter/commit/5eb45f1d186226dcf680dff7ae97cb6c27f18989))
+* use eget as the underlying binary installer ([#46](https://github.com/omargallob/devops-starter/issues/46)) ([8e24107](https://github.com/omargallob/devops-starter/commit/8e24107b7f3ef771481af9f89074805c1d9236d9))
+
+
+### Bug Fixes
+
+* **ci:** remove warning from release please action ([#36](https://github.com/omargallob/devops-starter/issues/36)) ([610b2b9](https://github.com/omargallob/devops-starter/commit/610b2b980c5de47bc61bbee95811c92e18af5976))
+* **ci:** remove warning from release please google step ([#38](https://github.com/omargallob/devops-starter/issues/38)) ([42e8980](https://github.com/omargallob/devops-starter/commit/42e89802085b45a4ecea7acf6de39fd1eefce2d0))
+* **registry:** skip mise-managed tools in TestAllToolsHaveValidFormat ([#43](https://github.com/omargallob/devops-starter/issues/43)) ([5a8cb9f](https://github.com/omargallob/devops-starter/commit/5a8cb9f483aab7657394375ea461598843248900))
+
 ## [0.1.4](https://github.com/omargallob/devops-starter/compare/v0.1.3...v0.1.4) (2026-05-25)
 
 
