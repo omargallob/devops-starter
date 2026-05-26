@@ -1,0 +1,46 @@
+name: Check Tool Versions
+
+on:
+  schedule:
+    - cron: '0 9 * * 1' # Every Monday at 9am UTC
+  workflow_dispatch: {} # Allow manual trigger
+
+permissions:
+  contents: write
+  pull-requests: write
+
+env:
+  GH_TOKEN: ${{ github.token }}
+
+jobs:
+  check-versions:
+    name: Check for tool updates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: bazel-contrib/setup-bazel@0.19.0
+        with:
+          bazelisk-cache: true
+          disk-cache: ${{ github.workflow }}
+          repository-cache: true
+
+      - name: Check for updates and apply
+        run: bazel run --config=ci //cmd/check-versions -- --apply
+
+      - name: Create PR if changes
+        uses: peter-evans/create-pull-request@v6
+        with:
+          title: "chore(deps): bump tool versions"
+          body: |
+            Automated weekly version check found tool updates.
+
+            This PR was created by the `check-versions` workflow which runs
+            every Monday. It queries GitHub Releases and HashiCorp APIs for
+            the latest versions of all tools in the registry.
+
+            Please review the version bumps and merge when ready.
+          branch: auto/bump-tool-versions
+          commit-message: "chore(deps): bump tool versions"
+          labels: dependencies,automated
+          delete-branch: true
