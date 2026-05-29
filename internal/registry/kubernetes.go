@@ -7,15 +7,14 @@ import "github.com/omargallob/devops-starter/pkg/tooldef"
 
 // registerKubernetes adds all Kubernetes-related tools to the registry.
 //
-// Subgroups:
-//   - Core CLIs: kubectl, helm, kustomize
-//   - Cluster Management: k9s, kubectx, kubens, stern, lens (headless)
-//   - GitOps: argocd, flux
-//   - Networking: istioctl, cilium
-//   - Development: kind, kubebuilder, operator-sdk, skaffold, tilt
-//   - Security: kubeseal, kyverno
-//   - Backup & Recovery: velero
+// Subgroups (displayed as 4 pages × 2 subgroups each):
+//
+//	Page 1: Core CLIs, Observability
+//	Page 2: GitOps, Networking
+//	Page 3: Development, Continuous Dev
+//	Page 4: Security, Backup
 func registerKubernetes(r *Registry) {
+
 	// ── Core CLIs ─────────────────────────────────────────────────────────────
 
 	r.register(&tooldef.Tool{
@@ -52,14 +51,14 @@ func registerKubernetes(r *Registry) {
 		Asset:       "kustomize_*_{{.OS}}_{{.Arch}}*",
 	})
 
-	// ── Cluster Management ─────────────────────────────────────────────────────
+	// ── Observability ─────────────────────────────────────────────────────────
 
 	r.register(&tooldef.Tool{
 		Name:        "k9s",
 		Version:     "0.32.7",
 		Description: "Kubernetes TUI",
 		Group:       tooldef.GroupKubernetes,
-		Subgroup:    "Cluster Management",
+		Subgroup:    "Observability",
 		InstallMode: tooldef.InstallModeEget,
 		Repo:        "derailed/k9s",
 	})
@@ -69,7 +68,7 @@ func registerKubernetes(r *Registry) {
 		Version:     "0.9.5",
 		Description: "Kubernetes context switcher",
 		Group:       tooldef.GroupKubernetes,
-		Subgroup:    "Cluster Management",
+		Subgroup:    "Observability",
 		InstallMode: tooldef.InstallModeEget,
 		Repo:        "ahmetb/kubectx",
 		Asset:       "kubectx_*",
@@ -80,7 +79,7 @@ func registerKubernetes(r *Registry) {
 		Version:     "0.9.5",
 		Description: "Kubernetes namespace switcher",
 		Group:       tooldef.GroupKubernetes,
-		Subgroup:    "Cluster Management",
+		Subgroup:    "Observability",
 		InstallMode: tooldef.InstallModeEget,
 		Repo:        "ahmetb/kubectx",
 		Asset:       "kubens_*",
@@ -91,7 +90,7 @@ func registerKubernetes(r *Registry) {
 		Version:     "1.31.0",
 		Description: "Multi-pod log tailing for Kubernetes",
 		Group:       tooldef.GroupKubernetes,
-		Subgroup:    "Cluster Management",
+		Subgroup:    "Observability",
 		InstallMode: tooldef.InstallModeEget,
 		Repo:        "stern/stern",
 	})
@@ -143,7 +142,7 @@ func registerKubernetes(r *Registry) {
 		Asset:       "cilium-{{.OS}}-{{.Arch}}*",
 	})
 
-	// ── Development ──────────────────────────────────────────────────────────
+	// ── Development ───────────────────────────────────────────────────────────
 
 	r.register(&tooldef.Tool{
 		Name:        "kind",
@@ -178,12 +177,14 @@ func registerKubernetes(r *Registry) {
 		Asset:       "operator-sdk_{{.OS}}_{{.Arch}}",
 	})
 
+	// ── Continuous Dev ────────────────────────────────────────────────────────
+
 	r.register(&tooldef.Tool{
 		Name:        "skaffold",
 		Version:     "2.14.0",
 		Description: "Continuous development for Kubernetes apps",
 		Group:       tooldef.GroupKubernetes,
-		Subgroup:    "Development",
+		Subgroup:    "Continuous Dev",
 		InstallMode: tooldef.InstallModeEgetURL,
 		Format:      tooldef.FormatBinary,
 		URLTemplate: "https://storage.googleapis.com/skaffold/releases/v{{.Version}}/skaffold-{{.OS}}-{{.Arch}}",
@@ -194,12 +195,12 @@ func registerKubernetes(r *Registry) {
 		Version:     "0.33.21",
 		Description: "Multi-service dev environment for K8s",
 		Group:       tooldef.GroupKubernetes,
-		Subgroup:    "Development",
+		Subgroup:    "Continuous Dev",
 		InstallMode: tooldef.InstallModeEget,
 		Repo:        "tilt-dev/tilt",
 	})
 
-	// ── Security ─────────────────────────────────────────────────────────────
+	// ── Security ──────────────────────────────────────────────────────────────
 
 	r.register(&tooldef.Tool{
 		Name:        "kubeseal",
@@ -224,14 +225,14 @@ func registerKubernetes(r *Registry) {
 		InstallName: "kyverno",
 	})
 
-	// ── Backup & Recovery ────────────────────────────────────────────────────
+	// ── Backup ────────────────────────────────────────────────────────────────
 
 	r.register(&tooldef.Tool{
 		Name:        "velero",
 		Version:     "1.15.1",
 		Description: "Kubernetes backup and restore",
 		Group:       tooldef.GroupKubernetes,
-		Subgroup:    "Backup & Recovery",
+		Subgroup:    "Backup",
 		InstallMode: tooldef.InstallModeEget,
 		Repo:        "vmware-tanzu/velero",
 		BinaryName:  "velero",

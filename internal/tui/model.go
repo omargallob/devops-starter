@@ -34,6 +34,7 @@ type Model struct {
 	screen      screen
 	groupCursor int // cursor position on group screen (0 to len(groups)-1)
 	toolCursor  int // cursor position on tool screen (within selected group)
+	toolPage    int // current page (0-indexed) for subgroup pagination
 
 	// selectedGroup is the index of the group currently being viewed in
 	// screenTools or screenProgress.
@@ -183,6 +184,98 @@ func (m Model) installableToolsInGroup(gi int, onlySelected bool) []*tooldef.Too
 		tools = append(tools, t.Tool)
 	}
 	return tools
+}
+
+// subgroupsPerPage is the maximum number of subgroups shown per page.
+const subgroupsPerPage = 2
+
+// subgroupsForGroup returns the ordered list of unique subgroup names for a group.
+// If no tools have subgroups set, returns nil.
+func (m Model) subgroupsForGroup(gi int) []string {
+	if gi < 0 || gi >= len(m.groups) {
+		return nil
+	}
+	var subs []string
+	seen := map[string]bool{}
+	for _, t := range m.groups[gi].Tools {
+		sg := t.Subgroup
+		if sg == "" || seen[sg] {
+			continue
+		}
+		seen[sg] = true
+		subs = append(subs, sg)
+	}
+	return subs
+}
+
+// totalPages returns the number of pages for the selected group.
+func (m Model) totalPages() int {
+	subs := m.subgroupsForGroup(m.selectedGroup)
+	if len(subs) <= subgroupsPerPage {
+		return 1
+	}
+	return (len(subs) + subgroupsPerPage - 1) / subgroupsPerPage
+}
+
+// visibleSubgroups returns the subgroup names visible on the current page.
+func (m Model) visibleSubgroups() map[string]bool {
+	subs := m.subgroupsForGroup(m.selectedGroup)
+	if len(subs) <= subgroupsPerPage {
+		// No pagination needed — show everything
+		result := make(map[string]bool, len(subs)+1)
+		for _, s := range subs {
+			result[s] = true
+		}
+		result[""] = true // tools with no subgroup are always visible
+		return result
+	}
+	start := m.toolPage * subgroupsPerPage
+	end := start + subgroupsPerPage
+	if end > len(subs) {
+		end = len(subs)
+	}
+	result := make(map[string]bool, subgroupsPerPage+1)
+	for _, s := range subs[start:end] {
+		result[s] = true
+	}
+	return result
+}
+
+// visibleToolIndices returns the tool indices visible on the current page.
+func (m Model) visibleToolIndices() []int {
+	visible := m.visibleSubgroups()
+	tools := m.selectedGroupTools()
+	var indices []int
+	for i, t := range tools {
+		if visible[t.Subgroup] {
+			indices = append(indices, i)
+		}
+	}
+	return indices
+}
+
+// ensureCursorOnPage switches the page to match the current cursor position.
+func (m *Model) ensureCursorOnPage() {
+	tools := m.selectedGroupTools()
+	if m.toolCursor < 0 || m.toolCursor >= len(tools) {
+		return
+	}
+	sg := tools[m.toolCursor].Subgroup
+	subs := m.subgroupsForGroup(m.selectedGroup)
+	for i, s := range subs {
+		if s == sg {
+			m.toolPage = i / subgroupsPerPage
+			return
+		}
+	}
+}
+
+// snapCursorToPage moves the cursor to the first tool on the current page.
+func (m *Model) snapCursorToPage() {
+	indices := m.visibleToolIndices()
+	if len(indices) > 0 {
+		m.toolCursor = indices[0]
+	}
 }
 
 // newSpinner creates a styled spinner for install progress.
