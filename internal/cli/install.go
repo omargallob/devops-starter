@@ -169,6 +169,13 @@ func doInstall(deps installDeps, plat tooldef.Platform) error {
 		return fmt.Errorf("%d installations failed", len(errs))
 	}
 
+	// Install globally-scoped pip/npm packages when enabled in config.
+	if deps.cfg.Packages.Python.Enabled || deps.cfg.Packages.Node.Enabled {
+		if pkgErr := runPackagesFromInstall(ctx, deps); pkgErr != nil {
+			fmt.Fprintf(deps.out, "warning: package install: %v\n", pkgErr)
+		}
+	}
+
 	return nil
 }
 
