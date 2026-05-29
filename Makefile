@@ -131,8 +131,9 @@ setup:
 
 ## test-e2e: Run Docker-based end-to-end install test
 test-e2e:
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o tests/e2e/devops-starter $(CMD_PKG)
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o tests/e2e/verify ./tests/e2e/cmd/verify/
+	bazel build --config=linux_amd64 //cmd/devops-starter //tests/e2e/cmd/verify
+	cp bazel-bin/cmd/devops-starter/devops-starter_/devops-starter tests/e2e/
+	cp bazel-bin/tests/e2e/cmd/verify/verify_/verify tests/e2e/
 	docker build -t devops-starter-e2e tests/e2e/
 	docker run --rm --name e2e-test \
 		-e GH_TOKEN="$$(gh auth token 2>/dev/null)" \

@@ -18,9 +18,7 @@ jobs:
           repository-cache: true
 
       - name: Cross-compile binaries for linux/amd64
-        run: |
-          bazel build --config=linux_amd64 //cmd/devops-starter
-          bazel build --config=linux_amd64 //tests/e2e/cmd/verify
+        run: bazel build --config=linux_amd64 //cmd/devops-starter //tests/e2e/cmd/verify
 
       - name: Copy binaries to e2e directory
         run: |
