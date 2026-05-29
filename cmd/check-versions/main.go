@@ -20,6 +20,10 @@ import (
 )
 
 func main() {
+	os.Exit(run())
+}
+
+func run() int {
 	apply := false
 	for _, arg := range os.Args[1:] {
 		switch arg {
@@ -30,10 +34,10 @@ func main() {
 			fmt.Println()
 			fmt.Println("Checks all registry tools for available version updates.")
 			fmt.Println("With --apply, rewrites internal/registry/*.go files.")
-			os.Exit(0)
+			return 0
 		default:
 			fmt.Fprintf(os.Stderr, "unknown flag: %s\n", arg)
-			os.Exit(1)
+			return 1
 		}
 	}
 
@@ -60,7 +64,7 @@ func main() {
 	// Print results.
 	if len(result.Updates) == 0 {
 		fmt.Println("All tools are up to date.")
-		os.Exit(0)
+		return 0
 	}
 
 	fmt.Printf("\nFound %d tool(s) with available updates:\n\n", len(result.Updates))
@@ -77,14 +81,14 @@ func main() {
 
 	if !apply {
 		fmt.Println("Run with --apply to update registry files.")
-		os.Exit(0)
+		return 0
 	}
 
 	// Determine project root (the directory containing internal/registry).
 	rootDir := findProjectRoot()
 	if rootDir == "" {
 		fmt.Fprintln(os.Stderr, "error: could not find project root (looking for internal/registry)")
-		os.Exit(1)
+		return 1
 	}
 
 	applied, errs := updater.ApplyUpdates(rootDir, result.Updates)
@@ -98,8 +102,9 @@ func main() {
 	fmt.Printf("Updated %d tool version(s) in registry source files.\n", applied)
 
 	if len(errs) > 0 {
-		os.Exit(1)
+		return 1
 	}
+	return 0
 }
 
 // findProjectRoot walks up from CWD looking for the internal/registry directory.

@@ -64,8 +64,8 @@ func renderToolLine(ts *state.ToolState, s listStyles) {
 	statusIcon, style := toolStatusStyle(ts, s)
 	line := fmt.Sprintf("  %s%-20s %-10s %s", statusIcon, ts.Name, ts.DesiredVersion, ts.Description)
 
-	if ts.Tool != nil && ts.Tool.ManagedBy != "" {
-		line += fmt.Sprintf("  (managed by %s)", ts.Tool.ManagedBy)
+	if ts.Tool != nil && ts.Tool.IsMiseManaged() {
+		line += "  (managed by mise)"
 	}
 
 	if ts.Status == state.StatusDetected && ts.DetectedPath != "" {

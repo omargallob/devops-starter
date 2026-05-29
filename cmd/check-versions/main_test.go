@@ -28,7 +28,7 @@ func TestFindProjectRoot_NotFound(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Chdir(origDir) //nolint:errcheck
+	defer os.Chdir(origDir) //nolint:errcheck // best-effort cleanup in test
 
 	tmpDir := t.TempDir()
 	if err := os.Chdir(tmpDir); err != nil {

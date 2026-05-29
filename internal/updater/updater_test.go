@@ -208,7 +208,7 @@ func TestRewriteURLVersions(t *testing.T) {
 }
 
 func contains(s, substr string) bool {
-	return len(s) > 0 && len(substr) > 0 && indexOf(s, substr) >= 0
+	return s != "" && substr != "" && indexOf(s, substr) >= 0
 }
 
 func indexOf(s, substr string) int {

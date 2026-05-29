@@ -103,6 +103,8 @@ jobs:
           bazelisk-cache: true
           disk-cache: ${{ github.workflow }}-test
           repository-cache: true
+      - name: Run build
+        run: bazel build --config=ci //...
 
       - name: Run tests
         if: steps.changes.outputs.skip != 'true'

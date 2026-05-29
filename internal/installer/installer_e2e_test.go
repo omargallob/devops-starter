@@ -323,22 +323,25 @@ func TestInstallAll_EndToEnd(t *testing.T) {
 	}
 }
 
-// TestInstall_UnsupportedManager verifies error for unknown ManagedBy value.
+// TestInstall_UnsupportedManager verifies error when mise binary is not found.
 func TestInstall_UnsupportedManager(t *testing.T) {
 	installDir := t.TempDir()
 	plat := tooldef.Platform{OS: "linux", Arch: "amd64"}
 	inst := New(installDir, plat)
 
 	tool := &tooldef.Tool{
-		Name:      "managed-tool",
-		Version:   "1.0.0",
-		ManagedBy: "unknown-manager",
+		Name:        "managed-tool",
+		Version:     "1.0.0",
+		InstallMode: tooldef.InstallModeMise,
 	}
+
+	// Override PATH so mise is not found.
+	t.Setenv("PATH", installDir)
 
 	ctx := context.Background()
 	err := inst.Install(ctx, tool)
 	if err == nil {
-		t.Fatal("expected error for unsupported manager")
+		t.Fatal("expected error when mise binary is not found")
 	}
 }
 

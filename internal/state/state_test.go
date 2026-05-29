@@ -53,7 +53,7 @@ func TestResolveAll_BasicFlow(t *testing.T) {
 				// expected for unmanaged tools
 			case StatusCurrent, StatusOutdated, StatusUnknown:
 				// acceptable for mise-managed tools found in PATH
-				if ts.Tool == nil || ts.Tool.ManagedBy == "" {
+				if ts.Tool == nil || !ts.Tool.IsMiseManaged() {
 					t.Errorf("tool %s: expected StatusMissing or StatusDetected, got %s", ts.Name, ts.Status.String())
 				}
 			default:
@@ -348,7 +348,7 @@ func TestResolveAll_LinkedStatus(t *testing.T) {
 	var detectedTool string
 	for _, g := range groups {
 		for _, ts := range g.Tools {
-			if ts.Status == StatusDetected && ts.Tool != nil && ts.Tool.ManagedBy == "" {
+			if ts.Status == StatusDetected && ts.Tool != nil && !ts.Tool.IsMiseManaged() {
 				detectedTool = ts.Name
 				break
 			}
@@ -500,11 +500,11 @@ func TestResolveAll_SourceMise(t *testing.T) {
 
 	groups := ResolveAll(cfg, store, plat)
 
-	// Mise-managed tools (Tool.ManagedBy != "") that are found in PATH
+	// Mise-managed tools (Tool.IsMiseManaged()) that are found in PATH
 	// should have Source == SourceMise
 	for _, g := range groups {
 		for _, ts := range g.Tools {
-			if ts.Tool != nil && ts.Tool.ManagedBy != "" {
+			if ts.Tool != nil && ts.Tool.IsMiseManaged() {
 				switch ts.Status {
 				case StatusCurrent, StatusOutdated, StatusUnknown:
 					if ts.Source != SourceMise {

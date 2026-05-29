@@ -146,36 +146,10 @@ func doInstall(deps installDeps, plat tooldef.Platform) error {
 	}
 
 	// Create symlinks for link-mode tools.
-	for toolName, systemPath := range links {
-		for _, t := range tools {
-			if t.Name == toolName {
-				if err := deps.installer.Link(t, systemPath); err != nil {
-					fmt.Fprintf(deps.out, "  warning: failed to link %s: %v\n", toolName, err)
-				}
-				break
-			}
-		}
-	}
+	createLinks(deps, tools, links)
 
 	// Re-create broken symlinks by re-resolving from PATH.
-	for _, bl := range brokenLinks {
-		for _, t := range tools {
-			if t.Name == bl.ToolName {
-				// Try to find the tool on PATH again.
-				newPath := lookupSystemBinary(t)
-				if newPath != "" {
-					if err := deps.installer.Link(t, newPath); err != nil {
-						fmt.Fprintf(deps.out, "  warning: failed to re-link %s: %v\n", bl.ToolName, err)
-					} else {
-						fmt.Fprintf(deps.out, "  re-linked %s -> %s\n", bl.ToolName, newPath)
-					}
-				} else {
-					fmt.Fprintf(deps.out, "  warning: %s has a broken link and is no longer on PATH\n", bl.ToolName)
-				}
-				break
-			}
-		}
-	}
+	relinkBroken(deps, tools, brokenLinks)
 
 	// Install tools.
 	ctx := context.Background()
@@ -218,9 +192,7 @@ func resolveConflicts(deps installDeps, conflicts []installer.ConflictInfo) (map
 
 	// Non-interactive: default to overwrite.
 	if deps.autoYes {
-		for _, c := range unresolved {
-			resolutions[c.Tool.Name] = "overwrite"
-		}
+		applyActionToAll(resolutions, unresolved, "overwrite")
 		return resolutions, nil
 	}
 
@@ -237,10 +209,7 @@ func resolveConflicts(deps installDeps, conflicts []installer.ConflictInfo) (map
 	reader := bufio.NewReader(os.Stdin)
 	input, err := reader.ReadString('\n')
 	if err != nil {
-		// Default to overwrite on read failure.
-		for _, c := range unresolved {
-			resolutions[c.Tool.Name] = "overwrite"
-		}
+		applyActionToAll(resolutions, unresolved, "overwrite")
 		return resolutions, nil
 	}
 
@@ -248,26 +217,24 @@ func resolveConflicts(deps installDeps, conflicts []installer.ConflictInfo) (map
 
 	switch choice {
 	case "s", "skip":
-		for _, c := range unresolved {
-			resolutions[c.Tool.Name] = "skip"
-		}
-	case "o", "overwrite", "":
-		for _, c := range unresolved {
-			resolutions[c.Tool.Name] = "overwrite"
-		}
+		applyActionToAll(resolutions, unresolved, "skip")
 	case "c", "customize":
 		for _, c := range unresolved {
 			action := promptPerToolConflict(deps.out, c)
 			resolutions[c.Tool.Name] = action
 		}
 	default:
-		// Default to overwrite.
-		for _, c := range unresolved {
-			resolutions[c.Tool.Name] = "overwrite"
-		}
+		applyActionToAll(resolutions, unresolved, "overwrite")
 	}
 
 	return resolutions, nil
+}
+
+// applyActionToAll sets the same conflict action for all unresolved conflicts.
+func applyActionToAll(resolutions map[string]string, conflicts []installer.ConflictInfo, action string) {
+	for _, c := range conflicts {
+		resolutions[c.Tool.Name] = action
+	}
 }
 
 // promptPerToolConflict asks the user what to do for a single tool conflict.
@@ -315,8 +282,8 @@ func printInstallPlan(out io.Writer, toInstall, skipped []*tooldef.Tool, links m
 	if len(toInstall) > 0 {
 		fmt.Fprintf(out, "\nThe following %d tool(s) will be installed to %s:\n\n", len(toInstall), installDir)
 		for _, t := range toInstall {
-			if t.ManagedBy != "" {
-				fmt.Fprintf(out, "  • %s %s (via %s)\n", t.Name, t.Version, t.ManagedBy)
+			if t.IsMiseManaged() {
+				fmt.Fprintf(out, "  • %s %s (via mise)\n", t.Name, t.Version)
 			} else {
 				fmt.Fprintf(out, "  • %s %s\n", t.Name, t.Version)
 			}
@@ -374,6 +341,41 @@ type conflictGetter string
 
 func (c conflictGetter) GetConflict() string { return string(c) }
 
+// createLinks creates symlinks for tools resolved with the "link" conflict action.
+func createLinks(deps installDeps, tools []*tooldef.Tool, links map[string]string) {
+	for toolName, systemPath := range links {
+		for _, t := range tools {
+			if t.Name == toolName {
+				if err := deps.installer.Link(t, systemPath); err != nil {
+					fmt.Fprintf(deps.out, "  warning: failed to link %s: %v\n", toolName, err)
+				}
+				break
+			}
+		}
+	}
+}
+
+// relinkBroken re-creates broken symlinks by looking up tools on PATH again.
+func relinkBroken(deps installDeps, tools []*tooldef.Tool, brokenLinks []installer.LinkResult) {
+	for _, bl := range brokenLinks {
+		for _, t := range tools {
+			if t.Name == bl.ToolName {
+				newPath := lookupSystemBinary(t)
+				if newPath != "" {
+					if err := deps.installer.Link(t, newPath); err != nil {
+						fmt.Fprintf(deps.out, "  warning: failed to re-link %s: %v\n", bl.ToolName, err)
+					} else {
+						fmt.Fprintf(deps.out, "  re-linked %s -> %s\n", bl.ToolName, newPath)
+					}
+				} else {
+					fmt.Fprintf(deps.out, "  warning: %s has a broken link and is no longer on PATH\n", bl.ToolName)
+				}
+				break
+			}
+		}
+	}
+}
+
 // lookupSystemBinary finds a tool binary on PATH (used for re-linking).
 func lookupSystemBinary(tool *tooldef.Tool) string {
 	return installer.LookupToolInPath(tool)
@@ -417,7 +419,7 @@ func saveConflictPreferences(deps installDeps, resolutions map[string]string) {
 }
 
 // printInstallSummary outputs the success/failure summary for install operations.
-func printInstallSummary(out io.Writer, total int, linked int, errs []error) {
+func printInstallSummary(out io.Writer, total, linked int, errs []error) {
 	successStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("2"))
 	errorStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("1"))
 
