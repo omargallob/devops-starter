@@ -1,0 +1,45 @@
+name: E2E Install Test
+
+on:
+  schedule:
+    - cron: '0 3 * * 0'  # Sundays 3am UTC
+  workflow_dispatch:
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: bazel-contrib/setup-bazel@0.19.0
+        with:
+          bazelisk-cache: true
+          repository-cache: true
+
+      - name: Cross-compile binaries for linux/amd64
+        run: |
+          bazel build --config=linux_amd64 //cmd/devops-starter
+          bazel build --config=linux_amd64 //tests/e2e/cmd/verify
+
+      - name: Copy binaries to e2e directory
+        run: |
+          cp bazel-bin/cmd/devops-starter/devops-starter_/devops-starter tests/e2e/
+          cp bazel-bin/tests/e2e/cmd/verify/verify_/verify tests/e2e/
+
+      - name: Build Docker image
+        run: docker build -t devops-starter-e2e tests/e2e/
+
+      - name: Run E2E test
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          docker run --rm --name e2e-test \
+            -e GH_TOKEN="$GH_TOKEN" \
+            devops-starter-e2e
+
+      - name: Cleanup
+        if: always()
+        run: |
+          docker rm -f e2e-test 2>/dev/null || true
+          docker rmi -f devops-starter-e2e 2>/dev/null || true

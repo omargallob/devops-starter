@@ -1,0 +1,20 @@
+load("@rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "verify_lib",
+    srcs = ["main.go"],
+    importpath = "github.com/omargallob/devops-starter/tests/e2e/cmd/verify",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//internal/config",
+        "//internal/registry",
+        "//internal/state",
+        "//pkg/tooldef",
+    ],
+)
+
+go_binary(
+    name = "verify",
+    embed = [":verify_lib"],
+    visibility = ["//visibility:public"],
+)

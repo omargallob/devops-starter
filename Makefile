@@ -129,6 +129,18 @@ setup:
 
 .PHONY: help
 
+## test-e2e: Run Docker-based end-to-end install test
+test-e2e:
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o tests/e2e/devops-starter $(CMD_PKG)
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o tests/e2e/verify ./tests/e2e/cmd/verify/
+	docker build -t devops-starter-e2e tests/e2e/
+	docker run --rm --name e2e-test \
+		-e GH_TOKEN="$$(gh auth token 2>/dev/null)" \
+		-e E2E_GROUPS="$${E2E_GROUPS:-}" \
+		devops-starter-e2e
+	docker rmi -f devops-starter-e2e >/dev/null 2>&1 || true
+.PHONY: test-e2e
+
 ## help: Show this help message
 help:
 	@echo "Usage: make [target]"

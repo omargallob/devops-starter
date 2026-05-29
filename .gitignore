@@ -34,3 +34,7 @@ go.work.sum
 .idea/
 .vscode/
 /generate-coverage-badge
+
+# E2E test binaries (cross-compiled into tests/e2e/)
+tests/e2e/devops-starter
+tests/e2e/verify
