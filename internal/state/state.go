@@ -97,6 +97,7 @@ func ResolveAll(cfg *config.Config, store *Store, plat tooldef.Platform) []Group
 		tooldef.GroupCloud,
 		tooldef.GroupRustTools,
 		tooldef.GroupUtilities,
+		tooldef.GroupAI,
 	}
 
 	var result []GroupState
