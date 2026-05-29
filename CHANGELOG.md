@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.1.6](https://github.com/omargallob/devops-starter/compare/v0.1.5...v0.1.6) (2026-05-29)
+
+
+### Features
+
+* add ai tool group with mise-backend and gh-extension install modes ([#52](https://github.com/omargallob/devops-starter/issues/52)) ([ee0fa69](https://github.com/omargallob/devops-starter/commit/ee0fa699a44c9ddf5c9f20fb9c75b8d0465987d9))
+* detect system tool conflicts + weekly version check automation ([#47](https://github.com/omargallob/devops-starter/issues/47)) ([1bb9a6a](https://github.com/omargallob/devops-starter/commit/1bb9a6afe220fd0174e258b30a65de000e936aa5))
+* improve tool detection using InstallName fallback across all groups ([#54](https://github.com/omargallob/devops-starter/issues/54)) ([f96312b](https://github.com/omargallob/devops-starter/commit/f96312b3fa03d4a1ca07536c12d78b5bcc3c4a48))
+* **pkgmgr:** add global Python/Node package management via pip and npm ([#63](https://github.com/omargallob/devops-starter/issues/63)) ([5dfcfc6](https://github.com/omargallob/devops-starter/commit/5dfcfc6f76066e6deab0763f4c09117820330ca7))
+* **plugins:** implement Phase 1 declarative YAML plugin system ([#62](https://github.com/omargallob/devops-starter/issues/62)) ([1777fce](https://github.com/omargallob/devops-starter/commit/1777fce17b5b3255d149537b782029a272e3228b))
+
+
+### Bug Fixes
+
+* force pure Go builds for darwin to drop SecTrustCopyCertificateChain dependency ([#65](https://github.com/omargallob/devops-starter/issues/65)) ([d64c92f](https://github.com/omargallob/devops-starter/commit/d64c92f718b88260d175282208ec8c3eb868aa31))
+* **lint:** resolve all golangci-lint issues ([#53](https://github.com/omargallob/devops-starter/issues/53)) ([1622113](https://github.com/omargallob/devops-starter/commit/16221133b72e602d1a44693f072f17d53acff891))
+
 ## [0.1.5](https://github.com/omargallob/devops-starter/compare/v0.1.4...v0.1.5) (2026-05-26)
 
 
