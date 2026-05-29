@@ -18,8 +18,8 @@ func TestDefaultConfig(t *testing.T) {
 	if !cfg.Groups.RustTools {
 		t.Error("expected RustTools group to be enabled by default")
 	}
-	if cfg.Groups.AI {
-		t.Error("expected AI group to be disabled by default")
+	if !cfg.Groups.AI {
+		t.Error("expected AI group to be enabled by default")
 	}
 	if cfg.InstallDir == "" {
 		t.Error("expected InstallDir to be set")
@@ -43,7 +43,7 @@ func TestIsGroupEnabled(t *testing.T) {
 		{"rust-tools", true},
 		{"rust_tools", true},
 		{"utilities", true},
-		{"ai", false},
+		{"ai", true},
 		{"nonexistent", false},
 	}
 

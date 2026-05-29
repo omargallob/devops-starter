@@ -85,7 +85,7 @@ func DefaultConfig() *Config {
 			Ansible:    true,
 			RustTools:  true,
 			Utilities:  true,
-			AI:         false,
+			AI:         true,
 		},
 		Overrides: make(map[string]ToolOverride),
 	}
