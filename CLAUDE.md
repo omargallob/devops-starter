@@ -80,6 +80,69 @@ CLI (cobra)
 
 Bubble Tea Elm pattern: `Model` (state) → `Update(tea.Msg)` (transitions) → `View()` (render). Bubble Tea model types use **value receivers** by design (not a bug; golangci-lint exempts `hugeParam` for these types).
 
+## Contract-Oriented Development
+
+Every public function and interface method must document its preconditions, postconditions, and error contract in its godoc comment.
+
+### Interface contracts
+
+The three interfaces in `internal/cli/deps.go` (`ToolInstaller`, `ToolRegistry`, `StateStore`) are the primary abstraction boundary between CLI commands and their dependencies. Each method must carry explicit pre/postcondition docs:
+
+```go
+// Install installs the given tool.
+// Precondition: tool != nil, tool.Name != "", platform is supported by tool.
+// Postcondition: on nil return, binary exists at installDir/<tool.GetInstallName()> with executable permissions.
+// Returns ErrUnsupportedPlatform if tool.Platforms excludes the current platform.
+Install(ctx context.Context, tool *tooldef.Tool) error
+```
+
+### Typed sentinel errors
+
+Packages whose errors callers must distinguish must export sentinel errors, not raw strings. Use `var ErrXxx = errors.New(...)` at the package level; callers use `errors.Is()`.
+
+Packages with ad-hoc string errors to convert:
+- `internal/platform` — "unsupported operating system / architecture"
+- `internal/installer` — "no URL template or override for tool"
+- `internal/registry` — tool-not-found path in `Get()`
+
+### Tool validation
+
+`tooldef.Tool` is constructed in registry code and consumed by the installer. Add `func (t *Tool) Validate() error` that checks required fields per `InstallMode`:
+- All modes: `Name` and `Version` non-empty
+- `eget`: `Repo` non-empty
+- `eget-url` / `custom`: `URLTemplate` non-empty, or at least one entry in `URLs`
+- `mise` (per-tool): `MiseBackend` non-empty
+
+Call `Validate()` in `registry.New()` so misconfigured tools fail at startup, not mid-install.
+
+### State store invariant
+
+After `Store.Record(name, version)` + `Store.Save()` succeed, `Store.GetVersion(name) == version` must hold. Tests must assert this invariant directly, not just assert no error.
+
+### CLI–TUI synchronization contract
+
+The CLI (`internal/cli/`) and TUI (`internal/tui/`) share state through `[]state.GroupState`, produced by `state.ResolveAll()`. **Any change to `state.ToolState` or `state.Status` requires updating all three of the following or behaviour will diverge between interactive and non-interactive modes:**
+
+| Layer | File | What to update |
+|---|---|---|
+| State resolution | `internal/state/state.go` | `resolveTool()`, `resolveToolStatus()` |
+| TUI rendering | `internal/tui/view.go` | How the new field/status is displayed |
+| Plain-text output | `internal/tui/table.go` | `PrintTable()` — the `--no-tui` path |
+| TUI action guards | `internal/tui/update.go` | All `if t.Status == ...` eligibility checks |
+
+`state.Status` values drive which TUI actions are available (install, remove, verify). When adding a new `Status` constant, audit every `switch`/`if` in `internal/tui/update.go` that branches on status.
+
+The TUI injects a concrete `*installer.Installer` (not the `ToolInstaller` interface), so TUI install/remove paths cannot use mock installers. Keep side-effectful TUI logic in `internal/tui/commands.go` (the `tea.Cmd` functions) so it stays isolated and testable.
+
+### Testing contracts
+
+Table-driven test rows must name the contract being exercised, not just the input:
+
+```go
+{"eget mode requires non-empty Repo", ...}   // good
+{"tool1", ...}                                // avoid
+```
+
 ## Adding Tools / Groups / Commands
 
 | Task | Action |
