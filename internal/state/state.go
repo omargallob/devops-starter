@@ -50,6 +50,18 @@ func (s Status) String() string {
 	}
 }
 
+// RegistrationSource indicates how a tool entered the tool registry.
+type RegistrationSource string
+
+const (
+	// RegistrationBuiltin means the tool is defined in the built-in Go catalog.
+	RegistrationBuiltin RegistrationSource = "builtin"
+	// RegistrationMise means the tool was discovered from .mise.toml at runtime.
+	RegistrationMise RegistrationSource = "mise"
+	// RegistrationPlugin means the tool was loaded from a YAML plugin file.
+	RegistrationPlugin RegistrationSource = "plugin"
+)
+
 // Source indicates how a tool is managed.
 type Source string
 
@@ -73,8 +85,10 @@ type ToolState struct {
 	DetectedVersion  string // version of system binary (when StatusDetected or StatusLinked)
 	ConflictPolicy   string // conflict resolution policy from config: "skip", "overwrite", "link", or ""
 	Status           Status
-	Source           Source // how the tool is managed (mise, managed, system)
-	Selected         bool   // TUI selection state (not persisted)
+	Source           Source             // how the tool is managed (mise, managed, system)
+	RegistrationSource RegistrationSource // how the tool entered the registry
+	PluginFilePath   string             // source file when RegistrationSource == RegistrationPlugin
+	Selected         bool               // TUI selection state (not persisted)
 	Tool             *tooldef.Tool
 }
 
@@ -88,6 +102,12 @@ type GroupState struct {
 // and persisted state. It returns tools grouped in display order.
 func ResolveAll(cfg *config.Config, store *Store, plat tooldef.Platform) []GroupState {
 	reg := registry.New(cfg.PluginPaths...)
+
+	// Build a lookup of plugin tool name → source file path.
+	pluginPaths := make(map[string]string)
+	for _, e := range reg.PluginEntries() {
+		pluginPaths[e.Tool.Name] = e.FilePath
+	}
 
 	groups := []tooldef.Group{
 		tooldef.GroupLanguages,
@@ -112,6 +132,14 @@ func ResolveAll(cfg *config.Config, store *Store, plat tooldef.Platform) []Group
 
 		for _, t := range tools {
 			ts := resolveTool(t, cfg, store, plat)
+			if path, ok := pluginPaths[t.Name]; ok {
+				ts.RegistrationSource = RegistrationPlugin
+				ts.PluginFilePath = path
+			} else if t.ManagedBy == "mise" {
+				ts.RegistrationSource = RegistrationMise
+			} else {
+				ts.RegistrationSource = RegistrationBuiltin
+			}
 			gs.Tools = append(gs.Tools, ts)
 		}
 
