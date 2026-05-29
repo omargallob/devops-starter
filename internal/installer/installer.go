@@ -92,8 +92,6 @@ func (inst *Installer) Install(ctx context.Context, tool *tooldef.Tool) error {
 		err = inst.installViaEgetURL(ctx, tool)
 	case tooldef.InstallModeMise:
 		err = inst.installViaManager(ctx, tool)
-	case tooldef.InstallModeGhExtension:
-		err = inst.installViaGhExtension(ctx, tool)
 	case tooldef.InstallModeCustom:
 		err = inst.installCustom(ctx, tool)
 	default:
@@ -201,16 +199,9 @@ func (inst *Installer) InstallAll(ctx context.Context, tools []*tooldef.Tool) []
 	)
 
 	// Separate managed and direct tools.
-	// Mise-backend tools (with MiseBackend set) are installed individually,
-	// while plain mise tools are batched via "mise install" from .mise.toml.
-	var miseBackendTools []*tooldef.Tool
 	for _, t := range tools {
 		if t.EffectiveInstallMode() == tooldef.InstallModeMise {
-			if t.MiseBackend != "" {
-				miseBackendTools = append(miseBackendTools, t)
-			} else {
-				managedTools = append(managedTools, t)
-			}
+			managedTools = append(managedTools, t)
 		} else {
 			directTools = append(directTools, t)
 		}
@@ -239,26 +230,12 @@ func (inst *Installer) InstallAll(ctx context.Context, tools []*tooldef.Tool) []
 		}
 	}
 
-	// Install mise-backend tools individually (e.g., npm:/pipx: packages).
-	for _, t := range miseBackendTools {
-		if err := inst.installMiseBackendTool(ctx, t); err != nil {
-			mu.Lock()
-			errs = append(errs, err)
-			mu.Unlock()
-		}
-	}
-
 	return errs
 }
 
 // installViaManager delegates installation of a single tool to its external
-// manager. Supports batched mise installs (from .mise.toml) and per-tool
-// mise-backend installs (e.g., npm:, pipx:).
+// manager. Currently only supports mise-managed tools.
 func (inst *Installer) installViaManager(ctx context.Context, tool *tooldef.Tool) error {
-	// Per-tool mise-backend install takes priority.
-	if tool.MiseBackend != "" {
-		return inst.installMiseBackendTool(ctx, tool)
-	}
 	if tool.IsMiseManaged() {
 		return inst.InstallMiseTools(ctx)
 	}
@@ -286,62 +263,6 @@ func (inst *Installer) InstallMiseTools(ctx context.Context) error {
 
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("running mise install: %w", err)
-	}
-	return nil
-}
-
-// installMiseBackendTool installs a single tool via a mise backend specifier
-// (e.g., "npm:@anthropic-ai/claude-code", "pipx:aider-chat").
-// It runs "mise use --global <backend>@<version>".
-func (inst *Installer) installMiseBackendTool(ctx context.Context, tool *tooldef.Tool) error {
-	miseBin := filepath.Join(inst.InstallDir, "mise")
-	if _, err := os.Stat(miseBin); err != nil {
-		found, lookErr := exec.LookPath("mise")
-		if lookErr != nil {
-			return fmt.Errorf("mise binary not found in %s or PATH — install mise first", inst.InstallDir)
-		}
-		miseBin = found
-	}
-
-	// Build the backend specifier with version: e.g., "npm:@anthropic-ai/claude-code@1.0.3"
-	spec := tool.MiseBackend
-	if tool.Version != "" {
-		spec += "@" + tool.Version
-	}
-
-	cmd := exec.CommandContext(ctx, miseBin, "use", "--global", spec)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Env = append(os.Environ(), "MISE_YES=1")
-
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("running mise use %s: %w", spec, err)
-	}
-	return nil
-}
-
-// installViaGhExtension installs a GitHub CLI extension using
-// "gh extension install <repo>".
-func (inst *Installer) installViaGhExtension(ctx context.Context, tool *tooldef.Tool) error {
-	ghBin := filepath.Join(inst.InstallDir, "gh")
-	if _, err := os.Stat(ghBin); err != nil {
-		found, lookErr := exec.LookPath("gh")
-		if lookErr != nil {
-			return fmt.Errorf("gh binary not found in %s or PATH — install gh first", inst.InstallDir)
-		}
-		ghBin = found
-	}
-
-	if tool.Repo == "" {
-		return fmt.Errorf("tool %s has InstallMode=gh-extension but no Repo set", tool.Name)
-	}
-
-	cmd := exec.CommandContext(ctx, ghBin, "extension", "install", tool.Repo)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("running gh extension install %s: %w", tool.Repo, err)
 	}
 	return nil
 }

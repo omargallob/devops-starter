@@ -40,8 +40,6 @@ verifies checksums, and manages dotfile configurations.`,
 		newDoctorCmd(),
 		newConfigCmd(),
 		newStatusCmd(),
-		newPluginsCmd(),
-		newPackagesCmd(),
 	)
 
 	return root

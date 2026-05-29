@@ -7,7 +7,7 @@
 //   - Platform: OS/architecture pair (e.g., linux/amd64)
 //   - Group: functional category for organising tools
 //   - ArchiveFormat: download artifact type (tar.gz, zip, raw binary, etc.)
-//   - InstallMode: how a tool is installed (eget, eget-url, mise, gh-extension, custom)
+//   - InstallMode: how a tool is installed (eget, eget-url, mise, custom)
 package tooldef
 
 // ArchiveFormat represents the format of a downloaded archive.
@@ -37,10 +37,6 @@ const (
 
 	// InstallModeMise delegates installation to the mise tool manager.
 	InstallModeMise InstallMode = "mise"
-
-	// InstallModeGhExtension installs a GitHub CLI extension via
-	// "gh extension install <repo>".
-	InstallModeGhExtension InstallMode = "gh-extension"
 )
 
 // Platform represents a target OS/architecture combination.
@@ -66,7 +62,6 @@ const (
 	GroupAnsible    Group = "ansible"
 	GroupRustTools  Group = "rust-tools"
 	GroupUtilities  Group = "utilities"
-	GroupAI         Group = "ai"
 )
 
 // Tool defines a single installable tool with all metadata needed to
@@ -138,12 +133,6 @@ type Tool struct {
 	// Dependencies lists other tool names that must be installed first.
 	Dependencies []string `yaml:"dependencies,omitempty"`
 
-	// MiseBackend is the mise backend specifier for per-tool installation
-	// (e.g., "npm:@anthropic-ai/claude-code", "pipx:aider-chat").
-	// When set, the tool is installed individually via "mise use <backend>@<version>"
-	// rather than batched through .mise.toml.
-	MiseBackend string `yaml:"mise_backend,omitempty"`
-
 	// ManagedBy indicates this tool is installed by another tool (e.g., "mise")
 	// rather than downloaded directly.
 	//
@@ -190,12 +179,8 @@ func (t *Tool) IsMiseManaged() bool {
 	return t.EffectiveInstallMode() == InstallModeMise
 }
 
-// IsGhExtension returns true if this tool is installed as a GitHub CLI extension.
-func (t *Tool) IsGhExtension() bool {
-	return t.EffectiveInstallMode() == InstallModeGhExtension
-}
-
 // EffectiveInstallMode returns the install mode, falling back to legacy fields
+// for backward compatibility during migration.
 func (t *Tool) EffectiveInstallMode() InstallMode {
 	if t.InstallMode != "" {
 		return t.InstallMode
