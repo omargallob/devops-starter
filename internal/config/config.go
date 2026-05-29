@@ -34,7 +34,6 @@ type GroupConfig struct {
 	Ansible    bool `yaml:"ansible"`
 	RustTools  bool `yaml:"rust_tools"`
 	Utilities  bool `yaml:"utilities"`
-	AI         bool `yaml:"ai"`
 }
 
 // ConflictAction defines how to handle a tool already present on the system.
@@ -85,7 +84,6 @@ func DefaultConfig() *Config {
 			Ansible:    true,
 			RustTools:  true,
 			Utilities:  true,
-			AI:         true,
 		},
 		Overrides: make(map[string]ToolOverride),
 	}
@@ -162,8 +160,6 @@ func (c *Config) IsGroupEnabled(group string) bool {
 		return c.Groups.RustTools
 	case "utilities":
 		return c.Groups.Utilities
-	case "ai":
-		return c.Groups.AI
 	default:
 		return false
 	}
@@ -188,8 +184,6 @@ func (c *Config) SetGroup(group string, enabled bool) {
 		c.Groups.RustTools = enabled
 	case "utilities":
 		c.Groups.Utilities = enabled
-	case "ai":
-		c.Groups.AI = enabled
 	}
 }
 
@@ -213,7 +207,6 @@ func AllGroupNames() []string {
 		"ansible",
 		"rust-tools",
 		"utilities",
-		"ai",
 	}
 }
 

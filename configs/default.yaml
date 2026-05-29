@@ -13,7 +13,6 @@ groups:
   cloud: true
   rust_tools: true
   utilities: true
-  ai: false
 
 # Per-tool overrides
 # Example:
