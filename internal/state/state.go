@@ -87,7 +87,7 @@ type GroupState struct {
 // ResolveAll builds the full state view by combining the registry, config,
 // and persisted state. It returns tools grouped in display order.
 func ResolveAll(cfg *config.Config, store *Store, plat tooldef.Platform) []GroupState {
-	reg := registry.New()
+	reg := registry.New(cfg.PluginPaths...)
 
 	groups := []tooldef.Group{
 		tooldef.GroupLanguages,

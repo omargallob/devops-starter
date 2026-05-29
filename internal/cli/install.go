@@ -53,7 +53,7 @@ func runInstall(cmd *cobra.Command, args []string) error {
 	}
 
 	// Create real dependencies
-	reg := registry.New()
+	reg := registry.New(cfg.PluginPaths...)
 	inst := installer.New(
 		cfg.InstallDir,
 		info.Platform,

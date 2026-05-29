@@ -22,6 +22,10 @@ type Config struct {
 
 	// Overrides allows per-tool version pinning.
 	Overrides map[string]ToolOverride `yaml:"overrides,omitempty"`
+
+	// PluginPaths lists additional directories to scan for plugin YAML files.
+	// These take precedence over the standard project-local and user-global dirs.
+	PluginPaths []string `yaml:"plugin_paths,omitempty"`
 }
 
 // GroupConfig toggles tool groups on/off.
