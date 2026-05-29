@@ -37,6 +37,8 @@ func New(extraPluginDirs ...string) *Registry {
 	registerRustTools(r)
 	registerUtilities(r)
 	registerAI(r)
+	registerAnsible(r)
+	registerPackageManagers(r)
 
 	// Discover and register mise-managed language runtimes from .mise.toml.
 	// Errors are silently ignored — if no .mise.toml is found or it's

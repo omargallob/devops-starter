@@ -44,6 +44,8 @@ func TestIsGroupEnabled(t *testing.T) {
 		{"rust_tools", true},
 		{"utilities", true},
 		{"ai", true},
+		{"package-managers", false},
+		{"package_managers", false},
 		{"nonexistent", false},
 	}
 
@@ -222,10 +224,10 @@ func TestConfig_SaveAndReload_Roundtrip(t *testing.T) {
 
 func TestAllGroupNames(t *testing.T) {
 	names := AllGroupNames()
-	if len(names) != 9 {
-		t.Errorf("expected 9 group names, got %d", len(names))
+	if len(names) != 10 {
+		t.Errorf("expected 10 group names, got %d", len(names))
 	}
-	expected := []string{"languages", "containers", "kubernetes", "infra", "cloud", "ansible", "rust-tools", "utilities", "ai"}
+	expected := []string{"languages", "containers", "kubernetes", "infra", "cloud", "ansible", "rust-tools", "utilities", "ai", "package-managers"}
 	for i, name := range expected {
 		if names[i] != name {
 			t.Errorf("group %d: got %q, want %q", i, names[i], name)

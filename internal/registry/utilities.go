@@ -1,6 +1,7 @@
 // utilities.go registers general-purpose developer utilities that don't fit
 // neatly into other categories (JSON/YAML processors, fuzzy finders, security
-// tools, Git helpers, linters, task runners, and editors).
+// tools, Git helpers, linters, task runners, editors, and pip/npm-distributed
+// workflow tools).
 package registry
 
 import "github.com/omargallob/devops-starter/pkg/tooldef"
@@ -153,5 +154,46 @@ func registerUtilities(r *Registry) {
 		InstallMode: tooldef.InstallModeEget,
 		Repo:        "linux-test-project/lcov",
 		BinaryName:  "bin/genhtml",
+	})
+
+	r.register(&tooldef.Tool{
+		Name:         "pre-commit",
+		Version:      "4.0.1",
+		Description:  "Git hooks framework for code quality checks",
+		Group:        tooldef.GroupUtilities,
+		InstallMode:  tooldef.InstallModeMise,
+		MiseBackend:  "pipx:pre-commit",
+		Dependencies: []string{"mise"},
+	})
+
+	r.register(&tooldef.Tool{
+		Name:         "yamllint",
+		Version:      "1.35.1",
+		Description:  "YAML file linter",
+		Group:        tooldef.GroupUtilities,
+		InstallMode:  tooldef.InstallModeMise,
+		MiseBackend:  "pipx:yamllint",
+		Dependencies: []string{"mise"},
+	})
+
+	r.register(&tooldef.Tool{
+		Name:         "commitlint",
+		Version:      "19.6.1",
+		Description:  "Lint commit messages against Conventional Commits rules",
+		Group:        tooldef.GroupUtilities,
+		InstallMode:  tooldef.InstallModeMise,
+		MiseBackend:  "npm:@commitlint/cli",
+		InstallName:  "commitlint",
+		Dependencies: []string{"mise"},
+	})
+
+	r.register(&tooldef.Tool{
+		Name:         "semantic-release",
+		Version:      "24.2.3",
+		Description:  "Automated changelog and version management from commit history",
+		Group:        tooldef.GroupUtilities,
+		InstallMode:  tooldef.InstallModeMise,
+		MiseBackend:  "npm:semantic-release",
+		Dependencies: []string{"mise"},
 	})
 }

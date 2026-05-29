@@ -57,15 +57,16 @@ type NodePackageConfig struct {
 
 // GroupConfig toggles tool groups on/off.
 type GroupConfig struct {
-	Languages  bool `yaml:"languages"`
-	Containers bool `yaml:"containers"`
-	Kubernetes bool `yaml:"kubernetes"`
-	Infra      bool `yaml:"infra"`
-	Cloud      bool `yaml:"cloud"`
-	Ansible    bool `yaml:"ansible"`
-	RustTools  bool `yaml:"rust_tools"`
-	Utilities  bool `yaml:"utilities"`
-	AI         bool `yaml:"ai"`
+	Languages       bool `yaml:"languages"`
+	Containers      bool `yaml:"containers"`
+	Kubernetes      bool `yaml:"kubernetes"`
+	Infra           bool `yaml:"infra"`
+	Cloud           bool `yaml:"cloud"`
+	Ansible         bool `yaml:"ansible"`
+	RustTools       bool `yaml:"rust_tools"`
+	Utilities       bool `yaml:"utilities"`
+	AI              bool `yaml:"ai"`
+	PackageManagers bool `yaml:"package_managers"`
 }
 
 // ConflictAction defines how to handle a tool already present on the system.
@@ -108,15 +109,16 @@ func DefaultConfig() *Config {
 	return &Config{
 		InstallDir: filepath.Join(homeDir(), ".local", "bin"),
 		Groups: GroupConfig{
-			Languages:  true,
-			Containers: true,
-			Kubernetes: true,
-			Infra:      true,
-			Cloud:      true,
-			Ansible:    true,
-			RustTools:  true,
-			Utilities:  true,
-			AI:         true,
+			Languages:       true,
+			Containers:      true,
+			Kubernetes:      true,
+			Infra:           true,
+			Cloud:           true,
+			Ansible:         true,
+			RustTools:       true,
+			Utilities:       true,
+			AI:              true,
+			PackageManagers: false,
 		},
 		Packages: PackagesConfig{
 			Python: PythonPackageConfig{Enabled: false, Manager: "pip"},
@@ -199,6 +201,8 @@ func (c *Config) IsGroupEnabled(group string) bool {
 		return c.Groups.Utilities
 	case "ai":
 		return c.Groups.AI
+	case "package-managers", "package_managers":
+		return c.Groups.PackageManagers
 	default:
 		return false
 	}
@@ -225,6 +229,8 @@ func (c *Config) SetGroup(group string, enabled bool) {
 		c.Groups.Utilities = enabled
 	case "ai":
 		c.Groups.AI = enabled
+	case "package-managers", "package_managers":
+		c.Groups.PackageManagers = enabled
 	}
 }
 
@@ -249,6 +255,7 @@ func AllGroupNames() []string {
 		"rust-tools",
 		"utilities",
 		"ai",
+		"package-managers",
 	}
 }
 

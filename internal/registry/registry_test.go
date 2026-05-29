@@ -106,15 +106,16 @@ func validateInstallMode(t *testing.T, tool *tooldef.Tool) {
 
 func TestAllToolsHaveValidGroup(t *testing.T) {
 	validGroups := map[tooldef.Group]bool{
-		tooldef.GroupLanguages:  true,
-		tooldef.GroupContainers: true,
-		tooldef.GroupKubernetes: true,
-		tooldef.GroupInfra:      true,
-		tooldef.GroupCloud:      true,
-		tooldef.GroupAnsible:    true,
-		tooldef.GroupRustTools:  true,
-		tooldef.GroupUtilities:  true,
-		tooldef.GroupAI:         true,
+		tooldef.GroupLanguages:       true,
+		tooldef.GroupContainers:      true,
+		tooldef.GroupKubernetes:      true,
+		tooldef.GroupInfra:           true,
+		tooldef.GroupCloud:           true,
+		tooldef.GroupAnsible:         true,
+		tooldef.GroupRustTools:       true,
+		tooldef.GroupUtilities:       true,
+		tooldef.GroupAI:              true,
+		tooldef.GroupPackageManagers: true,
 	}
 
 	reg := New()
