@@ -235,9 +235,12 @@ func (m Model) viewToolsContent() (body, footer string) {
 		t := &g.Tools[i]
 		// Insert subgroup header when it changes (non-selectable divider)
 		if t.Subgroup != "" && t.Subgroup != currentSubgroup {
+			if currentSubgroup != "" {
+				b.WriteString("\n")
+			}
 			currentSubgroup = t.Subgroup
 			b.WriteString(dimStyle.Render(fmt.Sprintf("    ── %s ──", currentSubgroup)))
-			b.WriteString("\n")
+			b.WriteString("\n\n")
 		}
 
 		isCursor := i == m.toolCursor
