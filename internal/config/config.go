@@ -20,12 +20,39 @@ type Config struct {
 	// Groups controls which tool groups are enabled.
 	Groups GroupConfig `yaml:"groups"`
 
+	// Packages controls global Python and Node package installation.
+	Packages PackagesConfig `yaml:"packages,omitempty"`
+
 	// Overrides allows per-tool version pinning.
 	Overrides map[string]ToolOverride `yaml:"overrides,omitempty"`
 
 	// PluginPaths lists additional directories to scan for plugin YAML files.
 	// These take precedence over the standard project-local and user-global dirs.
 	PluginPaths []string `yaml:"plugin_paths,omitempty"`
+}
+
+// PackagesConfig controls global package installation for Python and Node.
+type PackagesConfig struct {
+	Python PythonPackageConfig `yaml:"python,omitempty"`
+	Node   NodePackageConfig   `yaml:"node,omitempty"`
+}
+
+// PythonPackageConfig controls pip/pipx package installation at the user level.
+type PythonPackageConfig struct {
+	// Enabled gates whether pip packages from .mise.toml [packages.pip] are installed.
+	Enabled bool `yaml:"enabled"`
+	// Manager selects the installer binary: "pip" (default) or "pipx".
+	Manager string `yaml:"manager,omitempty"`
+	// Upgrade forces reinstall/upgrade to the declared version even if already installed.
+	Upgrade bool `yaml:"upgrade,omitempty"`
+}
+
+// NodePackageConfig controls npm package installation at the global level.
+type NodePackageConfig struct {
+	// Enabled gates whether npm packages from .mise.toml [packages.npm] are installed.
+	Enabled bool `yaml:"enabled"`
+	// Manager selects the installer binary: "npm" (default).
+	Manager string `yaml:"manager,omitempty"`
 }
 
 // GroupConfig toggles tool groups on/off.
@@ -90,6 +117,10 @@ func DefaultConfig() *Config {
 			RustTools:  true,
 			Utilities:  true,
 			AI:         true,
+		},
+		Packages: PackagesConfig{
+			Python: PythonPackageConfig{Enabled: false, Manager: "pip"},
+			Node:   NodePackageConfig{Enabled: false, Manager: "npm"},
 		},
 		Overrides: make(map[string]ToolOverride),
 	}

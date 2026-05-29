@@ -157,6 +157,109 @@ func TestNormalizeVersion(t *testing.T) {
 	}
 }
 
+func TestParsePackages_PipAndNpm(t *testing.T) {
+	content := `[tools]
+go = "1.26.3"
+
+[packages.pip]
+"black" = "24.4"
+"ruff"  = "0.4"
+
+[packages.npm]
+"typescript" = "5.4"
+"prettier"   = "3.2"
+`
+	path := writeTempFile(t, content)
+	pkgs, err := ParsePackages(path)
+	if err != nil {
+		t.Fatalf("ParsePackages() error: %v", err)
+	}
+
+	pipPkgs := pkgs["pip"]
+	if len(pipPkgs) != 2 {
+		t.Fatalf("expected 2 pip packages, got %d", len(pipPkgs))
+	}
+	if pipPkgs["black"] != "24.4" {
+		t.Errorf("pip black: got %q, want %q", pipPkgs["black"], "24.4")
+	}
+	if pipPkgs["ruff"] != "0.4" {
+		t.Errorf("pip ruff: got %q, want %q", pipPkgs["ruff"], "0.4")
+	}
+
+	npmPkgs := pkgs["npm"]
+	if len(npmPkgs) != 2 {
+		t.Fatalf("expected 2 npm packages, got %d", len(npmPkgs))
+	}
+	if npmPkgs["typescript"] != "5.4" {
+		t.Errorf("npm typescript: got %q, want %q", npmPkgs["typescript"], "5.4")
+	}
+	if npmPkgs["prettier"] != "3.2" {
+		t.Errorf("npm prettier: got %q, want %q", npmPkgs["prettier"], "3.2")
+	}
+}
+
+func TestParsePackages_NoSection(t *testing.T) {
+	content := `[tools]
+go = "1.26.3"
+`
+	path := writeTempFile(t, content)
+	pkgs, err := ParsePackages(path)
+	if err != nil {
+		t.Fatalf("ParsePackages() error: %v", err)
+	}
+	if len(pkgs) != 0 {
+		t.Errorf("expected empty PackageVersions, got %v", pkgs)
+	}
+}
+
+func TestParsePackages_VersionlessPackage(t *testing.T) {
+	content := `[packages.pip]
+"black" = ""
+`
+	path := writeTempFile(t, content)
+	pkgs, err := ParsePackages(path)
+	if err != nil {
+		t.Fatalf("ParsePackages() error: %v", err)
+	}
+	if v := pkgs["pip"]["black"]; v != "" {
+		t.Errorf("expected empty version, got %q", v)
+	}
+}
+
+func TestFindAndParsePackages_NoFile(t *testing.T) {
+	dir := t.TempDir()
+	pkgs, err := FindAndParsePackages(dir)
+	if err != nil {
+		t.Fatalf("FindAndParsePackages() error: %v", err)
+	}
+	if len(pkgs) != 0 {
+		t.Errorf("expected empty PackageVersions, got %v", pkgs)
+	}
+}
+
+func TestFindAndParsePackages_FindsFile(t *testing.T) {
+	root := t.TempDir()
+	content := `[packages.npm]
+"eslint" = "9.0"
+`
+	miseFile := filepath.Join(root, ConfigFile)
+	if err := os.WriteFile(miseFile, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	deep := filepath.Join(root, "sub")
+	if err := os.MkdirAll(deep, 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	pkgs, err := FindAndParsePackages(deep)
+	if err != nil {
+		t.Fatalf("FindAndParsePackages() error: %v", err)
+	}
+	if pkgs["npm"]["eslint"] != "9.0" {
+		t.Errorf("npm eslint: got %q, want %q", pkgs["npm"]["eslint"], "9.0")
+	}
+}
+
 func writeTempFile(t *testing.T, content string) string {
 	t.Helper()
 	dir := t.TempDir()
