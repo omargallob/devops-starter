@@ -108,9 +108,6 @@ const (
 )
 
 // NewModel creates a new TUI model from the resolved state.
-// Plugin tools are extracted from their functional groups and placed in a
-// dedicated "plugins" group so the three registration sources stay visually
-// separate in both the group picker and the tool list screens.
 func NewModel(
 	groups []state.GroupState,
 	cfg *config.Config,
@@ -121,26 +118,15 @@ func NewModel(
 	version string,
 ) Model {
 	gm := make([]groupModel, 0, len(groups))
-	var pluginTools []toolModel
-
 	for _, g := range groups {
-		var kept []toolModel
+		tools := make([]toolModel, 0, len(g.Tools))
 		for ti := range g.Tools {
-			tm := toolModel{ToolState: g.Tools[ti]}
-			if g.Tools[ti].RegistrationSource == state.RegistrationPlugin {
-				pluginTools = append(pluginTools, tm)
-			} else {
-				kept = append(kept, tm)
-			}
+			tools = append(tools, toolModel{ToolState: g.Tools[ti]})
 		}
-		if len(kept) > 0 {
-			gm = append(gm, groupModel{Name: g.Name, Tools: kept})
-		}
-	}
-
-	// Append the plugins virtual group last so it stands apart in the picker.
-	if len(pluginTools) > 0 {
-		gm = append(gm, groupModel{Name: "plugins", Tools: pluginTools})
+		gm = append(gm, groupModel{
+			Name:  g.Name,
+			Tools: tools,
+		})
 	}
 
 	return Model{

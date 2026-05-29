@@ -67,7 +67,7 @@ func (c *statusCounters) summaryParts() string {
 }
 
 // formatToolRow formats a single tool's columns for table output.
-func formatToolRow(t *state.ToolState) (installed, desired, origin string) {
+func formatToolRow(t *state.ToolState) (installed, desired, source string) {
 	installed = t.InstalledVersion
 	if installed == "" {
 		installed = "-"
@@ -91,39 +91,31 @@ func formatToolRow(t *state.ToolState) (installed, desired, origin string) {
 		desired = "n/a"
 	}
 
-	// origin shows registration source for managed tools; installation detail for system/linked.
-	switch {
-	case t.Status == state.StatusLinked && t.DetectedPath != "":
-		origin = fmt.Sprintf("linked (%s)", t.DetectedPath)
-	case t.Source == state.SourceSystem && t.DetectedPath != "":
+	source = string(t.Source)
+	if source == "" {
+		source = "-"
+	}
+	if t.Status == state.StatusLinked && t.DetectedPath != "" {
+		source = fmt.Sprintf("linked (%s)", t.DetectedPath)
+	} else if t.Source == state.SourceSystem && t.DetectedPath != "" {
 		if t.ConflictPolicy != "" {
-			origin = fmt.Sprintf("system (%s) [%s]", t.DetectedPath, t.ConflictPolicy)
+			source = fmt.Sprintf("system (%s) [%s]", t.DetectedPath, t.ConflictPolicy)
 		} else {
-			origin = fmt.Sprintf("system (%s)", t.DetectedPath)
+			source = fmt.Sprintf("system (%s)", t.DetectedPath)
 		}
-	case t.RegistrationSource == state.RegistrationPlugin:
-		origin = "plugin"
-	case t.RegistrationSource == state.RegistrationMise:
-		origin = "mise"
-	case t.RegistrationSource == state.RegistrationBuiltin:
-		origin = "builtin"
-	default:
-		origin = "-"
 	}
 	return
 }
 
-const tableWidth = 90
-
-// printTableSection writes one registration-source section of the status table.
-func printTableSection(w io.Writer, title string, groups []state.GroupState, counters *statusCounters) {
-	if len(groups) == 0 {
-		return
-	}
-	fmt.Fprintf(w, "\n── %s %s\n", title, strings.Repeat("─", tableWidth-4-len(title)))
+// PrintTable writes a non-interactive plain-text status table to the given writer.
+// Suitable for CI, scripting, or piping to other tools.
+func PrintTable(w io.Writer, groups []state.GroupState) {
+	// Header
 	fmt.Fprintf(w, "%-14s %-18s %-12s %-12s %-10s %s\n",
-		"GROUP", "TOOL", "INSTALLED", "DESIRED", "ORIGIN", "STATUS")
-	fmt.Fprintf(w, "%s\n", strings.Repeat("─", tableWidth))
+		"GROUP", "TOOL", "INSTALLED", "DESIRED", "SOURCE", "STATUS")
+	fmt.Fprintf(w, "%s\n", strings.Repeat("─", 86))
+
+	var counters statusCounters
 
 	for gi := range groups {
 		g := &groups[gi]
@@ -134,46 +126,15 @@ func printTableSection(w io.Writer, title string, groups []state.GroupState, cou
 				currentSubgroup = t.Subgroup
 				fmt.Fprintf(w, "%-14s ── %s ──\n", g.Name, currentSubgroup)
 			}
-			installed, desired, origin := formatToolRow(t)
+
+			installed, desired, source := formatToolRow(t)
 			fmt.Fprintf(w, "%-14s %-18s %-12s %-12s %-10s %s\n",
-				g.Name, t.Name, installed, desired, origin, t.Status.String())
+				g.Name, t.Name, installed, desired, source, t.Status.String())
 			counters.increment(t.Status)
 		}
 	}
-}
 
-// filterTableGroups returns groups containing only tools with the given registration source.
-// An unset (zero-value) RegistrationSource is treated as RegistrationBuiltin.
-func filterTableGroups(groups []state.GroupState, src state.RegistrationSource) []state.GroupState {
-	var result []state.GroupState
-	for _, g := range groups {
-		var tools []state.ToolState
-		for _, t := range g.Tools {
-			ts := t.RegistrationSource
-			if ts == "" {
-				ts = state.RegistrationBuiltin
-			}
-			if ts == src {
-				tools = append(tools, t)
-			}
-		}
-		if len(tools) > 0 {
-			result = append(result, state.GroupState{Name: g.Name, Tools: tools})
-		}
-	}
-	return result
-}
-
-// PrintTable writes a non-interactive plain-text status table to the given writer,
-// separated into three sections by registration source.
-// Suitable for CI, scripting, or piping to other tools.
-func PrintTable(w io.Writer, groups []state.GroupState) {
-	var counters statusCounters
-
-	printTableSection(w, "Built-in Tools", filterTableGroups(groups, state.RegistrationBuiltin), &counters)
-	printTableSection(w, "Mise-managed (from .mise.toml)", filterTableGroups(groups, state.RegistrationMise), &counters)
-	printTableSection(w, "Plugin Tools", filterTableGroups(groups, state.RegistrationPlugin), &counters)
-
-	fmt.Fprintf(w, "%s\n", strings.Repeat("─", tableWidth))
+	// Summary
+	fmt.Fprintf(w, "%s\n", strings.Repeat("─", 86))
 	fmt.Fprintf(w, "Summary: %s\n", counters.summaryParts())
 }

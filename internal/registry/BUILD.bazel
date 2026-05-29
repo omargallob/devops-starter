@@ -9,7 +9,6 @@ go_library(
         "infra.go",
         "kubernetes.go",
         "languages.go",
-        "plugins.go",
         "registry.go",
         "rust_tools.go",
         "utilities.go",
@@ -22,16 +21,12 @@ go_library(
     deps = [
         "//internal/mise",
         "//pkg/tooldef",
-        "@in_gopkg_yaml_v3//:yaml_v3",
     ],
 )
 
 go_test(
     name = "registry_test",
-    srcs = [
-        "plugins_test.go",
-        "registry_test.go",
-    ],
+    srcs = ["registry_test.go"],
     embed = [":registry"],
     deps = [
         "//pkg/tooldef",
