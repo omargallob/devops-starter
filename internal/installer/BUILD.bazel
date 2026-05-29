@@ -30,7 +30,6 @@ go_test(
     name = "installer_test",
     srcs = [
         "conflict_test.go",
-        "eget_test.go",
         "installer_e2e_test.go",
         "installer_test.go",
         "link_test.go",

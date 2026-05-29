@@ -194,7 +194,7 @@ func resolveToolStatus(ts *ToolState, t *tooldef.Tool, cfg *config.Config) {
 
 // resolveNotInstalled handles the case where a tool is not in the state store.
 func resolveNotInstalled(ts *ToolState, t *tooldef.Tool, cfg *config.Config) {
-	path := LookupToolInPath(t)
+	path := LookupInPath(t.Name)
 	if path == "" {
 		ts.Status = StatusMissing
 		return
