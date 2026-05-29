@@ -17,6 +17,7 @@ go_library(
     visibility = [
         "//cmd:__subpackages__",
         "//internal:__subpackages__",
+        "//tests:__subpackages__",
     ],
     deps = [
         "//internal/mise",
