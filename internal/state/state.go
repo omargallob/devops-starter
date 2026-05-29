@@ -202,7 +202,7 @@ func resolveNotInstalled(ts *ToolState, t *tooldef.Tool, cfg *config.Config) {
 
 	ver, err := DetectVersionAtPath(t.Name, path)
 	if err != nil {
-		if t.ManagedBy != "" {
+		if t.IsMiseManaged() {
 			ts.Status = StatusUnknown
 			ts.Source = SourceMise
 			ts.DetectedPath = path
@@ -221,7 +221,7 @@ func resolveNotInstalled(ts *ToolState, t *tooldef.Tool, cfg *config.Config) {
 		return
 	}
 
-	if t.ManagedBy != "" {
+	if t.IsMiseManaged() {
 		ts.InstalledVersion = ver
 		ts.Source = SourceMise
 		if versionMatches(ver, ts.DesiredVersion) {

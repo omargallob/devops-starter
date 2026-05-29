@@ -60,35 +60,43 @@ func TestNamesSorted(t *testing.T) {
 func TestAllToolsHaveRequiredFields(t *testing.T) {
 	reg := New()
 	for _, tool := range reg.All() {
-		if tool.Name == "" {
-			t.Fatal("tool has empty name")
-		}
-		if tool.Version == "" {
-			t.Fatalf("tool %s has empty version", tool.Name)
-		}
-		if tool.Group == "" {
-			t.Fatalf("tool %s has empty group", tool.Name)
-		}
+		t.Run(tool.Name, func(t *testing.T) {
+			if tool.Name == "" {
+				t.Fatal("tool has empty name")
+			}
+			if tool.Version == "" {
+				t.Fatal("empty version")
+			}
+			if tool.Group == "" {
+				t.Fatal("empty group")
+			}
+			validateInstallMode(t, tool)
+		})
+	}
+}
 
-		mode := tool.EffectiveInstallMode()
-		switch mode {
-		case tooldef.InstallModeEget:
-			if tool.Repo == "" {
-				t.Fatalf("tool %s has InstallMode=eget but no Repo", tool.Name)
-			}
-		case tooldef.InstallModeEgetURL:
-			if tool.URLTemplate == "" && len(tool.URLs) == 0 {
-				t.Fatalf("tool %s has InstallMode=eget-url but no URLTemplate or URLs", tool.Name)
-			}
-		case tooldef.InstallModeCustom:
-			if tool.URLTemplate == "" && len(tool.URLs) == 0 {
-				t.Fatalf("tool %s has InstallMode=custom but no URLTemplate or URLs", tool.Name)
-			}
-		case tooldef.InstallModeMise:
-			// No URL needed for mise-managed tools.
-		default:
-			t.Fatalf("tool %s has unknown InstallMode %q", tool.Name, mode)
+// validateInstallMode checks that a tool has the required fields for its
+// install mode.
+func validateInstallMode(t *testing.T, tool *tooldef.Tool) {
+	t.Helper()
+	mode := tool.EffectiveInstallMode()
+	switch mode {
+	case tooldef.InstallModeEget:
+		if tool.Repo == "" {
+			t.Fatal("InstallMode=eget but no Repo")
 		}
+	case tooldef.InstallModeEgetURL:
+		if tool.URLTemplate == "" && len(tool.URLs) == 0 {
+			t.Fatal("InstallMode=eget-url but no URLTemplate or URLs")
+		}
+	case tooldef.InstallModeCustom:
+		if tool.URLTemplate == "" && len(tool.URLs) == 0 {
+			t.Fatal("InstallMode=custom but no URLTemplate or URLs")
+		}
+	case tooldef.InstallModeMise:
+		// No URL needed for mise-managed tools.
+	default:
+		t.Fatalf("unknown InstallMode %q", mode)
 	}
 }
 

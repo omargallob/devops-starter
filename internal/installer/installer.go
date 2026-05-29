@@ -234,14 +234,12 @@ func (inst *Installer) InstallAll(ctx context.Context, tools []*tooldef.Tool) []
 }
 
 // installViaManager delegates installation of a single tool to its external
-// manager. Currently only supports "mise" as a manager.
+// manager. Currently only supports mise-managed tools.
 func (inst *Installer) installViaManager(ctx context.Context, tool *tooldef.Tool) error {
-	switch tool.ManagedBy {
-	case "mise":
+	if tool.IsMiseManaged() {
 		return inst.InstallMiseTools(ctx)
-	default:
-		return fmt.Errorf("unsupported manager %q for tool %s", tool.ManagedBy, tool.Name)
 	}
+	return fmt.Errorf("tool %s has InstallMode=mise but is not mise-managed", tool.Name)
 }
 
 // InstallMiseTools runs "mise install" to install all tools defined in

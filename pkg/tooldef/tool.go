@@ -135,6 +135,7 @@ type Tool struct {
 
 	// ManagedBy indicates this tool is installed by another tool (e.g., "mise")
 	// rather than downloaded directly.
+	//
 	// Deprecated: Use InstallMode instead.
 	ManagedBy string `yaml:"managed_by,omitempty"`
 
@@ -177,6 +178,8 @@ func (t *Tool) SupportsPlatform(p Platform) bool {
 func (t *Tool) IsMiseManaged() bool {
 	return t.EffectiveInstallMode() == InstallModeMise
 }
+
+// EffectiveInstallMode returns the install mode, falling back to legacy fields
 // for backward compatibility during migration.
 func (t *Tool) EffectiveInstallMode() InstallMode {
 	if t.InstallMode != "" {

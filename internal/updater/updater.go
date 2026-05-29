@@ -133,7 +133,7 @@ func checkOne(ctx context.Context, t *tooldef.Tool, opts *Options) (string, erro
 func checkGitHubRelease(ctx context.Context, repo string, opts *Options) (string, error) {
 	url := fmt.Sprintf("https://api.github.com/repos/%s/releases/latest", repo)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 	if err != nil {
 		return "", err
 	}
@@ -165,7 +165,7 @@ func checkGitHubRelease(ctx context.Context, repo string, opts *Options) (string
 func checkHashiCorp(ctx context.Context, product string, opts *Options) (string, error) {
 	url := fmt.Sprintf("https://checkpoint-api.hashicorp.com/v1/check/%s", product)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
 	if err != nil {
 		return "", err
 	}

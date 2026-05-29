@@ -82,7 +82,7 @@ func rewriteToolVersion(content, toolName, oldVersion, newVersion string) (strin
 	// 2. Replace the Version line within that block.
 
 	// Find the line with Name: "toolName"
-	namePattern := fmt.Sprintf(`Name:\s*"%s"`, regexp.QuoteMeta(toolName))
+	namePattern := fmt.Sprintf(`Name:\s*%q`, toolName)
 	nameRe := regexp.MustCompile(namePattern)
 
 	nameLoc := nameRe.FindStringIndex(content)
@@ -109,7 +109,7 @@ func rewriteToolVersion(content, toolName, oldVersion, newVersion string) (strin
 	}
 
 	// Replace the Version line within this block.
-	versionPattern := fmt.Sprintf(`Version:\s*"%s"`, regexp.QuoteMeta(oldVersion))
+	versionPattern := fmt.Sprintf(`Version:\s*%q`, oldVersion)
 	versionRe := regexp.MustCompile(versionPattern)
 
 	versionLoc := versionRe.FindStringIndex(block)
@@ -121,13 +121,13 @@ func rewriteToolVersion(content, toolName, oldVersion, newVersion string) (strin
 	absStart := searchStart + versionLoc[0]
 	absEnd := searchStart + versionLoc[1]
 
-	replacement := fmt.Sprintf(`Version:     "%s"`, newVersion)
+	replacement := fmt.Sprintf("Version:     %q", newVersion)
 	// Preserve the original spacing by matching the original format.
 	original := content[absStart:absEnd]
 	if strings.Contains(original, "Version:     ") {
-		replacement = fmt.Sprintf(`Version:     "%s"`, newVersion)
+		replacement = fmt.Sprintf("Version:     %q", newVersion)
 	} else if strings.Contains(original, "Version: ") {
-		replacement = fmt.Sprintf(`Version: "%s"`, newVersion)
+		replacement = fmt.Sprintf("Version: %q", newVersion)
 	}
 
 	result := content[:absStart] + replacement + content[absEnd:]
@@ -143,7 +143,7 @@ func rewriteToolVersion(content, toolName, oldVersion, newVersion string) (strin
 // hardcoded download URLs.
 func rewriteURLVersions(content, toolName, oldVersion, newVersion string) string {
 	// Find the tool's block again.
-	namePattern := fmt.Sprintf(`Name:\s*"%s"`, regexp.QuoteMeta(toolName))
+	namePattern := fmt.Sprintf(`Name:\s*%q`, toolName)
 	nameRe := regexp.MustCompile(namePattern)
 
 	nameLoc := nameRe.FindStringIndex(content)
