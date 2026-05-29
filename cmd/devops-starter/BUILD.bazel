@@ -14,6 +14,7 @@ go_library(
 go_binary(
     name = "devops-starter",
     embed = [":devops-starter_lib"],
+    pure = "on",
     visibility = ["//visibility:public"],
 )
 
