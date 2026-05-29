@@ -1,8 +1,8 @@
 // Package registry provides the built-in catalog of all tools managed by
 // devops-starter. Each tool group (languages, containers, kubernetes, infra,
-// cloud, rust-tools, utilities, ai) is defined in a separate file and registered
-// at construction time via New(). The registry allows lookup by name, group,
-// or retrieval of all tools sorted alphabetically.
+// cloud, rust-tools, utilities, ai, ansible, package-managers) is defined in
+// a separate file and registered at construction time via New(). The registry
+// allows lookup by name, group, or retrieval of all tools sorted alphabetically.
 package registry
 
 import (

@@ -58,15 +58,16 @@ type Group string
 
 // Group values enumerate tool categories.
 const (
-	GroupLanguages  Group = "languages"
-	GroupContainers Group = "containers"
-	GroupKubernetes Group = "kubernetes"
-	GroupInfra      Group = "infra"
-	GroupCloud      Group = "cloud"
-	GroupAnsible    Group = "ansible"
-	GroupRustTools  Group = "rust-tools"
-	GroupUtilities  Group = "utilities"
-	GroupAI         Group = "ai"
+	GroupLanguages       Group = "languages"
+	GroupContainers      Group = "containers"
+	GroupKubernetes      Group = "kubernetes"
+	GroupInfra           Group = "infra"
+	GroupCloud           Group = "cloud"
+	GroupAnsible         Group = "ansible"
+	GroupRustTools       Group = "rust-tools"
+	GroupUtilities       Group = "utilities"
+	GroupAI              Group = "ai"
+	GroupPackageManagers Group = "package-managers"
 )
 
 // Tool defines a single installable tool with all metadata needed to
