@@ -75,6 +75,72 @@ func TestGetInstallName(t *testing.T) {
 	}
 }
 
+func TestIsMiseManaged(t *testing.T) {
+	tests := []struct {
+		name string
+		tool Tool
+		want bool
+	}{
+		{
+			name: "explicit mise mode",
+			tool: Tool{Name: "aider", InstallMode: InstallModeMise, MiseBackend: "pipx:aider-chat"},
+			want: true,
+		},
+		{
+			name: "eget mode",
+			tool: Tool{Name: "ollama", InstallMode: InstallModeEget},
+			want: false,
+		},
+		{
+			name: "gh-extension mode",
+			tool: Tool{Name: "copilot", InstallMode: InstallModeGhExtension},
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.tool.IsMiseManaged()
+			if got != tt.want {
+				t.Errorf("IsMiseManaged() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestIsGhExtension(t *testing.T) {
+	tests := []struct {
+		name string
+		tool Tool
+		want bool
+	}{
+		{
+			name: "gh-extension mode",
+			tool: Tool{Name: "copilot-cli", InstallMode: InstallModeGhExtension},
+			want: true,
+		},
+		{
+			name: "eget mode",
+			tool: Tool{Name: "ollama", InstallMode: InstallModeEget},
+			want: false,
+		},
+		{
+			name: "mise mode",
+			tool: Tool{Name: "aider", InstallMode: InstallModeMise},
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.tool.IsGhExtension()
+			if got != tt.want {
+				t.Errorf("IsGhExtension() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestSupportsPlatform(t *testing.T) {
 	tests := []struct {
 		name     string
