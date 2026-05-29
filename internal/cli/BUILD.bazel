@@ -11,6 +11,7 @@ go_library(
         "dotfiles.go",
         "install.go",
         "list.go",
+        "plugins.go",
         "remove.go",
         "root.go",
         "setup.go",
