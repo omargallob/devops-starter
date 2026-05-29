@@ -554,16 +554,21 @@ func toolSourceLabel(t toolModel) string {
 		return "[not available on this platform — install manually or use Docker]"
 	case t.Status == state.StatusLinked:
 		return fmt.Sprintf("[linked: %s]", t.DetectedPath)
-	case t.Source == state.SourceMise:
-		return "[mise]"
 	case t.Source == state.SourceSystem:
 		label := fmt.Sprintf("[system: %s]", t.DetectedPath)
 		if t.ConflictPolicy != "" {
 			label = fmt.Sprintf("[system: %s → %s]", t.DetectedPath, t.ConflictPolicy)
 		}
 		return label
-	case t.Source == state.SourceManaged:
-		return "[managed]"
+	case t.RegistrationSource == state.RegistrationPlugin:
+		if t.PluginFilePath != "" {
+			return fmt.Sprintf("[plugin: %s]", t.PluginFilePath)
+		}
+		return "[plugin]"
+	case t.RegistrationSource == state.RegistrationMise:
+		return "[mise]"
+	case t.RegistrationSource == state.RegistrationBuiltin:
+		return "[builtin]"
 	default:
 		return ""
 	}

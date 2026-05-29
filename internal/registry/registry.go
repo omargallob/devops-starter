@@ -6,6 +6,7 @@
 package registry
 
 import (
+	"fmt"
 	"os"
 	"sort"
 
@@ -15,13 +16,16 @@ import (
 
 // Registry holds all known tool definitions indexed by name.
 type Registry struct {
-	tools map[string]*tooldef.Tool
+	tools   map[string]*tooldef.Tool
+	plugins []PluginEntry // registered plugin tools, in load order
 }
 
 // New creates a registry with all built-in tools registered.
 // Each registerXxx function adds tools from a single group.
 // Mise-managed tools are discovered from .mise.toml in the working directory.
-func New() *Registry {
+// Optional extraPluginDirs are appended after the standard plugin discovery
+// directories (project-local, then user-global); they take highest precedence.
+func New(extraPluginDirs ...string) *Registry {
 	r := &Registry{
 		tools: make(map[string]*tooldef.Tool),
 	}
@@ -42,6 +46,14 @@ func New() *Registry {
 			r.RegisterMiseTools(versions)
 		}
 	}
+
+	// Load plugins: standard dirs (project-local → user-global) then extra dirs.
+	dirs := append(standardPluginDirs(), extraPluginDirs...)
+	entries, errs := LoadPluginDirs(dirs)
+	for _, err := range errs {
+		fmt.Fprintf(os.Stderr, "warning: plugin: %v\n", err)
+	}
+	r.RegisterPlugins(entries)
 
 	return r
 }
