@@ -12,6 +12,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/omargallob/devops-starter/pkg/tooldef"
 )
 
 // probeTimeout is the maximum time to wait for a version command to complete.
@@ -126,6 +128,13 @@ var probes = map[string]VersionProbe{
 	"shfmt":      {Args: []string{"--version"}, Regex: re(`v(\d+\.\d+\.\d+)`)},
 	"task":       {Args: []string{"--version"}, Regex: re(`(\d+\.\d+\.\d+)`)},
 	"neovim":     {BinName: "nvim", Args: []string{"--version"}, Regex: re(`NVIM v(\d+\.\d+\.\d+)`)},
+
+	// ai
+	"ollama":     {Args: []string{"--version"}, Regex: re(`(\d+\.\d+\.\d+)`)},
+	"claude-code": {Args: []string{"--version"}, Regex: re(`(\d+\.\d+\.\d+)`)},
+	"aider":      {Args: []string{"--version"}, Regex: re(`(\d+\.\d+\.\d+)`)},
+	"openai-cli": {BinName: "openai", Args: []string{"--version"}, Regex: re(`(\d+\.\d+\.\d+)`)},
+	"copilot-cli": {BinName: "gh", Args: []string{"copilot", "version"}, Regex: re(`(\d+\.\d+\.\d+)`)},
 }
 
 // re is a helper to compile a regexp at init time; panics on invalid patterns.
@@ -191,6 +200,25 @@ func LookupInPath(toolName string) string {
 		return ""
 	}
 	return path
+}
+
+// LookupToolInPath is like LookupInPath but accepts a Tool struct, enabling
+// detection of tools whose binary name differs from the tool name via the
+// InstallName field (e.g., openai-cli→openai, aws-cli→aws). The lookup order
+// is: probe BinName → Tool.GetInstallName() → tool name.
+func LookupToolInPath(tool *tooldef.Tool) string {
+	// First try the probe-aware lookup by tool name.
+	if path := LookupInPath(tool.Name); path != "" {
+		return path
+	}
+	// Fall back to InstallName if it differs from the tool name.
+	installName := tool.GetInstallName()
+	if installName != tool.Name {
+		if path, err := exec.LookPath(installName); err == nil {
+			return path
+		}
+	}
+	return ""
 }
 
 // DetectVersionAtPath runs the version probe for the named tool against an
