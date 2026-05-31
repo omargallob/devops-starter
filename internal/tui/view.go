@@ -566,7 +566,9 @@ func toolSourceLabel(t toolModel) string {
 		}
 		return "[plugin]"
 	case t.RegistrationSource == state.RegistrationMise:
-		return "[mise]"
+		return "[" + miseOriginLabel(&t.ToolState) + "]"
+	case t.RegistrationSource == state.RegistrationBuiltin && t.Tool != nil && t.Tool.IsGhExtension():
+		return "[gh-extension]"
 	case t.RegistrationSource == state.RegistrationBuiltin:
 		return "[builtin]"
 	default:

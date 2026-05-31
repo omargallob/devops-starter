@@ -117,12 +117,26 @@ func formatOrigin(t *state.ToolState) string {
 	case t.RegistrationSource == state.RegistrationPlugin:
 		return "plugin"
 	case t.RegistrationSource == state.RegistrationMise:
-		return "mise"
+		return miseOriginLabel(t)
+	case t.RegistrationSource == state.RegistrationBuiltin && t.Tool != nil && t.Tool.IsGhExtension():
+		return "gh-extension"
 	case t.RegistrationSource == state.RegistrationBuiltin:
 		return "builtin"
 	default:
 		return "-"
 	}
+}
+
+// miseOriginLabel returns a descriptive origin for mise-managed tools.
+// If MiseBackend is set (e.g. "npm:@anthropic-ai/claude-code"), returns
+// "<backend> via mise" (e.g. "npm via mise"). Otherwise returns "mise".
+func miseOriginLabel(t *state.ToolState) string {
+	if t.Tool != nil && t.Tool.MiseBackend != "" {
+		if idx := strings.Index(t.Tool.MiseBackend, ":"); idx > 0 {
+			return t.Tool.MiseBackend[:idx] + " via mise"
+		}
+	}
+	return "mise"
 }
 
 const tableWidth = 90
