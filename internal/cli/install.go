@@ -53,7 +53,7 @@ func runInstall(cmd *cobra.Command, args []string) error {
 	}
 
 	// Create real dependencies
-	reg := registry.New()
+	reg := registry.New(cfg.PluginPaths...)
 	inst := installer.New(
 		cfg.InstallDir,
 		info.Platform,
@@ -167,6 +167,13 @@ func doInstall(deps installDeps, plat tooldef.Platform) error {
 
 	if len(errs) > 0 {
 		return fmt.Errorf("%d installations failed", len(errs))
+	}
+
+	// Install globally-scoped pip/npm packages when enabled in config.
+	if deps.cfg.Packages.Python.Enabled || deps.cfg.Packages.Node.Enabled {
+		if pkgErr := runPackagesFromInstall(ctx, deps); pkgErr != nil {
+			fmt.Fprintf(deps.out, "warning: package install: %v\n", pkgErr)
+		}
 	}
 
 	return nil

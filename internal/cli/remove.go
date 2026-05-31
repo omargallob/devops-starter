@@ -49,7 +49,7 @@ func runRemove(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("loading state: %w", err)
 	}
 
-	reg := registry.New()
+	reg := registry.New(cfg.PluginPaths...)
 
 	deps := removeDeps{
 		cfg:        cfg,
