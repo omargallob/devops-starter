@@ -77,10 +77,25 @@ jobs:
       - name: Run actionlint
         run: bazel test --config=ci //:actionlint
 
+  goreleaser-check:
+    name: Linter - goreleaser check
+    if: github.event_name != 'pull_request' || !startsWith(github.head_ref, 'release-please--')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: goreleaser/goreleaser-action@v6
+        with:
+          args: check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   test:
     name: bazel test //...
     if: github.event_name == 'pull_request' && !startsWith(github.head_ref, 'release-please--')
-    needs: [golangci-lint, shellcheck, yamllint, actionlint]
+    needs: [golangci-lint, shellcheck, yamllint, actionlint, goreleaser-check]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -113,7 +128,7 @@ jobs:
   coverage:
     name: Coverage badge update
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [golangci-lint, shellcheck, yamllint, actionlint]
+    needs: [golangci-lint, shellcheck, yamllint, actionlint, goreleaser-check]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5

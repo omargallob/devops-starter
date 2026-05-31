@@ -83,7 +83,7 @@ check: fmt vet lint test
 
 # ─── Release ─────────────────────────────────────────────────────────────────
 
-.PHONY: release clean
+.PHONY: release clean goreleaser-check goreleaser-snapshot
 
 ## release: Cross-compile for all supported platforms
 release:
@@ -93,6 +93,16 @@ release:
 	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -ldflags='$(LDFLAGS)' -o $(DIST_DIR)/$(BINARY)-darwin-amd64 $(CMD_PKG)
 	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags='$(LDFLAGS)' -o $(DIST_DIR)/$(BINARY)-darwin-arm64 $(CMD_PKG)
 	cd $(DIST_DIR) && $(CHECKSUM) $(BINARY)-* > checksums.txt
+
+## goreleaser-check: Validate GoReleaser configuration
+goreleaser-check:
+	@command -v goreleaser >/dev/null 2>&1 || { echo "Install goreleaser: https://goreleaser.com/install/"; exit 1; }
+	goreleaser check
+
+## goreleaser-snapshot: Local dry-run release (no publish)
+goreleaser-snapshot:
+	@command -v goreleaser >/dev/null 2>&1 || { echo "Install goreleaser: https://goreleaser.com/install/"; exit 1; }
+	goreleaser release --snapshot --clean
 
 ## clean: Remove build artifacts
 clean:

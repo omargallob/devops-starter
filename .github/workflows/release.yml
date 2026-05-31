@@ -28,30 +28,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-
-      - uses: bazel-contrib/setup-bazel@0.19.0
         with:
-          bazelisk-cache: true
-          disk-cache: ${{ github.workflow }}
-          repository-cache: true
+          fetch-depth: 0
 
-      - name: Run tests
-        run: bazel test --config=ci //...
-
-      - name: Build release binaries
-        run: bazel build --config=ci //cmd/devops-starter:release
-
-      - name: Collect binaries and generate checksums
-        run: |
-          mkdir -p dist
-          cp bazel-bin/cmd/devops-starter/devops-starter-* dist/
-          cd dist
-          sha256sum devops-starter-* > checksums.txt
-
-      - name: Upload to GitHub Release
-        uses: softprops/action-gh-release@v3
+      - uses: actions/setup-go@v5
         with:
-          tag_name: ${{ needs.release-please.outputs.tag_name }}
-          files: |
-            dist/devops-starter-*
-            dist/checksums.txt
+          go-version-file: go.mod
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          args: release --clean
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

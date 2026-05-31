@@ -2,6 +2,7 @@ load("@gazelle//:def.bzl", "gazelle")
 load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 load("//bazel/rules:actionlint.bzl", "actionlint_test")
 load("//bazel/rules:golangci_lint.bzl", "golangci_lint_test")
+load("//bazel/rules:goreleaser.bzl", "goreleaser_check_test")
 load("//bazel/rules:shellcheck.bzl", "shellcheck_test")
 load("//bazel/rules:yamllint.bzl", "yamllint_test")
 
@@ -58,6 +59,13 @@ yamllint_test(
 actionlint_test(
     name = "actionlint",
     srcs = [":github_workflows"],
+    tags = ["local"],
+)
+
+# Validate GoReleaser configuration
+goreleaser_check_test(
+    name = "goreleaser_check",
+    config = ".goreleaser.yaml",
     tags = ["local"],
 )
 

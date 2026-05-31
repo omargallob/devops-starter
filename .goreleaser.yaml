@@ -1,0 +1,44 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# vim: set ts=2 sw=2 tw=0 fo=cnqoj
+
+version: 2
+
+project_name: devops-starter
+
+builds:
+  - id: devops-starter
+    main: ./cmd/devops-starter/
+    binary: devops-starter
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/omargallob/devops-starter/internal/cli.version={{.Version}}
+      - -X github.com/omargallob/devops-starter/internal/cli.commit={{.ShortCommit}}
+      - -X github.com/omargallob/devops-starter/internal/cli.date={{.Date}}
+
+archives:
+  - id: default
+    formats:
+      - tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+
+checksum:
+  name_template: "checksums.txt"
+  algorithm: sha256
+
+changelog:
+  use: github-native
+
+release:
+  github:
+    owner: omargallob
+    name: devops-starter
+  draft: false
+  prerelease: auto
