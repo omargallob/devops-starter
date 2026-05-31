@@ -1,0 +1,8 @@
+{
+  "$schema": "https://opencode.ai/opencode.schema.json",
+  "mcpServers": {
+    "devops-starter": {
+      "command": "./devops-starter-mcp"
+    }
+  }
+}

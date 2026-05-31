@@ -10,7 +10,9 @@ LDFLAGS    = -s -w -X github.com/omargallob/devops-starter/internal/cli.version=
              -X github.com/omargallob/devops-starter/internal/cli.date=$(BUILD_DATE)
 
 BINARY     = devops-starter
+MCP_BINARY = devops-starter-mcp
 CMD_PKG    = ./cmd/devops-starter/
+MCP_CMD_PKG = ./cmd/mcp-server/
 DIST_DIR   = dist
 
 # Cross-platform checksum command
@@ -18,16 +20,25 @@ CHECKSUM = $(shell command -v sha256sum >/dev/null 2>&1 && echo "sha256sum" || e
 
 # ─── Build & Install ─────────────────────────────────────────────────────────
 
-.PHONY: build install
+.PHONY: build install mcp-server install-mcp
 
 ## build: Compile binary for the current platform
 build:
 	CGO_ENABLED=0 go build -ldflags='$(LDFLAGS)' -o $(BINARY) $(CMD_PKG)
 
+## mcp-server: Build the MCP server binary
+mcp-server:
+	CGO_ENABLED=0 go build -ldflags='$(LDFLAGS)' -o $(MCP_BINARY) $(MCP_CMD_PKG)
+
 ## install: Build and install to ~/.local/bin
 install: build
 	mkdir -p $(HOME)/.local/bin
 	cp $(BINARY) $(HOME)/.local/bin/$(BINARY)
+
+## install-mcp: Build and install MCP server to ~/.local/bin
+install-mcp: mcp-server
+	mkdir -p $(HOME)/.local/bin
+	cp $(MCP_BINARY) $(HOME)/.local/bin/$(MCP_BINARY)
 
 # ─── Testing ─────────────────────────────────────────────────────────────────
 
@@ -85,7 +96,7 @@ release:
 
 ## clean: Remove build artifacts
 clean:
-	rm -f $(BINARY)
+	rm -f $(BINARY) $(MCP_BINARY)
 	rm -f coverage.out
 	rm -rf $(DIST_DIR)
 	bazel clean 2>/dev/null || true
