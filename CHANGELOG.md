@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.1.7](https://github.com/omargallob/devops-starter/compare/v0.1.6...v0.1.7) (2026-05-31)
+
+
+### Features
+
+* add MCP server for AI chat integration ([#74](https://github.com/omargallob/devops-starter/issues/74)) ([ff9c81f](https://github.com/omargallob/devops-starter/commit/ff9c81f342d8ffee674074b1a09d6c474374a814))
+* add opencode skills for tool and group registration ([#71](https://github.com/omargallob/devops-starter/issues/71)) ([458e12d](https://github.com/omargallob/devops-starter/commit/458e12dcae3a3259eebd5c6d5eb0719587b70f7c))
+* integrate GoReleaser as a Bazel-managed tool ([#75](https://github.com/omargallob/devops-starter/issues/75)) ([4a9c87b](https://github.com/omargallob/devops-starter/commit/4a9c87b6fac29d077bfe702dd7b97090673a8b06))
+* **registry:** add package-managers and ansible groups (partial) ([#64](https://github.com/omargallob/devops-starter/issues/64)) ([28a1a79](https://github.com/omargallob/devops-starter/commit/28a1a79033a6225c30f6b1a24765fbccba0ec9ec))
+
 ## [0.1.6](https://github.com/omargallob/devops-starter/compare/v0.1.5...v0.1.6) (2026-05-29)
 
 
