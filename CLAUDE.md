@@ -1,187 +1,117 @@
-# CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+# CLAUDE.md – Contract‑Driven Development for `devops-starter`
 
-## Project Overview
+This repository builds a cross‑platform DevOps tool installer and dotfile manager in Go.  
+**All contributions must follow Contract‑Driven Development (CDD).**  
+Contracts are the single source of truth – code, tests, and documentation derive from them.
 
-`devops-starter` is a cross-platform DevOps tool installer and dotfile manager written in Go. It downloads 61+ pre-built CLI binaries directly (no package manager) and manages shell/editor configuration via symlinks.
+## 🧠 Core CDD Principles for this Repo
 
-## Common Commands
+1. **Design the contract first** – Every new feature begins with a clear contract:
+   - A **public type** in `pkg/tooldef/` (e.g. `Tool`, `Platform`, `ArchiveFormat`, `InstallMode`).
+   - A **YAML schema snippet** for configuration changes.
+   - A **command line interface** (subcommand, flags, usage text).
+2. **Generate, don’t write** – Use code generation where possible:
+   - `go generate` for tool definitions (see `internal/registry/generate.go`).
+   - `go fmt` and `go mod tidy` for consistency.
+3. **Test the contract** – Every addition must include:
+   - **Contract tests** that validate the contract against the implementation.
+   - **Regression tests** for boundary conditions (e.g. unsupported platforms, malformed config).
+4. **Fail on contract violation** – Use `panic` or structured errors only when pre‑/post‑conditions break:
+   - `config.Validate()` must panic if required fields are missing.
+   - `platform.Detect()` must return a structured error for unrecognised OS/arch.
+5. **Version contracts explicitly** – Configuration files and state stores are versioned:
+   - `ConfigVersion` constant in `internal/config/`.
+   - `StateVersion` constant in `internal/state/`.
+   - Migrations must be provided for backwards‑incompatible changes.
 
-```bash
-# Build
-make build               # compile for current platform
-make install             # build and copy to ~/.local/bin
-
-# Test
-make test                # run all tests with race detector
-make test-coverage       # generate coverage report
-go test ./internal/installer/... -run TestInstallTarGz  # single test
-
-# Lint & Validate
-make lint                # golangci-lint + shellcheck
-make check               # fmt + vet + lint + test (full validation)
-
-# Bazel (used in CI)
-make bazel-build         # hermetic build
-make bazel-test          # hermetic test
-
-# Dev setup
-make setup               # install dev tools and pre-commit hooks
-```
-
-## Architecture
-
-### High-Level Data Flow
+## 📁 Repository Structure (CDD‑aware)
 
 ```
-CLI (cobra)
-  ├─ config.Load()      ← YAML (~/.config/devops-starter/config.yaml)
-  ├─ platform.Detect()  ← OS, arch, distro
-  ├─ registry.New()     ← all 61 tool definitions (Go structs)
-  └─ installer.Install()
-       ├─ HTTP GET (URLTemplate or per-platform URL)
-       ├─ SHA256 checksum verification
-       ├─ tar.gz extraction or raw binary rename
-       └─ state.Store() ← record installed version as JSON
+
+.
+├── pkg/                     # Public types (contracts)
+│   └── tooldef/             # Tool, Platform, ArchiveFormat, InstallMode
+├── internal/
+│   ├── config/              # YAML configuration (load/save/validate)
+│   ├── registry/            # Tool definitions (generated)
+│   ├── installer/           # Download → verify → extract → place
+│   ├── platform/            # OS/arch/distro detection
+│   ├── state/               # JSON store of installed tools
+│   ├── dotfiles/            # Symlink manager with backup
+│   ├── tui/                 # Bubble Tea interfaces
+│   └── test/                # Contract tests
+├── cmd/                     # Cobra commands (thin wrappers)
+└── configs/                 # Default configuration YAML
+
 ```
 
-### Package Map
+## 🔧 Mandatory Tooling
 
-| Package | Role |
-|---|---|
-| `cmd/devops-starter/` | Entry point only — no business logic |
-| `internal/cli/` | One file per Cobra subcommand; `root.go` registers global flags (`--config`, `--dry-run`, `--yes`) |
-| `internal/registry/` | All 61 tool definitions as `tooldef.Tool` Go structs, split into group files |
-| `internal/installer/` | Download → verify → extract → place; uses functional options pattern; worker pool (default 4) |
-| `internal/platform/` | Detects OS / arch / distro; drives URL and binary selection |
-| `internal/config/` | YAML load/save; XDG_CONFIG_HOME; group flags; per-tool version overrides |
-| `internal/state/` | JSON store of managed tools + installed versions (separate from config by design) |
-| `internal/dotfiles/` | Symlink manager with auto-backup to `~/.dotfiles.bak` |
-| `internal/tui/` | Bubble Tea Elm-pattern UI (`Model` / `Update` / `View`); 4 screens |
-| `internal/updater/` | Async GitHub Releases check on TUI startup (5 s timeout, non-blocking) |
-| `pkg/tooldef/` | Public types: `Tool`, `Platform`, `Group`, `ArchiveFormat`, `InstallMode` |
+- `golangci-lint` – linting with project‑specific config.
+- `go test -race` – race detector for all tests.
+- `go test -cover` – coverage reports (aim for ≥80%).
+- `pre-commit` – runs `make check` on every commit.
 
-### Config vs State Separation
+## 🧪 Contract Testing Workflow
 
-- **Config** (`~/.config/devops-starter/config.yaml`) — declarative intent (what *should* be installed).
-- **State** (JSON store) — actual installed versions. Kept separate to enable drift detection, the `adopt` command, and clean uninstall without touching user config.
-
-### Install Modes
-
-| Mode | How | Used for |
-|---|---|---|
-| `eget` | `eget <owner/repo>` with auto asset detection | ~53 tools (k9s, fzf, ripgrep, …) |
-| `eget-url` | `eget <url>` with Go template URL resolution | kubectl, helm, terraform, vault, … |
-| `custom` | Download → checksum → extract → post-install script | aws-cli, azure-cli, gcloud-cli |
-| `mise` | `mise use <backend>@<version>` | language runtimes |
-
-### TUI
-
-Bubble Tea Elm pattern: `Model` (state) → `Update(tea.Msg)` (transitions) → `View()` (render). Bubble Tea model types use **value receivers** by design (not a bug; golangci-lint exempts `hugeParam` for these types).
-
-## Contract-Oriented Development
-
-Every public function and interface method must document its preconditions, postconditions, and error contract in its godoc comment.
-
-### Interface contracts
-
-The three interfaces in `internal/cli/deps.go` (`ToolInstaller`, `ToolRegistry`, `StateStore`) are the primary abstraction boundary between CLI commands and their dependencies. Each method must carry explicit pre/postcondition docs:
+Every new tool definition **must** have a contract test in `internal/test/contract_test.go`:
 
 ```go
-// Install installs the given tool.
-// Precondition: tool != nil, tool.Name != "", platform is supported by tool.
-// Postcondition: on nil return, binary exists at installDir/<tool.GetInstallName()> with executable permissions.
-// Returns ErrUnsupportedPlatform if tool.Platforms excludes the current platform.
-Install(ctx context.Context, tool *tooldef.Tool) error
+func TestToolContract(t *testing.T) {
+    // 1. Precondition (contract's "requires")
+    tool := &tooldef.Tool{
+        Name:    "kubectl",
+        Version: "1.28.0",
+        Platforms: []tooldef.Platform{
+            {OS: "linux", Arch: "amd64", URL: "https://dl.k8s.io/release/.../bin/linux/amd64/kubectl"},
+        },
+    }
+
+    // 2. Action
+    installer := installer.New(tool, opts...)
+    err := installer.Install(context.Background())
+
+    // 3. Postcondition (contract's "ensures")
+    require.NoError(t, err)
+    assert.FileExists(t, filepath.Join(installDir, "kubectl"))
+
+    // 4. Invariant (contract's "invariant")
+    versionOutput, err := exec.Command("kubectl", "version", "--client").Output()
+    require.NoError(t, err)
+    assert.Contains(t, string(versionOutput), "1.28.0")
+}
 ```
 
-### Typed sentinel errors
+For configuration changes, write a table‑driven test that validates the new field’s marshaling/unmarshaling and default values.
 
-Packages whose errors callers must distinguish must export sentinel errors, not raw strings. Use `var ErrXxx = errors.New(...)` at the package level; callers use `errors.Is()`.
+🚦 Code Review Checklist
 
-Packages with ad-hoc string errors to convert:
-- `internal/platform` — "unsupported operating system / architecture"
-- `internal/installer` — "no URL template or override for tool"
-- `internal/registry` — tool-not-found path in `Get()`
+Pull requests must demonstrate:
 
-### Tool validation
+· Contract first – A public type or YAML schema is defined before implementation.
+· Generated code – Any code that can be generated (tool definitions, deep copies) is generated.
+· Contract tests – New features include tests that validate the contract (inputs → outputs).
+· Error handling – Contract violations cause a clear error or panic, not silent failure.
+· Configuration version – Bumped if configuration format changes, with migration path.
+· State version – Bumped if state format changes, with migration path.
+· Documentation – Updated README.md and docs/ to reflect the new contract.
 
-`tooldef.Tool` is constructed in registry code and consumed by the installer. Add `func (t *Tool) Validate() error` that checks required fields per `InstallMode`:
-- All modes: `Name` and `Version` non-empty
-- `eget`: `Repo` non-empty
-- `eget-url` / `custom`: `URLTemplate` non-empty, or at least one entry in `URLs`
-- `mise` (per-tool): `MiseBackend` non-empty
+🚀 Quick Reference
 
-Call `Validate()` in `registry.New()` so misconfigured tools fail at startup, not mid-install.
+Command Purpose
+make test Run all tests with race detector.
+make test-cover Generate coverage report.
+make lint Run golangci-lint and shellcheck.
+make check Run fmt, vet, lint, and test.
+make generate Run go generate to refresh tool definitions.
+make bazel-test Hermetic test using Bazel (used in CI).
 
-### State store invariant
+🔄 Releasing a New Contract
 
-After `Store.Record(name, version)` + `Store.Save()` succeed, `Store.GetVersion(name) == version` must hold. Tests must assert this invariant directly, not just assert no error.
+1. Update the version constants in internal/config/config.go and internal/state/state.go.
+2. Write a migration function for old configuration/state files.
+3. Add contract tests for the migration logic.
+4. Update the documentation – especially the configuration reference in docs/configuration.md.
+5. Create a PR with the label contract-change for focused review.
 
-### CLI–TUI synchronization contract
-
-The CLI (`internal/cli/`) and TUI (`internal/tui/`) share state through `[]state.GroupState`, produced by `state.ResolveAll()`. **Any change to `state.ToolState` or `state.Status` requires updating all three of the following or behaviour will diverge between interactive and non-interactive modes:**
-
-| Layer | File | What to update |
-|---|---|---|
-| State resolution | `internal/state/state.go` | `resolveTool()`, `resolveToolStatus()` |
-| TUI rendering | `internal/tui/view.go` | How the new field/status is displayed |
-| Plain-text output | `internal/tui/table.go` | `PrintTable()` — the `--no-tui` path |
-| TUI action guards | `internal/tui/update.go` | All `if t.Status == ...` eligibility checks |
-
-`state.Status` values drive which TUI actions are available (install, remove, verify). When adding a new `Status` constant, audit every `switch`/`if` in `internal/tui/update.go` that branches on status.
-
-The TUI injects a concrete `*installer.Installer` (not the `ToolInstaller` interface), so TUI install/remove paths cannot use mock installers. Keep side-effectful TUI logic in `internal/tui/commands.go` (the `tea.Cmd` functions) so it stays isolated and testable.
-
-### Testing contracts
-
-Table-driven test rows must name the contract being exercised, not just the input:
-
-```go
-{"eget mode requires non-empty Repo", ...}   // good
-{"tool1", ...}                                // avoid
-```
-
-## Adding Tools / Groups / Commands
-
-| Task | Action |
-|---|---|
-| Add a tool | `r.register(...)` in the matching `internal/registry/<group>.go` |
-| Add a group | New `internal/registry/<group>.go`, add constant to `pkg/tooldef/group.go`, register in `registry.go` |
-| Add a CLI subcommand | Create `internal/cli/<cmd>.go` with `newXxxCmd()` + `runXxx()`, register in `root.go` |
-| Add an archive format | Add to `pkg/tooldef/`, implement extraction in `internal/installer/` |
-
-## Code Conventions
-
-### Linting
-
-Ten linters are active (see `.golangci.yml`): `errcheck`, `govet`, `staticcheck`, `unused`, `ineffassign`, `gocritic`, `revive`, `cyclop` (max 15), `gocognit`, `dupl` (threshold 150), `gosec`.
-
-Intentional exemptions:
-- `gosec` G104/G204/G301-G306/G703 — expected for a CLI tool that runs external binaries.
-- `dupl` disabled in `internal/registry/` — tool definitions are intentionally repetitive.
-- `unused-parameter` exemptions in `internal/cli/` — Cobra `cmd`/`args` convention.
-
-### Commit Messages
-
-Conventional Commits are enforced via commitlint + pre-commit hook.  
-Valid types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`.
-
-### Build System
-
-- **Make** — local development (fast iteration).
-- **Bazel** — CI and release (hermetic, reproducible cross-compilation for linux/amd64, linux/arm64, darwin/amd64, darwin/arm64). Contributors do not need to use Bazel locally.
-
-## Key Files
-
-| File | Purpose |
-|---|---|
-| `configs/default.yaml` | Template written to user config on first run |
-| `dotfiles/` | Managed shell/editor configs symlinked into `$HOME` |
-| `.golangci.yml` | Linter configuration |
-| `.commitlintrc.yaml` | Conventional Commits enforcement |
-| `.pre-commit-config.yaml` | Git hooks (lint, commitlint) |
-| `.mise.toml` | Dev tool versions (Go 1.26.3, Python 3.12, Node 22) |
-| `ARCHITECTURE.md` | Detailed design decisions and extension points |
-| `CONTRIBUTING.md` | Dev setup walkthrough |
