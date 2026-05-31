@@ -34,3 +34,4 @@ go.work.sum
 .idea/
 .vscode/
 /generate-coverage-badge
+/devops-starter-mcp

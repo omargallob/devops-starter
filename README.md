@@ -24,6 +24,7 @@ Powered by [eget](https://github.com/zyedidia/eget) for reliable binary download
 - [How Installation Works](#how-installation-works)
 - [Tool Catalog](#tool-catalog)
 - [Dotfiles](#dotfiles)
+- [MCP Server](#mcp-server)
 - [Project Structure](#project-structure)
 - [Development](#development)
 - [Contributing](#contributing)
@@ -335,15 +336,30 @@ Shell configs replace common coreutils with Rust alternatives (ls->eza, cat->bat
 
 When linking, existing files are backed up to `~/.dotfiles.bak` before being replaced with symlinks.
 
+## MCP Server
+
+devops-starter includes an MCP (Model Context Protocol) server that lets AI chat clients (OpenCode, Claude Desktop, Cursor) interact with the tool directly. Query the tool catalog, check installation status, view configuration, and inspect dotfile state — all from your AI assistant.
+
+```sh
+make mcp-server        # build the binary
+make install-mcp       # install to ~/.local/bin
+```
+
+The server runs over stdio and exposes 6 read-only tools (`list_tools`, `get_tool`, `get_status`, `config_show`, `detect_platform`, `dotfiles_status`) and 3 resources (`devops-starter://config`, `devops-starter://state`, `devops-starter://groups`).
+
+See [docs/mcp-server.md](docs/mcp-server.md) for full configuration and usage details.
+
 ## Project Structure
 
 ```
 cmd/devops-starter/       Entry point (main package)
+cmd/mcp-server/           MCP server entry point (stdio transport)
 internal/
   cli/                    Cobra commands: setup, install, list, adopt, remove, status, dotfiles, doctor, config
   config/                 YAML configuration loading/saving
   dotfiles/               Symlink manager with backup/restore
   installer/              Install orchestration: eget backend, bootstrap, and legacy custom pipeline
+  mcp/                    MCP server: tool handlers, resource handlers, tests
   platform/               OS/arch/distro detection
   registry/               Tool definitions organised by group (with InstallMode annotations)
   state/                  Persistent state store for managed tools
@@ -351,7 +367,7 @@ internal/
   updater/                Async update checker (GitHub Releases API)
 pkg/tooldef/              Public types: Tool, Platform, Group, ArchiveFormat, InstallMode
 configs/                  Default config template
-docs/                     Documentation (setup wizard walkthrough, etc.)
+docs/                     Documentation (setup wizard walkthrough, MCP server guide)
 dotfiles/                 Managed dotfiles (shell, git, tmux, starship, nvim)
 scripts/                  Bootstrap install script
 oci/                      Container test image definitions (Ubuntu, Arch)
