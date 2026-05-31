@@ -287,6 +287,7 @@ in `.github/` point back to canonical source files to avoid duplication:
 |-------|-----------------|--------------|
 | `add-tool-group` | "add a group", "create a new tool category" | 18-step workflow for registering a new group across all touchpoints |
 | `add-tool` | "add a tool", "register a binary" | Guide for adding a tool to an existing group with install mode patterns |
+| `toggle-group` | "enable a group", "disable kubernetes", "activate AI tools" | Activate or deactivate tool groups via config, CLI, or Go API |
 
 ## Project Layout
 
