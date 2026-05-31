@@ -68,49 +68,61 @@ func (c *statusCounters) summaryParts() string {
 
 // formatToolRow formats a single tool's columns for table output.
 func formatToolRow(t *state.ToolState) (installed, desired, origin string) {
-	installed = t.InstalledVersion
-	if installed == "" {
-		installed = "-"
-	}
-	if t.Status == state.StatusDetected {
-		installed = "(system)"
-	}
-	if t.Status == state.StatusLinked {
+	installed = formatInstalledVersion(t)
+	desired = formatDesiredVersion(t)
+	origin = formatOrigin(t)
+	return
+}
+
+// formatInstalledVersion returns the display string for the installed version column.
+func formatInstalledVersion(t *state.ToolState) string {
+	switch t.Status {
+	case state.StatusDetected:
+		return "(system)"
+	case state.StatusLinked:
 		if t.DetectedVersion != "" {
-			installed = t.DetectedVersion
-		} else {
-			installed = "(linked)"
+			return t.DetectedVersion
 		}
+		return "(linked)"
+	default:
+		if t.InstalledVersion != "" {
+			return t.InstalledVersion
+		}
+		return "-"
 	}
+}
 
-	desired = t.DesiredVersion
-	if t.Status == state.StatusDisabled {
-		desired = "-"
+// formatDesiredVersion returns the display string for the desired version column.
+func formatDesiredVersion(t *state.ToolState) string {
+	switch t.Status {
+	case state.StatusDisabled:
+		return "-"
+	case state.StatusUnavailable:
+		return "n/a"
+	default:
+		return t.DesiredVersion
 	}
-	if t.Status == state.StatusUnavailable {
-		desired = "n/a"
-	}
+}
 
-	// origin shows registration source for managed tools; installation detail for system/linked.
+// formatOrigin returns the display string for the origin column.
+func formatOrigin(t *state.ToolState) string {
 	switch {
 	case t.Status == state.StatusLinked && t.DetectedPath != "":
-		origin = fmt.Sprintf("linked (%s)", t.DetectedPath)
+		return fmt.Sprintf("linked (%s)", t.DetectedPath)
 	case t.Source == state.SourceSystem && t.DetectedPath != "":
 		if t.ConflictPolicy != "" {
-			origin = fmt.Sprintf("system (%s) [%s]", t.DetectedPath, t.ConflictPolicy)
-		} else {
-			origin = fmt.Sprintf("system (%s)", t.DetectedPath)
+			return fmt.Sprintf("system (%s) [%s]", t.DetectedPath, t.ConflictPolicy)
 		}
+		return fmt.Sprintf("system (%s)", t.DetectedPath)
 	case t.RegistrationSource == state.RegistrationPlugin:
-		origin = "plugin"
+		return "plugin"
 	case t.RegistrationSource == state.RegistrationMise:
-		origin = "mise"
+		return "mise"
 	case t.RegistrationSource == state.RegistrationBuiltin:
-		origin = "builtin"
+		return "builtin"
 	default:
-		origin = "-"
+		return "-"
 	}
-	return
 }
 
 const tableWidth = 90

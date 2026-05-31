@@ -84,9 +84,6 @@ func runPackagesInstall(onlyPython, onlyNode bool) error {
 		return nil
 	}
 
-	ctx := context.Background()
-	opts := []pkgmgr.Option{pkgmgr.WithDryRun(dryRun)}
-
 	doPython := !onlyNode && (onlyPython || cfg.Packages.Python.Enabled)
 	doNode := !onlyPython && (onlyNode || cfg.Packages.Node.Enabled)
 
@@ -97,6 +94,20 @@ func runPackagesInstall(onlyPython, onlyNode bool) error {
 		return nil
 	}
 
+	errs := installSelectedPackages(cfg, pkgVersions, doPython, doNode)
+	if len(errs) > 0 {
+		for _, e := range errs {
+			fmt.Fprintf(os.Stderr, "error: %v\n", e)
+		}
+		return fmt.Errorf("%d package installation(s) failed", len(errs))
+	}
+	return nil
+}
+
+// installSelectedPackages installs the pip and/or npm packages based on flags.
+func installSelectedPackages(cfg *config.Config, pkgVersions map[string]map[string]string, doPython, doNode bool) []error {
+	ctx := context.Background()
+	opts := []pkgmgr.Option{pkgmgr.WithDryRun(dryRun)}
 	var errs []error
 
 	if doPython {
@@ -115,13 +126,7 @@ func runPackagesInstall(onlyPython, onlyNode bool) error {
 		}
 	}
 
-	if len(errs) > 0 {
-		for _, e := range errs {
-			fmt.Fprintf(os.Stderr, "error: %v\n", e)
-		}
-		return fmt.Errorf("%d package installation(s) failed", len(errs))
-	}
-	return nil
+	return errs
 }
 
 // installPipPackages installs all pip packages via the configured manager.

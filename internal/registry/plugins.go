@@ -25,6 +25,22 @@ type pluginFile struct {
 // install_mode 'custom' and 'post_install' are disallowed as they permit
 // arbitrary shell execution; those belong in the Phase 2 Go SDK.
 func ValidatePluginTool(t *tooldef.Tool) error {
+	if err := validatePluginCommonFields(t); err != nil {
+		return err
+	}
+
+	if t.InstallMode == tooldef.InstallModeCustom {
+		return fmt.Errorf("tool %q: install_mode 'custom' is not allowed in plugin files; use the Go SDK for custom install logic", t.Name)
+	}
+	if t.PostInstall != "" {
+		return fmt.Errorf("tool %q: 'post_install' is not allowed in plugin files", t.Name)
+	}
+
+	return validatePluginInstallMode(t)
+}
+
+// validatePluginCommonFields checks required fields common to all plugin tools.
+func validatePluginCommonFields(t *tooldef.Tool) error {
 	if t.Name == "" {
 		return fmt.Errorf("tool has empty name")
 	}
@@ -37,13 +53,11 @@ func ValidatePluginTool(t *tooldef.Tool) error {
 	if !isValidGroup(t.Group) {
 		return fmt.Errorf("tool %q: unknown group %q", t.Name, t.Group)
 	}
-	if t.InstallMode == tooldef.InstallModeCustom {
-		return fmt.Errorf("tool %q: install_mode 'custom' is not allowed in plugin files; use the Go SDK for custom install logic", t.Name)
-	}
-	if t.PostInstall != "" {
-		return fmt.Errorf("tool %q: 'post_install' is not allowed in plugin files", t.Name)
-	}
+	return nil
+}
 
+// validatePluginInstallMode checks mode-specific field requirements for a plugin tool.
+func validatePluginInstallMode(t *tooldef.Tool) error {
 	mode := t.EffectiveInstallMode()
 	switch mode {
 	case tooldef.InstallModeEget:

@@ -111,17 +111,11 @@ func doInstall(deps installDeps, plat tooldef.Platform) error {
 		return nil
 	}
 
-	// Detect conflicts with system-installed binaries.
+	// Detect and resolve conflicts with system-installed binaries.
 	conflicts := installer.DetectConflicts(tools, deps.cfg.InstallDir, deps.cfg.Overrides)
-
-	// Resolve conflicts.
-	resolutions := make(map[string]string)
-	if len(conflicts) > 0 {
-		resolved, err := resolveConflicts(deps, conflicts)
-		if err != nil {
-			return err
-		}
-		resolutions = resolved
+	resolutions, err := resolveAllConflicts(deps, conflicts)
+	if err != nil {
+		return err
 	}
 
 	// Partition tools based on conflict resolutions.
@@ -151,7 +145,28 @@ func doInstall(deps installDeps, plat tooldef.Platform) error {
 	// Re-create broken symlinks by re-resolving from PATH.
 	relinkBroken(deps, tools, brokenLinks)
 
-	// Install tools.
+	// Install tools and report results.
+	errs := executeInstalls(deps, toInstall, links, conflicts, resolutions)
+	if len(errs) > 0 {
+		return fmt.Errorf("%d installations failed", len(errs))
+	}
+
+	// Install globally-scoped pip/npm packages when enabled in config.
+	maybeInstallPackages(deps)
+
+	return nil
+}
+
+// resolveAllConflicts resolves conflicts, returning an empty map when there are none.
+func resolveAllConflicts(deps installDeps, conflicts []installer.ConflictInfo) (map[string]string, error) {
+	if len(conflicts) == 0 {
+		return make(map[string]string), nil
+	}
+	return resolveConflicts(deps, conflicts)
+}
+
+// executeInstalls runs all tool installations and prints the summary.
+func executeInstalls(deps installDeps, toInstall []*tooldef.Tool, links map[string]string, conflicts []installer.ConflictInfo, resolutions map[string]string) []error {
 	ctx := context.Background()
 	var errs []error
 	if len(toInstall) > 0 {
@@ -165,18 +180,18 @@ func doInstall(deps installDeps, plat tooldef.Platform) error {
 		saveConflictPreferences(deps, resolutions)
 	}
 
-	if len(errs) > 0 {
-		return fmt.Errorf("%d installations failed", len(errs))
-	}
+	return errs
+}
 
-	// Install globally-scoped pip/npm packages when enabled in config.
-	if deps.cfg.Packages.Python.Enabled || deps.cfg.Packages.Node.Enabled {
-		if pkgErr := runPackagesFromInstall(ctx, deps); pkgErr != nil {
-			fmt.Fprintf(deps.out, "warning: package install: %v\n", pkgErr)
-		}
+// maybeInstallPackages installs pip/npm packages when enabled in config.
+func maybeInstallPackages(deps installDeps) {
+	if !deps.cfg.Packages.Python.Enabled && !deps.cfg.Packages.Node.Enabled {
+		return
 	}
-
-	return nil
+	ctx := context.Background()
+	if pkgErr := runPackagesFromInstall(ctx, deps); pkgErr != nil {
+		fmt.Fprintf(deps.out, "warning: package install: %v\n", pkgErr)
+	}
 }
 
 // resolveConflicts determines the action for each conflicting tool.

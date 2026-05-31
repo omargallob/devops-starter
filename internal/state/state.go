@@ -135,7 +135,7 @@ func ResolveAll(cfg *config.Config, store *Store, plat tooldef.Platform) []Group
 			if path, ok := pluginPaths[t.Name]; ok {
 				ts.RegistrationSource = RegistrationPlugin
 				ts.PluginFilePath = path
-			} else if t.ManagedBy == "mise" {
+			} else if t.IsMiseManaged() {
 				ts.RegistrationSource = RegistrationMise
 			} else {
 				ts.RegistrationSource = RegistrationBuiltin

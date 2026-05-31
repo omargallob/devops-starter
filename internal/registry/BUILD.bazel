@@ -4,11 +4,13 @@ go_library(
     name = "registry",
     srcs = [
         "ai.go",
+        "ansible.go",
         "cloud.go",
         "containers.go",
         "infra.go",
         "kubernetes.go",
         "languages.go",
+        "package_managers.go",
         "plugins.go",
         "registry.go",
         "rust_tools.go",
