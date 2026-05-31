@@ -261,6 +261,34 @@ r.register(&tooldef.Tool{
 
 These tools are installed via `mise install` rather than direct download.
 
+## AI Agent Configuration
+
+This repository maintains configuration for AI coding agents. Two symlinks
+in `.github/` point back to canonical source files to avoid duplication:
+
+| `.github/` path | Source of truth | Purpose |
+|-----------------|-----------------|---------|
+| `.github/copilot-instructions.md` | `CLAUDE.md` (repo root) | CDD principles, repo conventions, mandatory tooling, code review checklist. Used by GitHub Copilot and any agent that reads `CLAUDE.md`. |
+| `.github/skills/` | `.opencode/skills/` | Opencode agent skills for common workflows (adding tools, adding groups). |
+
+### Editing rules
+
+- **`CLAUDE.md`** is the single source of truth for agent instructions.
+  Edit it directly; never edit `.github/copilot-instructions.md` (it is a
+  symlink). Changes propagate to both Copilot and opencode automatically.
+
+- **`.opencode/skills/`** is the single source of truth for agent skills.
+  Edit or create skills there; never edit under `.github/skills/` (it is a
+  symlink). Each skill lives in its own folder with a `SKILL.md` file.
+
+### Available skills
+
+| Skill | Trigger phrases | What it does |
+|-------|-----------------|--------------|
+| `add-tool-group` | "add a group", "create a new tool category" | 18-step workflow for registering a new group across all touchpoints |
+| `add-tool` | "add a tool", "register a binary" | Guide for adding a tool to an existing group with install mode patterns |
+| `toggle-group` | "enable a group", "disable kubernetes", "activate AI tools" | Activate or deactivate tool groups via config, CLI, or Go API |
+
 ## Project Layout
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed design documentation.
