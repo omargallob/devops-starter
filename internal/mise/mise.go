@@ -14,10 +14,14 @@ import (
 const ConfigFile = ".mise.toml"
 
 // miseConfig represents the top-level structure of a .mise.toml file.
-// Only the [tools] section is relevant for version discovery.
 type miseConfig struct {
-	Tools map[string]interface{} `toml:"tools"`
+	Tools    map[string]interface{}            `toml:"tools"`
+	Packages map[string]map[string]interface{} `toml:"packages"`
 }
+
+// PackageVersions maps package manager name to its package→version map.
+// e.g. {"pip": {"black": "24.4", "ruff": "0.4"}, "npm": {"typescript": "5.4"}}
+type PackageVersions map[string]map[string]string
 
 // ToolVersions maps tool names to their version strings as declared in a
 // .mise.toml file. For example: {"go": "1.26.3", "python": "3.12", "node": "22"}.
@@ -74,6 +78,43 @@ func FindAndParse(startDir string) (ToolVersions, error) {
 		return nil, nil
 	}
 	return ParseFile(path)
+}
+
+// ParsePackages reads the [packages.*] sections from a .mise.toml file,
+// returning a manager→(package→version) map. Sections not present yield
+// empty inner maps. Returns an empty PackageVersions (not nil) when no
+// [packages] section exists.
+func ParsePackages(path string) (PackageVersions, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("reading mise config: %w", err)
+	}
+
+	var cfg miseConfig
+	if err := toml.Unmarshal(data, &cfg); err != nil {
+		return nil, fmt.Errorf("parsing mise config: %w", err)
+	}
+
+	result := make(PackageVersions)
+	for mgr, pkgs := range cfg.Packages {
+		inner := make(map[string]string, len(pkgs))
+		for pkg, val := range pkgs {
+			inner[pkg] = normalizeVersion(val)
+		}
+		result[mgr] = inner
+	}
+	return result, nil
+}
+
+// FindAndParsePackages locates the nearest .mise.toml starting from startDir
+// and returns its [packages.*] sections. Returns empty PackageVersions (not
+// an error) when no .mise.toml is found.
+func FindAndParsePackages(startDir string) (PackageVersions, error) {
+	path := Find(startDir)
+	if path == "" {
+		return make(PackageVersions), nil
+	}
+	return ParsePackages(path)
 }
 
 // normalizeVersion converts the TOML value (which may be a string, number, or

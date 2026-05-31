@@ -98,7 +98,7 @@ func runAdopt(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	reg := registry.New()
+	reg := registry.New(cfg.PluginPaths...)
 	inst := installer.New(
 		cfg.InstallDir,
 		info.Platform,

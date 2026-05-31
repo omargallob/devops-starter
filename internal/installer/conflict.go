@@ -138,7 +138,8 @@ func isInsideDir(path, dir string) bool {
 }
 
 // LookupToolInPath finds the tool's binary on the system PATH using the
-// state package's probe-aware lookup.
+// state package's tool-aware lookup (checks probe BinName, InstallName, and
+// tool name).
 func LookupToolInPath(tool *tooldef.Tool) string {
-	return state.LookupInPath(tool.Name)
+	return state.LookupToolInPath(tool)
 }

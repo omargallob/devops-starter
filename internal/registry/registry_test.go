@@ -95,6 +95,10 @@ func validateInstallMode(t *testing.T, tool *tooldef.Tool) {
 		}
 	case tooldef.InstallModeMise:
 		// No URL needed for mise-managed tools.
+	case tooldef.InstallModeGhExtension:
+		if tool.Repo == "" {
+			t.Fatal("InstallMode=gh-extension but no Repo")
+		}
 	default:
 		t.Fatalf("unknown InstallMode %q", mode)
 	}
@@ -102,14 +106,16 @@ func validateInstallMode(t *testing.T, tool *tooldef.Tool) {
 
 func TestAllToolsHaveValidGroup(t *testing.T) {
 	validGroups := map[tooldef.Group]bool{
-		tooldef.GroupLanguages:  true,
-		tooldef.GroupContainers: true,
-		tooldef.GroupKubernetes: true,
-		tooldef.GroupInfra:      true,
-		tooldef.GroupCloud:      true,
-		tooldef.GroupAnsible:    true,
-		tooldef.GroupRustTools:  true,
-		tooldef.GroupUtilities:  true,
+		tooldef.GroupLanguages:       true,
+		tooldef.GroupContainers:      true,
+		tooldef.GroupKubernetes:      true,
+		tooldef.GroupInfra:           true,
+		tooldef.GroupCloud:           true,
+		tooldef.GroupAnsible:         true,
+		tooldef.GroupRustTools:       true,
+		tooldef.GroupUtilities:       true,
+		tooldef.GroupAI:              true,
+		tooldef.GroupPackageManagers: true,
 	}
 
 	reg := New()
@@ -131,9 +137,9 @@ func TestAllToolsHaveValidFormat(t *testing.T) {
 	reg := New()
 	for _, tool := range reg.All() {
 		mode := tool.EffectiveInstallMode()
-		// eget-mode and mise-managed tools don't require a format —
+		// eget-mode, mise-managed, and gh-extension tools don't require a format —
 		// eget auto-detects the archive type from the release asset.
-		if mode == tooldef.InstallModeEget || mode == tooldef.InstallModeMise {
+		if mode == tooldef.InstallModeEget || mode == tooldef.InstallModeMise || mode == tooldef.InstallModeGhExtension {
 			continue
 		}
 		if !validFormats[tool.Format] {
@@ -232,6 +238,7 @@ func TestAllGroupsHaveTools(t *testing.T) {
 		tooldef.GroupCloud,
 		tooldef.GroupRustTools,
 		tooldef.GroupUtilities,
+		tooldef.GroupAI,
 	}
 
 	reg := New()

@@ -618,9 +618,20 @@ func TestModel_ViewToolsSourceLabels(t *testing.T) {
 		{
 			Name: "languages",
 			Tools: []state.ToolState{
-				{Name: "go", Group: "languages", Description: "Go language", DesiredVersion: "1.26.3", InstalledVersion: "1.26.3", Status: state.StatusCurrent, Source: state.SourceMise, Tool: &tooldef.Tool{Name: "go", Version: "1.26.3", ManagedBy: "mise"}},
+				// go is mise-registered: RegistrationSource must be set explicitly in test data.
+				{Name: "go", Group: "languages", Description: "Go language", DesiredVersion: "1.26.3", InstalledVersion: "1.26.3", Status: state.StatusCurrent, Source: state.SourceMise, RegistrationSource: state.RegistrationMise, Tool: &tooldef.Tool{Name: "go", Version: "1.26.3", ManagedBy: "mise"}},
 				{Name: "python", Group: "languages", Description: "Python", DesiredVersion: "3.12", InstalledVersion: "3.12.7", Status: state.StatusCurrent, Source: state.SourceSystem, DetectedPath: "/usr/bin/python3", Tool: &tooldef.Tool{Name: "python", Version: "3.12"}},
-				{Name: "mise", Group: "languages", Description: "Tool manager", DesiredVersion: "2025.1.6", InstalledVersion: "2025.1.6", Status: state.StatusCurrent, Source: state.SourceManaged, Tool: &tooldef.Tool{Name: "mise", Version: "2025.1.6"}},
+				// mise binary itself is a built-in tool.
+				{Name: "mise", Group: "languages", Description: "Tool manager", DesiredVersion: "2025.1.6", InstalledVersion: "2025.1.6", Status: state.StatusCurrent, Source: state.SourceManaged, RegistrationSource: state.RegistrationBuiltin, Tool: &tooldef.Tool{Name: "mise", Version: "2025.1.6"}},
+			},
+		},
+		{
+			Name: "ai",
+			Tools: []state.ToolState{
+				// claude-code is mise-registered with an npm backend.
+				{Name: "claude-code", Group: "ai", Description: "AI coding assistant", DesiredVersion: "1.0.3", InstalledVersion: "1.0.3", Status: state.StatusCurrent, Source: state.SourceMise, RegistrationSource: state.RegistrationMise, Tool: &tooldef.Tool{Name: "claude-code", Version: "1.0.3", InstallMode: tooldef.InstallModeMise, MiseBackend: "npm:@anthropic-ai/claude-code"}},
+				// copilot-cli is a gh-extension built-in.
+				{Name: "copilot-cli", Group: "ai", Description: "GitHub Copilot CLI", DesiredVersion: "1.0.5", InstalledVersion: "1.0.5", Status: state.StatusCurrent, Source: state.SourceManaged, RegistrationSource: state.RegistrationBuiltin, Tool: &tooldef.Tool{Name: "copilot-cli", Version: "1.0.5", InstallMode: tooldef.InstallModeGhExtension, Repo: "github/gh-copilot"}},
 			},
 		},
 	}
@@ -636,13 +647,24 @@ func TestModel_ViewToolsSourceLabels(t *testing.T) {
 	view := m.View()
 
 	if !strings.Contains(view, "[mise]") {
-		t.Error("tool view should show [mise] label for mise-managed tools")
+		t.Error("tool view should show [mise] label for plain mise-registered tools")
 	}
 	if !strings.Contains(view, "[system: /usr/bin/python3]") {
 		t.Error("tool view should show [system: /path] label for system-detected tools")
 	}
-	if !strings.Contains(view, "[managed]") {
-		t.Error("tool view should show [managed] label for devops-starter-managed tools")
+	if !strings.Contains(view, "[builtin]") {
+		t.Error("tool view should show [builtin] label for built-in-registered tools")
+	}
+
+	// Switch to the AI group to check mise-backend and gh-extension labels.
+	m.selectedGroup = 1
+	view = m.View()
+
+	if !strings.Contains(view, "[npm via mise]") {
+		t.Error("tool view should show [npm via mise] for npm-backend mise tool")
+	}
+	if !strings.Contains(view, "[gh-extension]") {
+		t.Error("tool view should show [gh-extension] for gh-extension tool")
 	}
 }
 
@@ -651,10 +673,18 @@ func TestPrintTable_SourceColumn(t *testing.T) {
 		{
 			Name: "languages",
 			Tools: []state.ToolState{
-				{Name: "go", DesiredVersion: "1.26.3", InstalledVersion: "1.26.3", Status: state.StatusCurrent, Source: state.SourceMise},
-				{Name: "mise", DesiredVersion: "2025.1.6", InstalledVersion: "2025.1.6", Status: state.StatusCurrent, Source: state.SourceManaged},
+				{Name: "go", DesiredVersion: "1.26.3", InstalledVersion: "1.26.3", Status: state.StatusCurrent, Source: state.SourceMise, RegistrationSource: state.RegistrationMise, Tool: &tooldef.Tool{Name: "go", Version: "1.26.3", ManagedBy: "mise"}},
+				{Name: "mise", DesiredVersion: "2025.1.6", InstalledVersion: "2025.1.6", Status: state.StatusCurrent, Source: state.SourceManaged, RegistrationSource: state.RegistrationBuiltin, Tool: &tooldef.Tool{Name: "mise", Version: "2025.1.6"}},
 				{Name: "node", DesiredVersion: "22", InstalledVersion: "", Status: state.StatusDetected, Source: state.SourceSystem, DetectedPath: "/usr/local/bin/node"},
 				{Name: "ruby", DesiredVersion: "3.3", InstalledVersion: "", Status: state.StatusMissing, Source: state.SourceNone},
+			},
+		},
+		{
+			Name: "ai",
+			Tools: []state.ToolState{
+				{Name: "claude-code", DesiredVersion: "1.0.3", InstalledVersion: "1.0.3", Status: state.StatusCurrent, Source: state.SourceMise, RegistrationSource: state.RegistrationMise, Tool: &tooldef.Tool{Name: "claude-code", Version: "1.0.3", InstallMode: tooldef.InstallModeMise, MiseBackend: "npm:@anthropic-ai/claude-code"}},
+				{Name: "aider", DesiredVersion: "0.82.3", InstalledVersion: "0.82.3", Status: state.StatusCurrent, Source: state.SourceMise, RegistrationSource: state.RegistrationMise, Tool: &tooldef.Tool{Name: "aider", Version: "0.82.3", InstallMode: tooldef.InstallModeMise, MiseBackend: "pipx:aider-chat"}},
+				{Name: "copilot-cli", DesiredVersion: "1.0.5", InstalledVersion: "1.0.5", Status: state.StatusCurrent, Source: state.SourceManaged, RegistrationSource: state.RegistrationBuiltin, Tool: &tooldef.Tool{Name: "copilot-cli", Version: "1.0.5", InstallMode: tooldef.InstallModeGhExtension, Repo: "github/gh-copilot"}},
 			},
 		},
 	}
@@ -663,24 +693,32 @@ func TestPrintTable_SourceColumn(t *testing.T) {
 	PrintTable(&buf, groups)
 	output := buf.String()
 
-	// Check SOURCE header is present
-	if !strings.Contains(output, "SOURCE") {
-		t.Error("output should contain SOURCE header")
+	// Check ORIGIN header is present (renamed from SOURCE to reflect registration origin).
+	if !strings.Contains(output, "ORIGIN") {
+		t.Error("output should contain ORIGIN header")
 	}
 
-	// Check source values appear in output
+	// Check origin values appear in output.
 	if !strings.Contains(output, "mise") {
-		t.Error("output should contain 'mise' source for mise-managed tool")
+		t.Error("output should contain 'mise' origin for plain mise-registered tool")
 	}
-	if !strings.Contains(output, "managed") {
-		t.Error("output should contain 'managed' source for devops-starter tool")
+	if !strings.Contains(output, "builtin") {
+		t.Error("output should contain 'builtin' origin for built-in tool")
 	}
 	if !strings.Contains(output, "system (/usr/local/bin/node)") {
 		t.Error("output should contain 'system (/path)' for system-detected tool")
 	}
-	// Missing tools with no source should show "-"
 	if !strings.Contains(output, "-") {
-		t.Error("output should contain '-' for tools with no source")
+		t.Error("output should contain '-' for tools with no origin")
+	}
+	if !strings.Contains(output, "npm via mise") {
+		t.Error("output should contain 'npm via mise' for npm-backend mise tool")
+	}
+	if !strings.Contains(output, "pipx via mise") {
+		t.Error("output should contain 'pipx via mise' for pipx-backend mise tool")
+	}
+	if !strings.Contains(output, "gh-extension") {
+		t.Error("output should contain 'gh-extension' for gh-extension tool")
 	}
 }
 
