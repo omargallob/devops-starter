@@ -5,6 +5,7 @@ go_library(
     srcs = [
         "ai.go",
         "ansible.go",
+        "ci_cd.go",
         "cloud.go",
         "containers.go",
         "infra.go",

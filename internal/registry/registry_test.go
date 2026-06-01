@@ -116,6 +116,7 @@ func TestAllToolsHaveValidGroup(t *testing.T) {
 		tooldef.GroupUtilities:       true,
 		tooldef.GroupAI:              true,
 		tooldef.GroupPackageManagers: true,
+		tooldef.GroupCICD:            true,
 	}
 
 	reg := New()
@@ -239,6 +240,7 @@ func TestAllGroupsHaveTools(t *testing.T) {
 		tooldef.GroupRustTools,
 		tooldef.GroupUtilities,
 		tooldef.GroupAI,
+		tooldef.GroupCICD,
 	}
 
 	reg := New()

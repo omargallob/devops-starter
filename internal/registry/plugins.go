@@ -92,7 +92,8 @@ func isValidGroup(g tooldef.Group) bool {
 		tooldef.GroupAnsible,
 		tooldef.GroupRustTools,
 		tooldef.GroupUtilities,
-		tooldef.GroupAI:
+		tooldef.GroupAI,
+		tooldef.GroupCICD:
 		return true
 	}
 	return false

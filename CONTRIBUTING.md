@@ -192,6 +192,7 @@ Available variables in `URLTemplate`:
 | `GroupAnsible` | Ansible and related tools |
 | `GroupRustTools` | Rust-based dev tools (ripgrep, fd, bat) |
 | `GroupUtilities` | General utilities, linters, formatters |
+| `GroupCICD` | CI/CD and release automation (goreleaser, semantic-release) |
 
 ### Multi-Binary Tools
 

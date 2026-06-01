@@ -16,6 +16,7 @@ groups:
   ai: false
   ansible: false
   package_managers: false
+  ci_cd: false
 
 # Global package management — installs binaries distributed via pip/npm.
 # Packages are declared in .mise.toml under [packages.pip] and [packages.npm].
