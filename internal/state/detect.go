@@ -135,6 +135,11 @@ var probes = map[string]VersionProbe{
 	"aider":      {Args: []string{"--version"}, Regex: re(`(\d+\.\d+\.\d+)`)},
 	"openai-cli": {BinName: "openai", Args: []string{"--version"}, Regex: re(`(\d+\.\d+\.\d+)`)},
 	"copilot-cli": {BinName: "gh", Args: []string{"copilot", "version"}, Regex: re(`(\d+\.\d+\.\d+)`)},
+
+	// ci-cd
+	"goreleaser":      {Args: []string{"--version"}, Regex: re(`(\d+\.\d+\.\d+)`)},
+	"semantic-release": {Args: []string{"--version"}, Regex: re(`(\d+\.\d+\.\d+)`)},
+	"release-please":  {Args: []string{"--version"}, Regex: re(`(\d+\.\d+\.\d+)`)},
 }
 
 // re is a helper to compile a regexp at init time; panics on invalid patterns.

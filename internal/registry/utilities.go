@@ -186,14 +186,4 @@ func registerUtilities(r *Registry) {
 		InstallName:  "commitlint",
 		Dependencies: []string{"mise"},
 	})
-
-	r.register(&tooldef.Tool{
-		Name:         "semantic-release",
-		Version:      "24.2.3",
-		Description:  "Automated changelog and version management from commit history",
-		Group:        tooldef.GroupUtilities,
-		InstallMode:  tooldef.InstallModeMise,
-		MiseBackend:  "npm:semantic-release",
-		Dependencies: []string{"mise"},
-	})
 }

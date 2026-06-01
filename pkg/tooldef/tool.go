@@ -68,6 +68,7 @@ const (
 	GroupUtilities       Group = "utilities"
 	GroupAI              Group = "ai"
 	GroupPackageManagers Group = "package-managers"
+	GroupCICD            Group = "ci-cd"
 )
 
 // Tool defines a single installable tool with all metadata needed to

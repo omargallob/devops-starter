@@ -67,6 +67,7 @@ type GroupConfig struct {
 	Utilities       bool `yaml:"utilities"`
 	AI              bool `yaml:"ai"`
 	PackageManagers bool `yaml:"package_managers"`
+	CICD            bool `yaml:"ci_cd"`
 }
 
 // ConflictAction defines how to handle a tool already present on the system.
@@ -119,6 +120,7 @@ func DefaultConfig() *Config {
 			Utilities:       true,
 			AI:              true,
 			PackageManagers: false,
+			CICD:            false,
 		},
 		Packages: PackagesConfig{
 			Python: PythonPackageConfig{Enabled: false, Manager: "pip"},
@@ -203,6 +205,8 @@ func (c *Config) IsGroupEnabled(group string) bool {
 		return c.Groups.AI
 	case "package-managers", "package_managers":
 		return c.Groups.PackageManagers
+	case "ci-cd", "ci_cd":
+		return c.Groups.CICD
 	default:
 		return false
 	}
@@ -231,6 +235,8 @@ func (c *Config) SetGroup(group string, enabled bool) {
 		c.Groups.AI = enabled
 	case "package-managers", "package_managers":
 		c.Groups.PackageManagers = enabled
+	case "ci-cd", "ci_cd":
+		c.Groups.CICD = enabled
 	}
 }
 
@@ -256,6 +262,7 @@ func AllGroupNames() []string {
 		"utilities",
 		"ai",
 		"package-managers",
+		"ci-cd",
 	}
 }
 

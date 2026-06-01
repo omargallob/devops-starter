@@ -1,6 +1,6 @@
 // Package registry provides the built-in catalog of all tools managed by
 // devops-starter. Each tool group (languages, containers, kubernetes, infra,
-// cloud, rust-tools, utilities, ai, ansible, package-managers) is defined in
+// cloud, rust-tools, utilities, ai, ansible, package-managers, ci-cd) is defined in
 // a separate file and registered at construction time via New(). The registry
 // allows lookup by name, group, or retrieval of all tools sorted alphabetically.
 package registry
@@ -39,6 +39,7 @@ func New(extraPluginDirs ...string) *Registry {
 	registerAI(r)
 	registerAnsible(r)
 	registerPackageManagers(r)
+	registerCICD(r)
 
 	// Discover and register mise-managed language runtimes from .mise.toml.
 	// Errors are silently ignored — if no .mise.toml is found or it's
