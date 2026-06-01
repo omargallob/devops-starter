@@ -11,7 +11,7 @@ import "github.com/omargallob/devops-starter/pkg/tooldef"
 func registerAI(r *Registry) {
 	r.register(&tooldef.Tool{
 		Name:        "ollama",
-		Version:     "0.9.0",
+		Version:     "0.24.0",
 		Description: "Local LLM runner",
 		Group:       tooldef.GroupAI,
 		Subgroup:    "Runtimes",
@@ -55,7 +55,7 @@ func registerAI(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:         "copilot-cli",
-		Version:      "1.0.5",
+		Version:     "1.2.0",
 		Description:  "GitHub Copilot in the CLI",
 		Group:        tooldef.GroupAI,
 		Subgroup:     "Platform CLIs",

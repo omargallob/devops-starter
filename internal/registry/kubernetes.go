@@ -31,7 +31,7 @@ func registerKubernetes(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "kustomize",
-		Version:     "5.5.0",
+		Version:     "5.8.1",
 		Description: "Kubernetes configuration management",
 		Group:       tooldef.GroupKubernetes,
 		InstallMode: tooldef.InstallModeEget,
@@ -41,7 +41,7 @@ func registerKubernetes(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "k9s",
-		Version:     "0.32.7",
+		Version:     "0.50.18",
 		Description: "Kubernetes TUI",
 		Group:       tooldef.GroupKubernetes,
 		InstallMode: tooldef.InstallModeEget,
@@ -50,7 +50,7 @@ func registerKubernetes(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "kubectx",
-		Version:     "0.9.5",
+		Version:     "0.11.0",
 		Description: "Kubernetes context switcher",
 		Group:       tooldef.GroupKubernetes,
 		InstallMode: tooldef.InstallModeEget,
@@ -60,7 +60,7 @@ func registerKubernetes(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "kubens",
-		Version:     "0.9.5",
+		Version:     "0.11.0",
 		Description: "Kubernetes namespace switcher",
 		Group:       tooldef.GroupKubernetes,
 		InstallMode: tooldef.InstallModeEget,
@@ -70,7 +70,7 @@ func registerKubernetes(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "stern",
-		Version:     "1.31.0",
+		Version:     "1.34.0",
 		Description: "Multi-pod log tailing for Kubernetes",
 		Group:       tooldef.GroupKubernetes,
 		InstallMode: tooldef.InstallModeEget,
@@ -79,7 +79,7 @@ func registerKubernetes(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "argocd",
-		Version:     "2.13.3",
+		Version:     "3.4.3",
 		Description: "Argo CD CLI",
 		Group:       tooldef.GroupKubernetes,
 		InstallMode: tooldef.InstallModeEget,
@@ -89,7 +89,7 @@ func registerKubernetes(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "flux",
-		Version:     "2.4.0",
+		Version:     "2.8.8",
 		Description: "Flux CD CLI",
 		Group:       tooldef.GroupKubernetes,
 		InstallMode: tooldef.InstallModeEget,
@@ -98,7 +98,7 @@ func registerKubernetes(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "istioctl",
-		Version:     "1.24.2",
+		Version:     "1.30.0",
 		Description: "Istio service mesh CLI",
 		Group:       tooldef.GroupKubernetes,
 		InstallMode: tooldef.InstallModeEget,
@@ -108,7 +108,7 @@ func registerKubernetes(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "cilium",
-		Version:     "0.16.22",
+		Version:     "0.19.4",
 		Description: "Cilium CLI",
 		Group:       tooldef.GroupKubernetes,
 		InstallMode: tooldef.InstallModeEget,
@@ -118,7 +118,7 @@ func registerKubernetes(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "kind",
-		Version:     "0.25.0",
+		Version:     "0.31.0",
 		Description: "Kubernetes in Docker",
 		Group:       tooldef.GroupKubernetes,
 		InstallMode: tooldef.InstallModeEget,
@@ -128,7 +128,7 @@ func registerKubernetes(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "kubeseal",
-		Version:     "0.27.3",
+		Version:     "0.37.0",
 		Description: "Sealed Secrets CLI",
 		Group:       tooldef.GroupKubernetes,
 		InstallMode: tooldef.InstallModeEget,
@@ -138,7 +138,7 @@ func registerKubernetes(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "velero",
-		Version:     "1.15.1",
+		Version:     "1.18.1",
 		Description: "Kubernetes backup and restore",
 		Group:       tooldef.GroupKubernetes,
 		InstallMode: tooldef.InstallModeEget,
