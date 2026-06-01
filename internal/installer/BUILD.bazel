@@ -7,6 +7,7 @@ go_library(
         "bootstrap.go",
         "checksum.go",
         "conflict.go",
+        "deps.go",
         "eget.go",
         "installer.go",
         "link.go",
@@ -30,6 +31,7 @@ go_test(
     name = "installer_test",
     srcs = [
         "conflict_test.go",
+        "deps_test.go",
         "eget_test.go",
         "installer_e2e_test.go",
         "installer_test.go",
