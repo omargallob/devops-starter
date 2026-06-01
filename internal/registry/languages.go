@@ -19,7 +19,7 @@ const (
 func registerLanguages(r *Registry) {
 	r.register(&tooldef.Tool{
 		Name:        "mise",
-		Version:     "2025.1.6",
+		Version:     "2026.5.18",
 		Description: "Polyglot runtime manager (formerly rtx)",
 		Group:       tooldef.GroupLanguages,
 		Subgroup:    SubgroupPlatforms,

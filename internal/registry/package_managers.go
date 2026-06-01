@@ -14,7 +14,7 @@ func registerPackageManagers(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "pnpm",
-		Version:     "9.15.4",
+		Version:     "11.5.0",
 		Description: "Fast, disk-efficient npm replacement",
 		Group:       tooldef.GroupPackageManagers,
 		Subgroup:    "JavaScript",
@@ -24,7 +24,7 @@ func registerPackageManagers(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "bun",
-		Version:     "1.1.42",
+		Version:     "1.3.14",
 		Description: "JavaScript runtime and package manager",
 		Group:       tooldef.GroupPackageManagers,
 		Subgroup:    "JavaScript",
@@ -58,7 +58,7 @@ func registerPackageManagers(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "uv",
-		Version:     "0.5.21",
+		Version:     "0.11.17",
 		Description: "Rust-based Python package installer and resolver",
 		Group:       tooldef.GroupPackageManagers,
 		Subgroup:    "Python",
@@ -79,7 +79,7 @@ func registerPackageManagers(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "pipx",
-		Version:     "1.7.1",
+		Version:     "1.13.0",
 		Description: "Install Python CLI tools in isolated virtualenvs",
 		Group:       tooldef.GroupPackageManagers,
 		Subgroup:    "Python",
@@ -102,7 +102,7 @@ func registerPackageManagers(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "cargo-binstall",
-		Version:     "1.10.10",
+		Version:     "1.19.1",
 		Description: "Install Cargo crates from pre-built binaries without compiling",
 		Group:       tooldef.GroupPackageManagers,
 		Subgroup:    "Rust",
