@@ -107,8 +107,17 @@ func run() int {
 	return 0
 }
 
-// findProjectRoot walks up from CWD looking for the internal/registry directory.
+// findProjectRoot returns the workspace root containing internal/registry.
+// Under `bazel run`, BUILD_WORKSPACE_DIRECTORY points directly to the workspace
+// root, so we use that when available to avoid resolving into Bazel's output tree.
 func findProjectRoot() string {
+	if wsDir := os.Getenv("BUILD_WORKSPACE_DIRECTORY"); wsDir != "" {
+		candidate := filepath.Join(wsDir, "internal", "registry")
+		if fi, err := os.Stat(candidate); err == nil && fi.IsDir() {
+			return wsDir
+		}
+	}
+
 	dir, err := os.Getwd()
 	if err != nil {
 		return ""
