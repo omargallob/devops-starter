@@ -79,6 +79,12 @@ func (inst *Installer) IsInstalled(tool *tooldef.Tool) bool {
 func (inst *Installer) Install(ctx context.Context, tool *tooldef.Tool) error {
 	mode := tool.EffectiveInstallMode()
 
+	// Enforce declared dependencies before attempting installation.
+	// Runs before the dry-run check so that dry-run serves as full validation.
+	if err := inst.checkDependencies(tool); err != nil {
+		return err
+	}
+
 	if inst.DryRun {
 		fmt.Printf("[dry-run] Would install %s %s (mode: %s)\n", tool.Name, tool.Version, mode)
 		return nil
