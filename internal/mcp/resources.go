@@ -51,7 +51,7 @@ func registerResources(s *server.MCPServer, deps *Deps) {
 }
 
 func configResourceHandler(deps *Deps) server.ResourceHandlerFunc {
-	return func(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+	return func(_ context.Context, _ mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
 		// Try to read the raw config file from disk first.
 		cfgPath := config.Path()
 		data, err := os.ReadFile(cfgPath)
@@ -74,7 +74,7 @@ func configResourceHandler(deps *Deps) server.ResourceHandlerFunc {
 }
 
 func stateResourceHandler() server.ResourceHandlerFunc {
-	return func(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+	return func(_ context.Context, _ mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
 		statePath := state.Path()
 		data, err := os.ReadFile(statePath)
 		if err != nil {
@@ -101,7 +101,7 @@ func stateResourceHandler() server.ResourceHandlerFunc {
 }
 
 func groupsResourceHandler(deps *Deps) server.ResourceHandlerFunc {
-	return func(ctx context.Context, request mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
+	return func(_ context.Context, _ mcp.ReadResourceRequest) ([]mcp.ResourceContents, error) {
 		type groupInfo struct {
 			Name    string `json:"name"`
 			Enabled bool   `json:"enabled"`

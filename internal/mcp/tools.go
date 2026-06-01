@@ -44,7 +44,7 @@ func listToolsDef() mcp.Tool {
 }
 
 func listToolsHandler(deps *Deps) server.ToolHandlerFunc {
-	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	return func(_ context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		group := request.GetString("group", "")
 
 		var tools []*tooldef.Tool
@@ -97,7 +97,7 @@ func getToolDef() mcp.Tool {
 }
 
 func getToolHandler(deps *Deps) server.ToolHandlerFunc {
-	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	return func(_ context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		name, err := request.RequireString("name")
 		if err != nil {
 			return mcp.NewToolResultError("parameter 'name' is required"), nil
@@ -186,7 +186,7 @@ func getStatusDef() mcp.Tool {
 }
 
 func getStatusHandler(deps *Deps) server.ToolHandlerFunc {
-	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	return func(_ context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		groupFilter := request.GetString("group", "")
 		statusFilter := request.GetString("status_filter", "")
 
@@ -256,7 +256,7 @@ func configShowDef() mcp.Tool {
 }
 
 func configShowHandler(deps *Deps) server.ToolHandlerFunc {
-	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	return func(_ context.Context, _ mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		data, err := yaml.Marshal(deps.Config)
 		if err != nil {
 			return mcp.NewToolResultError(fmt.Sprintf("marshal error: %v", err)), nil
@@ -277,7 +277,7 @@ func detectPlatformDef() mcp.Tool {
 }
 
 func detectPlatformHandler(deps *Deps) server.ToolHandlerFunc {
-	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	return func(_ context.Context, _ mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		result := map[string]string{
 			"os":   deps.Platform.OS,
 			"arch": deps.Platform.Arch,
@@ -305,8 +305,8 @@ func dotfilesStatusDef() mcp.Tool {
 	)
 }
 
-func dotfilesStatusHandler(deps *Deps) server.ToolHandlerFunc {
-	return func(ctx context.Context, request mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+func dotfilesStatusHandler(_ *Deps) server.ToolHandlerFunc {
+	return func(_ context.Context, _ mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 		homeDir, err := homeDirectory()
 		if err != nil {
 			return mcp.NewToolResultError(fmt.Sprintf("cannot determine home directory: %v", err)), nil
