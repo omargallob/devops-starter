@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.8](https://github.com/omargallob/devops-starter/compare/v0.1.7...v0.1.8) (2026-06-01)
+
+
+### Bug Fixes
+
+* use BUILD_WORKSPACE_DIRECTORY in check-versions and add missing group mappings ([#76](https://github.com/omargallob/devops-starter/issues/76)) ([2dcc0ab](https://github.com/omargallob/devops-starter/commit/2dcc0ab6fd9b74eeb9019513becc2da5229064dd))
+
 ## [0.1.7](https://github.com/omargallob/devops-starter/compare/v0.1.6...v0.1.7) (2026-05-31)
 
 
