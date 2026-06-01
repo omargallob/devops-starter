@@ -227,17 +227,27 @@ func (m Model) viewToolsContent() (body, footer string) {
 	// Group header with back hint
 	b.WriteString(headerStyle.Render(fmt.Sprintf("  [%s]", g.Name)))
 	b.WriteString(dimStyle.Render("  ← esc to go back"))
+	if m.totalPages() > 1 {
+		b.WriteString(dimStyle.Render(fmt.Sprintf("  (page %d/%d)", m.toolPage+1, m.totalPages())))
+	}
 	b.WriteString("\n\n")
 
-	// Tool rows
+	// Tool rows (only visible page)
+	visibleSubs := m.visibleSubgroups()
 	currentSubgroup := ""
 	for i := range g.Tools {
 		t := &g.Tools[i]
+		if !visibleSubs[t.Subgroup] {
+			continue
+		}
 		// Insert subgroup header when it changes (non-selectable divider)
 		if t.Subgroup != "" && t.Subgroup != currentSubgroup {
+			if currentSubgroup != "" {
+				b.WriteString("\n")
+			}
 			currentSubgroup = t.Subgroup
 			b.WriteString(dimStyle.Render(fmt.Sprintf("    ── %s ──", currentSubgroup)))
-			b.WriteString("\n")
+			b.WriteString("\n\n")
 		}
 
 		isCursor := i == m.toolCursor
@@ -263,6 +273,7 @@ func (m Model) viewToolsContent() (body, footer string) {
 
 	helpLine := renderHelp([]helpBinding{
 		{"↑↓/jk", "navigate"},
+		{"←→/hl", "page"},
 		{"space", "select"},
 		{"i", "install"},
 		{"r", "remove"},

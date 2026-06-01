@@ -157,8 +157,11 @@ func printTableSection(w io.Writer, title string, groups []state.GroupState, cou
 		for ti := range g.Tools {
 			t := &g.Tools[ti]
 			if t.Subgroup != "" && t.Subgroup != currentSubgroup {
+				if currentSubgroup != "" {
+					fmt.Fprintln(w)
+				}
 				currentSubgroup = t.Subgroup
-				fmt.Fprintf(w, "%-14s ── %s ──\n", g.Name, currentSubgroup)
+				fmt.Fprintf(w, "%-14s ── %s ──\n\n", g.Name, currentSubgroup)
 			}
 			installed, desired, origin := formatToolRow(t)
 			fmt.Fprintf(w, "%-14s %-18s %-12s %-12s %-10s %s\n",

@@ -72,6 +72,7 @@ func (m Model) updateGroups(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		// Drill into the selected group
 		m.selectedGroup = m.groupCursor
 		m.toolCursor = 0
+		m.toolPage = 0
 		m.screen = screenTools
 		m.message = ""
 		m.err = nil
@@ -93,8 +94,6 @@ func (m Model) updateGroups(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 // ─── Tool Screen ─────────────────────────────────────────────────────────────
 
 func (m Model) updateTools(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	tools := m.selectedGroupTools()
-
 	switch msg.String() {
 	case "q", "ctrl+c":
 		m.quitting = true
@@ -106,13 +105,35 @@ func (m Model) updateTools(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.err = nil
 
 	case "j", "down":
-		if m.toolCursor < len(tools)-1 {
-			m.toolCursor++
+		indices := m.visibleToolIndices()
+		// Find next visible index after current cursor
+		for _, idx := range indices {
+			if idx > m.toolCursor {
+				m.toolCursor = idx
+				break
+			}
 		}
 
 	case "k", "up":
-		if m.toolCursor > 0 {
-			m.toolCursor--
+		indices := m.visibleToolIndices()
+		// Find previous visible index before current cursor
+		for i := len(indices) - 1; i >= 0; i-- {
+			if indices[i] < m.toolCursor {
+				m.toolCursor = indices[i]
+				break
+			}
+		}
+
+	case "l", "right":
+		if m.toolPage < m.totalPages()-1 {
+			m.toolPage++
+			m.snapCursorToPage()
+		}
+
+	case "h", "left":
+		if m.toolPage > 0 {
+			m.toolPage--
+			m.snapCursorToPage()
 		}
 
 	case " ":
