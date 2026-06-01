@@ -13,13 +13,16 @@ const registryDir = "internal/registry"
 
 // groupFileMap maps tool group names to their registry source file.
 var groupFileMap = map[string]string{
-	"languages":  "languages.go",
-	"containers": "containers.go",
-	"kubernetes": "kubernetes.go",
-	"infra":      "infra.go",
-	"cloud":      "cloud.go",
-	"rust-tools": "rust_tools.go",
-	"utilities":  "utilities.go",
+	"languages":        "languages.go",
+	"containers":       "containers.go",
+	"kubernetes":       "kubernetes.go",
+	"infra":            "infra.go",
+	"cloud":            "cloud.go",
+	"rust-tools":       "rust_tools.go",
+	"utilities":        "utilities.go",
+	"ai":               "ai.go",
+	"ansible":          "ansible.go",
+	"package-managers": "package_managers.go",
 }
 
 // ApplyUpdates rewrites registry Go source files to update pinned versions.
