@@ -143,6 +143,26 @@ Table-driven test rows must name the contract being exercised, not just the inpu
 {"tool1", ...}                                // avoid
 ```
 
+## Agentic Agile Development
+
+This repo follows [Agentic Agile](docs/agentic-agile.md) — Agile practices adapted for teams where AI agents are active contributors. See `docs/agentic-agile.md` for the full methodology.
+
+### Workflow at a glance
+
+1. **Spec first** — open a GitHub issue using the **Feature Spec** template and fill in the contract section before writing any code. PRs must reference a spec issue.
+2. **Phases** — the spec defines implementation waves. Do not start Wave 2 (parallel implementation) until Wave 1 (contracts, types, schema) is reviewed and merged.
+3. **Epics** — large features use the **Epic** template to decompose work into parallel agent streams with review gates between waves.
+4. **Retrospective** — at sprint end, run the `retrospective` workflow from GitHub Actions to auto-generate a report issue.
+
+### Issue labels
+
+| Label | When to use |
+|-------|-------------|
+| `spec` | New feature with a defined contract |
+| `epic` | Multi-spec feature decomposed into waves |
+| `bug` | Contract violation with reproduction steps |
+| `retrospective` | Auto-generated sprint retrospective report |
+
 ## Adding Tools / Groups / Commands
 
 | Task | Action |
