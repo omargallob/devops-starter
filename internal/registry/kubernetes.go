@@ -13,7 +13,15 @@ func registerKubernetes(r *Registry) {
 		Version:     "1.31.4",
 		Description: "Kubernetes CLI",
 		Group:       tooldef.GroupKubernetes,
-		InstallMode: tooldef.InstallModeEgetURL,
+		InstallMode: tooldef.InstallModeGlazePkg,
+		PackageNames: map[string]string{
+			"brew":   "kubernetes-cli",
+			"apt":    "kubectl",
+			"pacman": "kubectl",
+			"winget": "Kubernetes.kubectl",
+			"scoop":  "kubectl",
+		},
+		// Fallback: direct binary download via eget-url
 		Format:      tooldef.FormatBinary,
 		URLTemplate: "https://dl.k8s.io/release/v{{.Version}}/bin/{{.OS}}/{{.Arch}}/kubectl",
 	})
@@ -23,7 +31,15 @@ func registerKubernetes(r *Registry) {
 		Version:     "3.16.4",
 		Description: "Kubernetes package manager",
 		Group:       tooldef.GroupKubernetes,
-		InstallMode: tooldef.InstallModeEgetURL,
+		InstallMode: tooldef.InstallModeGlazePkg,
+		PackageNames: map[string]string{
+			"brew":   "helm",
+			"apt":    "helm",
+			"pacman": "helm",
+			"winget": "Helm.Helm",
+			"scoop":  "helm",
+		},
+		// Fallback: direct archive download via eget-url
 		Format:      tooldef.FormatTarGz,
 		BinaryName:  "helm",
 		URLTemplate: "https://get.helm.sh/helm-v{{.Version}}-{{.OS}}-{{.Arch}}.tar.gz",

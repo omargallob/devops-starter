@@ -11,7 +11,14 @@ func registerInfra(r *Registry) {
 		Version:     "1.10.4",
 		Description: "Infrastructure as Code",
 		Group:       tooldef.GroupInfra,
-		InstallMode: tooldef.InstallModeEgetURL,
+		InstallMode: tooldef.InstallModeGlazePkg,
+		PackageNames: map[string]string{
+			"brew":   "terraform",
+			"apt":    "terraform",
+			"winget": "Hashicorp.Terraform",
+			"scoop":  "terraform",
+		},
+		// Fallback: direct archive download via eget-url
 		Format:      tooldef.FormatZip,
 		URLTemplate: "https://releases.hashicorp.com/terraform/{{.Version}}/terraform_{{.Version}}_{{.OS}}_{{.Arch}}.zip",
 	})
@@ -58,7 +65,13 @@ func registerInfra(r *Registry) {
 		Version:     "1.18.4",
 		Description: "Secrets management",
 		Group:       tooldef.GroupInfra,
-		InstallMode: tooldef.InstallModeEgetURL,
+		InstallMode: tooldef.InstallModeGlazePkg,
+		PackageNames: map[string]string{
+			"brew":   "vault",
+			"apt":    "vault",
+			"winget": "Hashicorp.Vault",
+		},
+		// Fallback: direct archive download via eget-url
 		Format:      tooldef.FormatZip,
 		URLTemplate: "https://releases.hashicorp.com/vault/{{.Version}}/vault_{{.Version}}_{{.OS}}_{{.Arch}}.zip",
 	})

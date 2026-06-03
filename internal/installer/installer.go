@@ -4,6 +4,7 @@ package installer
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -18,11 +19,15 @@ import (
 type Installer struct {
 	InstallDir  string
 	Platform    tooldef.Platform
+	Distro      string // Linux distro name (e.g., "ubuntu", "arch") for manager priority
 	DryRun      bool
 	Concurrency int
 	// StateStore is an optional state store for recording installed versions.
 	// If nil, no state is recorded.
 	StateStore *state.Store
+	// PreferNativeManagers enables glazepkg-based installation for tools that
+	// declare PackageNames. When false, glazepkg mode falls back to eget/eget-url.
+	PreferNativeManagers bool
 }
 
 // Option is a functional option for configuring an Installer.
@@ -49,12 +54,29 @@ func WithStateStore(store *state.Store) Option {
 	}
 }
 
+// WithPreferNativeManagers controls whether glazepkg-mode tools use native OS
+// package managers. Defaults to true.
+func WithPreferNativeManagers(prefer bool) Option {
+	return func(i *Installer) {
+		i.PreferNativeManagers = prefer
+	}
+}
+
+// WithDistro sets the Linux distro name used to prioritise package managers.
+// Has no effect on non-Linux platforms.
+func WithDistro(distro string) Option {
+	return func(i *Installer) {
+		i.Distro = distro
+	}
+}
+
 // New creates a new Installer with the given install directory, platform, and options.
 func New(installDir string, platform tooldef.Platform, opts ...Option) *Installer {
 	i := &Installer{
-		InstallDir:  installDir,
-		Platform:    platform,
-		Concurrency: 4,
+		InstallDir:           installDir,
+		Platform:             platform,
+		Concurrency:          4,
+		PreferNativeManagers: true,
 	}
 	for _, opt := range opts {
 		opt(i)
@@ -102,6 +124,11 @@ func (inst *Installer) Install(ctx context.Context, tool *tooldef.Tool) error {
 		err = inst.installViaGhExtension(ctx, tool)
 	case tooldef.InstallModeCustom:
 		err = inst.installCustom(ctx, tool)
+	case tooldef.InstallModeGlazePkg:
+		err = inst.installViaGlazePkg(ctx, tool)
+		if errors.Is(err, ErrGlazePkgNotAvailable) {
+			err = inst.glazePkgFallback(ctx, tool)
+		}
 	default:
 		err = fmt.Errorf("unknown install mode %q for tool %s", mode, tool.Name)
 	}

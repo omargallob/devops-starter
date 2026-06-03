@@ -15,8 +15,17 @@ func registerUtilities(r *Registry) {
 		Version:     "1.7.1",
 		Description: "JSON processor",
 		Group:       tooldef.GroupUtilities,
-		InstallMode: tooldef.InstallModeEget,
-		Repo:        "jqlang/jq",
+		InstallMode: tooldef.InstallModeGlazePkg,
+		PackageNames: map[string]string{
+			"brew":   "jq",
+			"apt":    "jq",
+			"pacman": "jq",
+			"dnf":    "jq",
+			"winget": "jqlang.jq",
+			"scoop":  "jq",
+		},
+		// Fallback: eget from GitHub releases
+		Repo: "jqlang/jq",
 	})
 
 	r.register(&tooldef.Tool{
@@ -34,8 +43,17 @@ func registerUtilities(r *Registry) {
 		Version:     "0.57.0",
 		Description: "Fuzzy finder",
 		Group:       tooldef.GroupUtilities,
-		InstallMode: tooldef.InstallModeEget,
-		Repo:        "junegunn/fzf",
+		InstallMode: tooldef.InstallModeGlazePkg,
+		PackageNames: map[string]string{
+			"brew":   "fzf",
+			"apt":    "fzf",
+			"pacman": "fzf",
+			"dnf":    "fzf",
+			"winget": "junegunn.fzf",
+			"scoop":  "fzf",
+		},
+		// Fallback: eget from GitHub releases
+		Repo: "junegunn/fzf",
 	})
 
 	r.register(&tooldef.Tool{

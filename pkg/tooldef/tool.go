@@ -7,8 +7,10 @@
 //   - Platform: OS/architecture pair (e.g., linux/amd64)
 //   - Group: functional category for organising tools
 //   - ArchiveFormat: download artifact type (tar.gz, zip, raw binary, etc.)
-//   - InstallMode: how a tool is installed (eget, eget-url, mise, gh-extension, custom)
+//   - InstallMode: how a tool is installed (eget, eget-url, mise, gh-extension, custom, glazepkg)
 package tooldef
+
+import "fmt"
 
 // ArchiveFormat represents the format of a downloaded archive.
 type ArchiveFormat string
@@ -41,6 +43,12 @@ const (
 	// InstallModeGhExtension installs a GitHub CLI extension via
 	// "gh extension install <repo>".
 	InstallModeGhExtension InstallMode = "gh-extension"
+
+	// InstallModeGlazePkg installs via a native OS package manager using glazepkg
+	// as the abstraction layer (brew on macOS, apt/pacman on Linux, etc.).
+	// The PackageNames field maps glazepkg manager names to their package identifiers.
+	// Falls back to eget/eget-url if glazepkg is unavailable.
+	InstallModeGlazePkg InstallMode = "glazepkg"
 )
 
 // Platform represents a target OS/architecture combination.
@@ -146,6 +154,13 @@ type Tool struct {
 	// rather than batched through .mise.toml.
 	MiseBackend string `yaml:"mise_backend,omitempty"`
 
+	// PackageNames maps glazepkg manager names to the package identifier in that
+	// manager. Required when InstallMode is InstallModeGlazePkg.
+	// Keys are glazepkg manager names (e.g., "brew", "apt", "pacman", "winget").
+	// Values are the package name as the manager knows it
+	// (e.g., {"brew": "kubernetes-cli", "apt": "kubectl"}).
+	PackageNames map[string]string `yaml:"package_names,omitempty"`
+
 	// ManagedBy indicates this tool is installed by another tool (e.g., "mise")
 	// rather than downloaded directly.
 	//
@@ -155,6 +170,15 @@ type Tool struct {
 	// Subgroup provides an optional visual sub-category within a group.
 	// Used for display purposes only (e.g., "Platforms" vs "Languages").
 	Subgroup string `yaml:"subgroup,omitempty"`
+}
+
+// Validate checks that the tool's contract is satisfied.
+// Returns an error if required fields for the declared InstallMode are missing.
+func (t *Tool) Validate() error {
+	if t.EffectiveInstallMode() == InstallModeGlazePkg && len(t.PackageNames) == 0 {
+		return fmt.Errorf("tool %q has install_mode=glazepkg but no package_names defined", t.Name)
+	}
+	return nil
 }
 
 // GetBinaryName returns the binary name, defaulting to Tool.Name.

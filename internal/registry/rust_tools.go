@@ -41,7 +41,16 @@ func registerRustTools(r *Registry) {
 		Version:     "14.1.1",
 		Description: "Fast grep alternative",
 		Group:       tooldef.GroupRustTools,
-		InstallMode: tooldef.InstallModeEget,
+		InstallMode: tooldef.InstallModeGlazePkg,
+		PackageNames: map[string]string{
+			"brew":   "ripgrep",
+			"apt":    "ripgrep",
+			"pacman": "ripgrep",
+			"dnf":    "ripgrep",
+			"winget": "BurntSushi.ripgrep.MSVC",
+			"scoop":  "ripgrep",
+		},
+		// Fallback: eget from GitHub releases (musl binary for Linux portability)
 		Repo:        "BurntSushi/ripgrep",
 		Asset:       "*musl*",
 		BinaryName:  "rg",

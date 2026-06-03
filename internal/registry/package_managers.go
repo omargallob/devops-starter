@@ -109,4 +109,16 @@ func registerPackageManagers(r *Registry) {
 		InstallMode: tooldef.InstallModeEget,
 		Repo:        "cargo-bins/cargo-binstall",
 	})
+
+	// Unified package manager frontend
+
+	r.register(&tooldef.Tool{
+		Name:        "gpk",
+		Version:     "0.5.3",
+		Description: "Unified terminal UI and CLI for all package managers (glazepkg)",
+		Group:       tooldef.GroupPackageManagers,
+		Subgroup:    "System",
+		InstallMode: tooldef.InstallModeEget,
+		Repo:        "neur0map/glazepkg",
+	})
 }

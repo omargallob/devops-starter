@@ -99,6 +99,13 @@ func validateInstallMode(t *testing.T, tool *tooldef.Tool) {
 		if tool.Repo == "" {
 			t.Fatal("InstallMode=gh-extension but no Repo")
 		}
+	case tooldef.InstallModeGlazePkg:
+		if len(tool.PackageNames) == 0 {
+			t.Fatal("InstallMode=glazepkg but no PackageNames declared")
+		}
+		if tool.Repo == "" && tool.URLTemplate == "" && len(tool.URLs) == 0 {
+			t.Fatal("InstallMode=glazepkg but no eget/eget-url fallback (Repo, URLTemplate, or URLs)")
+		}
 	default:
 		t.Fatalf("unknown InstallMode %q", mode)
 	}
@@ -141,6 +148,10 @@ func TestAllToolsHaveValidFormat(t *testing.T) {
 		// eget-mode, mise-managed, and gh-extension tools don't require a format —
 		// eget auto-detects the archive type from the release asset.
 		if mode == tooldef.InstallModeEget || mode == tooldef.InstallModeMise || mode == tooldef.InstallModeGhExtension {
+			continue
+		}
+		// glazepkg tools with only a Repo fallback use eget, which doesn't need format.
+		if mode == tooldef.InstallModeGlazePkg && tool.Repo != "" && tool.URLTemplate == "" && len(tool.URLs) == 0 {
 			continue
 		}
 		if !validFormats[tool.Format] {
