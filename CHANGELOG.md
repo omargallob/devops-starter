@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.1.8](https://github.com/omargallob/devops-starter/compare/v0.1.7...v0.1.8) (2026-06-03)
+
+
+### Features
+
+* **devcontainer:** add DevPod container configuration ([#84](https://github.com/omargallob/devops-starter/issues/84)) ([731aa97](https://github.com/omargallob/devops-starter/commit/731aa97d5bbf219a0e54f5190969cbdd62f9305a))
+* **installer:** add pre-install dependency enforcement check ([#79](https://github.com/omargallob/devops-starter/issues/79)) ([934dc5b](https://github.com/omargallob/devops-starter/commit/934dc5be13374d2e686f92f35e15fb6c6652ee3e))
+* **registry:** add ci-cd tool group ([#81](https://github.com/omargallob/devops-starter/issues/81)) ([ed9d521](https://github.com/omargallob/devops-starter/commit/ed9d521a3048d7a17b51ddef583385b5e8257af0))
+
+
+### Bug Fixes
+
+* **mcp:** resolve golangci-lint warnings in MCP handlers ([#80](https://github.com/omargallob/devops-starter/issues/80)) ([ae8353c](https://github.com/omargallob/devops-starter/commit/ae8353ce7acb51512627df643254917dfe0c501c))
+* use BUILD_WORKSPACE_DIRECTORY in check-versions and add missing group mappings ([#76](https://github.com/omargallob/devops-starter/issues/76)) ([2dcc0ab](https://github.com/omargallob/devops-starter/commit/2dcc0ab6fd9b74eeb9019513becc2da5229064dd))
+
 ## [0.1.7](https://github.com/omargallob/devops-starter/compare/v0.1.6...v0.1.7) (2026-05-31)
 
 
