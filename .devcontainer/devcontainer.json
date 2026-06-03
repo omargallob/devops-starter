@@ -1,0 +1,40 @@
+{
+  "name": "devops-starter",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": ".."
+  },
+  "remoteUser": "vscode",
+  "workspaceFolder": "/workspaces/devops-starter",
+  "containerEnv": {
+    "GOPATH": "/home/vscode/go",
+    "PATH": "/home/vscode/.local/bin:/home/vscode/.mise/shims:/home/vscode/go/bin:/usr/local/bin:/usr/bin:/bin"
+  },
+  "mounts": [
+    "source=devops-starter-bazel-cache,target=/home/vscode/.cache/bazel,type=volume",
+    "source=devops-starter-mise-cache,target=/home/vscode/.local/share/mise,type=volume"
+  ],
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "golang.go",
+        "ms-python.python",
+        "timonwong.shellcheck",
+        "redhat.vscode-yaml",
+        "eamodio.gitlens",
+        "bazelbuild.vscode-bazel"
+      ],
+      "settings": {
+        "go.gopath": "/home/vscode/go",
+        "go.toolsManagement.checkForUpdates": "off",
+        "[go]": {
+          "editor.formatOnSave": true,
+          "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit"
+          }
+        }
+      }
+    }
+  }
+}
