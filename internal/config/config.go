@@ -29,6 +29,12 @@ type Config struct {
 	// PluginPaths lists additional directories to scan for plugin YAML files.
 	// These take precedence over the standard project-local and user-global dirs.
 	PluginPaths []string `yaml:"plugin_paths,omitempty"`
+
+	// PreferNativeManagers enables glazepkg-based installation for tools that
+	// declare package_names. When true (default), devops-starter uses the native
+	// OS package manager (brew, apt, pacman, etc.) via glazepkg before falling
+	// back to direct binary downloads. Set to false to always use binary downloads.
+	PreferNativeManagers bool `yaml:"prefer_native_managers"`
 }
 
 // PackagesConfig controls global package installation for Python and Node.
@@ -108,7 +114,8 @@ type ToolOverride struct {
 // DefaultConfig returns the default configuration with all groups enabled.
 func DefaultConfig() *Config {
 	return &Config{
-		InstallDir: filepath.Join(homeDir(), ".local", "bin"),
+		InstallDir:           filepath.Join(homeDir(), ".local", "bin"),
+		PreferNativeManagers: true,
 		Groups: GroupConfig{
 			Languages:       true,
 			Containers:      true,
