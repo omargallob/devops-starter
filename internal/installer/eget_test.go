@@ -67,7 +67,10 @@ func TestBuildEgetRepoArgs(t *testing.T) {
 	}
 	platform := tooldef.Platform{OS: "linux", Arch: "amd64"}
 
-	args := buildEgetRepoArgs(tool, "/usr/local/bin", platform)
+	args, err := buildEgetRepoArgs(tool, "/usr/local/bin", platform)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	// Check essential args are present.
 	assertContains(t, args, "derailed/k9s")
@@ -88,7 +91,10 @@ func TestBuildEgetRepoArgs_Minimal(t *testing.T) {
 	}
 	platform := tooldef.Platform{OS: "darwin", Arch: "arm64"}
 
-	args := buildEgetRepoArgs(tool, "/tmp/bin", platform)
+	args, err := buildEgetRepoArgs(tool, "/tmp/bin", platform)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	assertContains(t, args, "junegunn/fzf")
 	assertContains(t, args, "--tag")
@@ -110,7 +116,10 @@ func TestBuildEgetRepoArgs_WithChecksum(t *testing.T) {
 	}
 	platform := tooldef.Platform{OS: "linux", Arch: "amd64"}
 
-	args := buildEgetRepoArgs(tool, "/tmp/bin", platform)
+	args, err := buildEgetRepoArgs(tool, "/tmp/bin", platform)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	assertContains(t, args, "--sha256")
 	assertContains(t, args, "abc123def456")
 }
@@ -139,7 +148,10 @@ func TestBuildEgetRepoArgs_Rename(t *testing.T) {
 	}
 	platform := tooldef.Platform{OS: "linux", Arch: "amd64"}
 
-	args := buildEgetRepoArgs(tool, "/tmp/bin", platform)
+	args, err := buildEgetRepoArgs(tool, "/tmp/bin", platform)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	assertContains(t, args, "--rename")
 	assertContains(t, args, "tofu")
 }

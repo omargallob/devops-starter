@@ -22,9 +22,9 @@ import (
 // tools based on the user's configuration, platform, and optional --only filter.
 func newInstallCmd() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "install",
+		Use:   "install [tool...]",
 		Short: "Install DevOps tools",
-		Long:  "Download and install DevOps tools based on configuration and platform detection.",
+		Long:  "Download and install DevOps tools based on configuration and platform detection.\nIf one or more tool names are given, only those tools are installed.",
 		RunE:  runInstall,
 	}
 
@@ -68,16 +68,25 @@ func runInstall(cmd *cobra.Command, args []string) error {
 		dryRun:    dryRun,
 		autoYes:   autoYes,
 		only:      only,
+		names:     args,
 	}
 
 	return doInstall(deps, info.Platform)
 }
 
 // filterToolsForInstall selects tools eligible for installation based on group,
-// platform, and config overrides.
-func filterToolsForInstall(allTools []*tooldef.Tool, cfg *config.Config, plat tooldef.Platform, onlyGroup string) []*tooldef.Tool {
+// platform, requested tool names, and config overrides.
+func filterToolsForInstall(allTools []*tooldef.Tool, cfg *config.Config, plat tooldef.Platform, onlyGroup string, names []string) []*tooldef.Tool {
+	nameSet := make(map[string]bool, len(names))
+	for _, n := range names {
+		nameSet[n] = true
+	}
+
 	var tools []*tooldef.Tool
 	for _, t := range allTools {
+		if len(nameSet) > 0 && !nameSet[t.Name] {
+			continue
+		}
 		if onlyGroup != "" && string(t.Group) != onlyGroup {
 			continue
 		}
@@ -104,7 +113,13 @@ func filterToolsForInstall(allTools []*tooldef.Tool, cfg *config.Config, plat to
 // It filters the registry, detects conflicts with system binaries, prompts the
 // user for conflict resolution, confirms, and runs installations.
 func doInstall(deps installDeps, plat tooldef.Platform) error {
-	tools := filterToolsForInstall(deps.registry.All(), deps.cfg, plat, deps.only)
+	for _, name := range deps.names {
+		if _, ok := deps.registry.Get(name); !ok {
+			fmt.Fprintf(deps.out, "warning: unknown tool: %s\n", name)
+		}
+	}
+
+	tools := filterToolsForInstall(deps.registry.All(), deps.cfg, plat, deps.only, deps.names)
 
 	if len(tools) == 0 {
 		fmt.Fprintln(deps.out, "No tools to install.")

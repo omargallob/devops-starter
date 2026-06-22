@@ -43,6 +43,7 @@ type installDeps struct {
 	dryRun    bool
 	autoYes   bool
 	only      string
+	names     []string
 }
 
 // removeDeps bundles dependencies for the remove command.

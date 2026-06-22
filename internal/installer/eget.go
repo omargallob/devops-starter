@@ -21,7 +21,10 @@ func (inst *Installer) installWithEget(ctx context.Context, tool *tooldef.Tool) 
 		return fmt.Errorf("ensuring eget available: %w", err)
 	}
 
-	args := buildEgetRepoArgs(tool, inst.InstallDir, inst.Platform)
+	args, err := buildEgetRepoArgs(tool, inst.InstallDir, inst.Platform)
+	if err != nil {
+		return fmt.Errorf("building eget args for %s: %w", tool.Name, err)
+	}
 	return runEget(ctx, egetBin, args, tool.Name)
 }
 
@@ -43,18 +46,27 @@ func (inst *Installer) installWithEgetURL(ctx context.Context, tool *tooldef.Too
 }
 
 // buildEgetRepoArgs constructs the eget CLI arguments for repo mode.
-func buildEgetRepoArgs(tool *tooldef.Tool, installDir string, platform tooldef.Platform) []string {
+func buildEgetRepoArgs(tool *tooldef.Tool, installDir string, platform tooldef.Platform) ([]string, error) {
 	args := []string{tool.Repo, "--to", installDir}
 
-	// Pin the version.
+	// Pin the version. Most GitHub repos tag releases as "v<version>", but
+	// some (e.g. jqlang/jq uses "jq-<version>") need an explicit override.
 	if tool.Version != "" {
-		tag := "v" + tool.Version
-		args = append(args, "--tag", tag)
+		prefix := tool.TagPrefix
+		if prefix == "" {
+			prefix = "v"
+		}
+		args = append(args, "--tag", prefix+tool.Version)
 	}
 
-	// Asset filter narrows which release asset to download.
+	// Asset filter narrows which release asset to download. The pattern may
+	// contain {{.OS}}/{{.Arch}} template directives that need rendering.
 	if tool.Asset != "" {
-		args = append(args, "--asset", tool.Asset)
+		asset, err := ResolveAsset(tool, platform)
+		if err != nil {
+			return nil, err
+		}
+		args = append(args, "--asset", asset)
 	}
 
 	// Specify the binary to extract from the archive.
@@ -76,7 +88,7 @@ func buildEgetRepoArgs(tool *tooldef.Tool, installDir string, platform tooldef.P
 	// Quiet mode — we handle progress/output in the TUI layer.
 	args = append(args, "-q")
 
-	return args
+	return args, nil
 }
 
 // buildEgetURLArgs constructs the eget CLI arguments for direct URL mode.
