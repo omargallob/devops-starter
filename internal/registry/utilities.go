@@ -17,6 +17,7 @@ func registerUtilities(r *Registry) {
 		Group:       tooldef.GroupUtilities,
 		InstallMode: tooldef.InstallModeEget,
 		Repo:        "jqlang/jq",
+		TagPrefix:   "jq-",
 	})
 
 	r.register(&tooldef.Tool{

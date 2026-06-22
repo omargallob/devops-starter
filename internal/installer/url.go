@@ -59,3 +59,34 @@ func ResolveURL(tool *tooldef.Tool, platform tooldef.Platform) (string, error) {
 
 	return buf.String(), nil
 }
+
+// ResolveAsset renders tool.Asset as a text/template against the given
+// platform, so glob patterns like "yq_{{.OS}}_{{.Arch}}" become concrete
+// eget --asset filters (e.g. "yq_linux_amd64"). Returns the literal Asset
+// string unchanged if it contains no template directives.
+func ResolveAsset(tool *tooldef.Tool, platform tooldef.Platform) (string, error) {
+	if tool.Asset == "" {
+		return "", nil
+	}
+
+	tmpl, err := template.New("asset").Parse(tool.Asset)
+	if err != nil {
+		return "", fmt.Errorf("parsing asset template: %w", err)
+	}
+
+	data := urlTemplateData{
+		Name:       tool.Name,
+		Version:    tool.Version,
+		OS:         platform.OS,
+		Arch:       platform.Arch,
+		Format:     string(tool.Format),
+		BinaryName: tool.GetBinaryName(),
+	}
+
+	var buf bytes.Buffer
+	if err := tmpl.Execute(&buf, data); err != nil {
+		return "", fmt.Errorf("executing asset template: %w", err)
+	}
+
+	return buf.String(), nil
+}

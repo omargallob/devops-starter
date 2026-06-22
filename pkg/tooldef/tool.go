@@ -94,6 +94,11 @@ type Tool struct {
 	// Used when InstallMode is InstallModeEget.
 	Repo string `yaml:"repo,omitempty"`
 
+	// TagPrefix overrides the default "v" prefix used to build the release
+	// tag from Version (e.g. "jq-" for jqlang/jq, whose tags look like
+	// "jq-1.7.1" rather than "v1.7.1"). Used when InstallMode is InstallModeEget.
+	TagPrefix string `yaml:"tag_prefix,omitempty"`
+
 	// Asset is an eget --asset glob pattern to select the correct release asset
 	// (e.g., "*.tar.gz", "kustomize_*"). Used when InstallMode is InstallModeEget.
 	Asset string `yaml:"asset,omitempty"`
