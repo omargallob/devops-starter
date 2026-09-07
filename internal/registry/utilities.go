@@ -12,7 +12,7 @@ import "github.com/omargallob/devops-starter/pkg/tooldef"
 func registerUtilities(r *Registry) {
 	r.register(&tooldef.Tool{
 		Name:        "jq",
-		Version:     "1.7.1",
+		Version:     "1.8.2",
 		Description: "JSON processor",
 		Group:       tooldef.GroupUtilities,
 		InstallMode: tooldef.InstallModeEget,
@@ -21,7 +21,7 @@ func registerUtilities(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "yq",
-		Version:     "4.44.6",
+		Version:     "4.53.6",
 		Description: "YAML processor",
 		Group:       tooldef.GroupUtilities,
 		InstallMode: tooldef.InstallModeEget,
@@ -31,7 +31,7 @@ func registerUtilities(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "fzf",
-		Version:     "0.57.0",
+		Version:     "0.74.3",
 		Description: "Fuzzy finder",
 		Group:       tooldef.GroupUtilities,
 		InstallMode: tooldef.InstallModeEget,
@@ -40,7 +40,7 @@ func registerUtilities(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "direnv",
-		Version:     "2.35.0",
+		Version:     "2.37.1",
 		Description: "Environment variable manager",
 		Group:       tooldef.GroupUtilities,
 		InstallMode: tooldef.InstallModeEget,
@@ -60,7 +60,7 @@ func registerUtilities(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "sops",
-		Version:     "3.9.4",
+		Version:     "3.13.3",
 		Description: "Secrets encryption",
 		Group:       tooldef.GroupUtilities,
 		InstallMode: tooldef.InstallModeEget,
@@ -70,7 +70,7 @@ func registerUtilities(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "gh",
-		Version:     "2.63.2",
+		Version:     "2.100.0",
 		Description: "GitHub CLI",
 		Group:       tooldef.GroupUtilities,
 		InstallMode: tooldef.InstallModeEget,
@@ -80,7 +80,7 @@ func registerUtilities(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "trivy",
-		Version:     "0.70.0",
+		Version:     "0.74.0",
 		Description: "Security scanner",
 		Group:       tooldef.GroupUtilities,
 		InstallMode: tooldef.InstallModeEget,
@@ -89,7 +89,7 @@ func registerUtilities(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "lazygit",
-		Version:     "0.44.1",
+		Version:     "0.65.0",
 		Description: "Terminal UI for git",
 		Group:       tooldef.GroupUtilities,
 		InstallMode: tooldef.InstallModeEget,
@@ -98,7 +98,7 @@ func registerUtilities(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "shellcheck",
-		Version:     "0.10.0",
+		Version:     "0.11.0",
 		Description: "Shell script linter",
 		Group:       tooldef.GroupUtilities,
 		InstallMode: tooldef.InstallModeEget,
@@ -108,7 +108,7 @@ func registerUtilities(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "shfmt",
-		Version:     "3.10.0",
+		Version:     "3.14.1",
 		Description: "Shell script formatter",
 		Group:       tooldef.GroupUtilities,
 		InstallMode: tooldef.InstallModeEget,
@@ -118,7 +118,7 @@ func registerUtilities(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "task",
-		Version:     "3.40.1",
+		Version:     "3.53.1",
 		Description: "Task runner",
 		Group:       tooldef.GroupUtilities,
 		InstallMode: tooldef.InstallModeEget,
@@ -127,7 +127,7 @@ func registerUtilities(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "neovim",
-		Version:     "0.10.3",
+		Version:     "0.12.5",
 		Description: "Hyperextensible text editor",
 		Group:       tooldef.GroupUtilities,
 		InstallMode: tooldef.InstallModeEget,
@@ -138,7 +138,7 @@ func registerUtilities(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "lcov",
-		Version:     "2.4",
+		Version:     "2.5",
 		Description: "Linux code coverage reporting tool",
 		Group:       tooldef.GroupUtilities,
 		InstallMode: tooldef.InstallModeEget,
@@ -148,7 +148,7 @@ func registerUtilities(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "genhtml",
-		Version:     "2.4",
+		Version:     "2.5",
 		Description: "Generate HTML coverage reports from lcov data",
 		Group:       tooldef.GroupUtilities,
 		InstallMode: tooldef.InstallModeEget,

@@ -8,7 +8,7 @@ import "github.com/omargallob/devops-starter/pkg/tooldef"
 func registerInfra(r *Registry) {
 	r.register(&tooldef.Tool{
 		Name:        "terraform",
-		Version:     "1.10.4",
+		Version:     "1.16.1",
 		Description: "Infrastructure as Code",
 		Group:       tooldef.GroupInfra,
 		InstallMode: tooldef.InstallModeEgetURL,
@@ -18,7 +18,7 @@ func registerInfra(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "opentofu",
-		Version:     "1.9.0",
+		Version:     "1.12.6",
 		Description: "Open-source Terraform alternative",
 		Group:       tooldef.GroupInfra,
 		InstallMode: tooldef.InstallModeEget,
@@ -45,7 +45,7 @@ func registerInfra(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "packer",
-		Version:     "1.11.2",
+		Version:     "1.16.0",
 		Description: "Machine image builder",
 		Group:       tooldef.GroupInfra,
 		InstallMode: tooldef.InstallModeEgetURL,
@@ -55,7 +55,7 @@ func registerInfra(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "vault",
-		Version:     "1.18.4",
+		Version:     "2.1.0",
 		Description: "Secrets management",
 		Group:       tooldef.GroupInfra,
 		InstallMode: tooldef.InstallModeEgetURL,
@@ -65,7 +65,7 @@ func registerInfra(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "consul",
-		Version:     "1.20.2",
+		Version:     "2.0.3",
 		Description: "Service mesh and KV store",
 		Group:       tooldef.GroupInfra,
 		InstallMode: tooldef.InstallModeEgetURL,

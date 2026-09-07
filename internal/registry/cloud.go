@@ -75,7 +75,7 @@ func registerCloud(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "eksctl",
-		Version:     "0.198.0",
+		Version:     "0.230.0",
 		Description: "Amazon EKS CLI",
 		Group:       tooldef.GroupCloud,
 		InstallMode: tooldef.InstallModeEget,

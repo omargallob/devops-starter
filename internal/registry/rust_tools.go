@@ -8,7 +8,7 @@ import "github.com/omargallob/devops-starter/pkg/tooldef"
 func registerRustTools(r *Registry) {
 	r.register(&tooldef.Tool{
 		Name:        "bat",
-		Version:     "0.24.0",
+		Version:     "0.26.1",
 		Description: "Cat clone with syntax highlighting",
 		Group:       tooldef.GroupRustTools,
 		InstallMode: tooldef.InstallModeEget,
@@ -18,7 +18,7 @@ func registerRustTools(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "eza",
-		Version:     "0.20.14",
+		Version:     "0.23.5",
 		Description: "Modern ls replacement",
 		Group:       tooldef.GroupRustTools,
 		InstallMode: tooldef.InstallModeEget,
@@ -28,7 +28,7 @@ func registerRustTools(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "fd",
-		Version:     "10.2.0",
+		Version:     "10.5.0",
 		Description: "Fast find alternative",
 		Group:       tooldef.GroupRustTools,
 		InstallMode: tooldef.InstallModeEget,
@@ -38,7 +38,7 @@ func registerRustTools(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "ripgrep",
-		Version:     "14.1.1",
+		Version:     "15.2.0",
 		Description: "Fast grep alternative",
 		Group:       tooldef.GroupRustTools,
 		InstallMode: tooldef.InstallModeEget,
@@ -50,7 +50,7 @@ func registerRustTools(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "delta",
-		Version:     "0.18.2",
+		Version:     "0.19.2",
 		Description: "Git diff viewer",
 		Group:       tooldef.GroupRustTools,
 		InstallMode: tooldef.InstallModeEget,
@@ -60,7 +60,7 @@ func registerRustTools(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "zoxide",
-		Version:     "0.9.6",
+		Version:     "0.10.0",
 		Description: "Smarter cd command",
 		Group:       tooldef.GroupRustTools,
 		InstallMode: tooldef.InstallModeEget,
@@ -70,7 +70,7 @@ func registerRustTools(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "starship",
-		Version:     "1.21.1",
+		Version:     "1.26.0",
 		Description: "Cross-shell prompt",
 		Group:       tooldef.GroupRustTools,
 		InstallMode: tooldef.InstallModeEget,
@@ -80,7 +80,7 @@ func registerRustTools(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "tokei",
-		Version:     "12.1.2",
+		Version:     "15.0.0",
 		Description: "Code statistics",
 		Group:       tooldef.GroupRustTools,
 		InstallMode: tooldef.InstallModeEget,
@@ -89,7 +89,7 @@ func registerRustTools(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "hyperfine",
-		Version:     "1.19.0",
+		Version:     "1.20.0",
 		Description: "Command-line benchmarking",
 		Group:       tooldef.GroupRustTools,
 		InstallMode: tooldef.InstallModeEget,
@@ -99,7 +99,7 @@ func registerRustTools(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "procs",
-		Version:     "0.14.8",
+		Version:     "0.14.12",
 		Description: "Modern ps replacement",
 		Group:       tooldef.GroupRustTools,
 		InstallMode: tooldef.InstallModeEget,
@@ -108,7 +108,7 @@ func registerRustTools(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "bottom",
-		Version:     "0.10.2",
+		Version:     "0.14.9",
 		Description: "System monitor",
 		Group:       tooldef.GroupRustTools,
 		InstallMode: tooldef.InstallModeEget,
@@ -120,7 +120,7 @@ func registerRustTools(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "gitui",
-		Version:     "0.26.3",
+		Version:     "0.28.1",
 		Description: "Terminal UI for git",
 		Group:       tooldef.GroupRustTools,
 		InstallMode: tooldef.InstallModeEget,
@@ -129,7 +129,7 @@ func registerRustTools(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "dust",
-		Version:     "1.1.1",
+		Version:     "1.2.5",
 		Description: "Disk usage analyzer",
 		Group:       tooldef.GroupRustTools,
 		InstallMode: tooldef.InstallModeEget,
@@ -149,7 +149,7 @@ func registerRustTools(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "sd",
-		Version:     "1.0.0",
+		Version:     "1.1.0",
 		Description: "Intuitive find & replace",
 		Group:       tooldef.GroupRustTools,
 		InstallMode: tooldef.InstallModeEget,
@@ -159,7 +159,7 @@ func registerRustTools(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "tealdeer",
-		Version:     "1.7.1",
+		Version:     "1.9.0",
 		Description: "Fast tldr client",
 		Group:       tooldef.GroupRustTools,
 		InstallMode: tooldef.InstallModeEget,
@@ -170,7 +170,7 @@ func registerRustTools(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "xh",
-		Version:     "0.23.1",
+		Version:     "0.26.2",
 		Description: "Friendly HTTP client",
 		Group:       tooldef.GroupRustTools,
 		InstallMode: tooldef.InstallModeEget,
@@ -180,7 +180,7 @@ func registerRustTools(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "yazi",
-		Version:     "25.5.28",
+		Version:     "26.9.1",
 		Description: "Terminal file manager",
 		Group:       tooldef.GroupRustTools,
 		InstallMode: tooldef.InstallModeEget,
@@ -190,7 +190,7 @@ func registerRustTools(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "atuin",
-		Version:     "18.4.0",
+		Version:     "18.21.0",
 		Description: "Shell history manager",
 		Group:       tooldef.GroupRustTools,
 		InstallMode: tooldef.InstallModeEget,
@@ -200,7 +200,7 @@ func registerRustTools(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "zellij",
-		Version:     "0.41.2",
+		Version:     "0.45.1",
 		Description: "Terminal workspace",
 		Group:       tooldef.GroupRustTools,
 		InstallMode: tooldef.InstallModeEget,
@@ -210,7 +210,7 @@ func registerRustTools(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "just",
-		Version:     "1.38.0",
+		Version:     "1.58.0",
 		Description: "Command runner",
 		Group:       tooldef.GroupRustTools,
 		InstallMode: tooldef.InstallModeEget,
@@ -220,7 +220,7 @@ func registerRustTools(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "watchexec",
-		Version:     "2.2.1",
+		Version:     "2.7.2",
 		Description: "File watcher and command executor",
 		Group:       tooldef.GroupRustTools,
 		InstallMode: tooldef.InstallModeEget,
