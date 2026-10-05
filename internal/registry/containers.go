@@ -24,7 +24,7 @@ func registerContainers(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "docker-compose",
-		Version:     "2.32.4",
+		Version:     "5.6.0",
 		Description: "Docker Compose plugin",
 		Group:       tooldef.GroupContainers,
 		InstallMode: tooldef.InstallModeEget,
@@ -33,7 +33,7 @@ func registerContainers(r *Registry) {
 
 	r.register(&tooldef.Tool{
 		Name:        "nerdctl",
-		Version:     "2.0.3",
+		Version:     "2.4.1",
 		Description: "containerd CLI",
 		Group:       tooldef.GroupContainers,
 		InstallMode: tooldef.InstallModeEget,
